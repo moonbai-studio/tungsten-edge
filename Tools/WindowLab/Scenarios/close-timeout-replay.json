@@ -1,0 +1,35 @@
+{
+  "name": "close-timeout-replay",
+  "steps": [
+    {
+      "label": "baseline-window",
+      "observation": {
+        "kind": "appeared",
+        "source": "coreGraphics",
+        "pid": 4201,
+        "cgWindowID": 9101,
+        "title": "Close Timeout Demo",
+        "appName": "DemoApp",
+        "bounds": "240:200:880:620",
+        "isMinimized": false
+      },
+      "expectedStatus": "inactive"
+    },
+    {
+      "label": "late-disappearance",
+      "observation": {
+        "kind": "disappeared",
+        "source": "coreGraphics",
+        "pid": 4201,
+        "cgWindowID": 9101,
+        "title": "Close Timeout Demo",
+        "appName": "DemoApp",
+        "bounds": "240:200:880:620",
+        "isMinimized": false,
+        "atSeconds": 3.5
+      },
+      "expectedStatus": "disappeared",
+      "trackCloseAtSeconds": 0.0
+    }
+  ]
+}

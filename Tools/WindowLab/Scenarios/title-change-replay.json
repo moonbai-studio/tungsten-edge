@@ -1,0 +1,38 @@
+{
+  "name": "title-change-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 2001,
+          "cgWindowID": 6101,
+          "title": "Old Title",
+          "appName": "DemoApp",
+          "bounds": "120:120:900:640",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    },
+    {
+      "label": "title-changed",
+      "observations": [
+        {
+          "kind": "titleChanged",
+          "source": "coreGraphics",
+          "pid": 2001,
+          "cgWindowID": 6101,
+          "title": "New Title",
+          "appName": "DemoApp",
+          "bounds": "120:120:900:640",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    }
+  ]
+}

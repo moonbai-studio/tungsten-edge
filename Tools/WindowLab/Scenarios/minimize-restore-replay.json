@@ -1,0 +1,51 @@
+{
+  "name": "minimize-restore-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 1001,
+          "cgWindowID": 5001,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false
+        }
+      ]
+    },
+    {
+      "label": "minimized",
+      "observations": [
+        {
+          "kind": "minimized",
+          "source": "accessibility",
+          "pid": 1001,
+          "cgWindowID": null,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": true
+        }
+      ]
+    },
+    {
+      "label": "restored",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 1001,
+          "cgWindowID": 5009,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false
+        }
+      ]
+    }
+  ]
+}

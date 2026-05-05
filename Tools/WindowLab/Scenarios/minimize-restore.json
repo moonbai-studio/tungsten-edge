@@ -1,0 +1,11 @@
+{
+  "name": "minimize-restore",
+  "notes": "Pick one visible CG window, minimize it until its baseline CGWindowID disappears, restore it, and pass only if the restored window keeps the original identity.",
+  "steps": [
+    "collect baseline observations",
+    "select one tracked target by index or keyword",
+    "minimize the target and confirm its baseline CGWindowID disappears",
+    "restore the target window",
+    "pass only if the restored observation resolves back to the baseline identity"
+  ]
+}

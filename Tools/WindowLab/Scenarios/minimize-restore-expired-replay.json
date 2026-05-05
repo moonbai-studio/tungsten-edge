@@ -1,0 +1,57 @@
+{
+  "name": "minimize-restore-expired-replay",
+  "expectedStableIdentity": false,
+  "steps": [
+    {
+      "label": "baseline",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 4001,
+          "cgWindowID": 8101,
+          "title": "Expired Bridge Window",
+          "appName": "DemoApp",
+          "bounds": "160:160:880:640",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 0
+        }
+      ]
+    },
+    {
+      "label": "minimized",
+      "observations": [
+        {
+          "kind": "minimized",
+          "source": "accessibility",
+          "pid": 4001,
+          "cgWindowID": null,
+          "title": "Expired Bridge Window",
+          "appName": "DemoApp",
+          "bounds": "160:160:880:640",
+          "isMinimized": true,
+          "track": true,
+          "atSeconds": 1
+        }
+      ]
+    },
+    {
+      "label": "restored",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 4001,
+          "cgWindowID": 8110,
+          "title": "Expired Bridge Window",
+          "appName": "DemoApp",
+          "bounds": "160:160:880:640",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 10
+        }
+      ]
+    }
+  ]
+}

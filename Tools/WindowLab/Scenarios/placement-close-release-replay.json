@@ -1,0 +1,20 @@
+{
+  "name": "placement-close-release-replay",
+  "initialOrderedWindowIDs": ["A", "B", "C"],
+  "steps": [
+    {
+      "label": "b-closed",
+      "windowID": "B",
+      "newStatus": "closedPending",
+      "atSeconds": 0,
+      "expectedOrder": ["A", "C"]
+    },
+    {
+      "label": "b-reopened",
+      "windowID": "B",
+      "newStatus": "inactive",
+      "atSeconds": 20,
+      "expectedOrder": ["A", "C", "B"]
+    }
+  ]
+}

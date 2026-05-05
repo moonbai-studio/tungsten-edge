@@ -1,0 +1,54 @@
+{
+  "name": "hide-unhide-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 3001,
+          "cgWindowID": 7101,
+          "title": "Hidden Candidate",
+          "appName": "DemoApp",
+          "bounds": "140:140:860:620",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    },
+    {
+      "label": "hidden",
+      "observations": [
+        {
+          "kind": "hidden",
+          "source": "accessibility",
+          "pid": 3001,
+          "cgWindowID": null,
+          "title": "Hidden Candidate",
+          "appName": "DemoApp",
+          "bounds": "140:140:860:620",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    },
+    {
+      "label": "unhidden",
+      "observations": [
+        {
+          "kind": "unhidden",
+          "source": "coreGraphics",
+          "pid": 3001,
+          "cgWindowID": 7110,
+          "title": "Hidden Candidate",
+          "appName": "DemoApp",
+          "bounds": "140:140:860:620",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    }
+  ]
+}

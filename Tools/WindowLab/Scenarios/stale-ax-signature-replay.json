@@ -1,0 +1,44 @@
+{
+  "name": "stale-ax-signature-replay",
+  "expectedStableIdentity": false,
+  "steps": [
+    {
+      "label": "baseline-ax",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 7001,
+          "cgWindowID": null,
+          "title": "Stale AX Window",
+          "appName": "DemoApp",
+          "bounds": "260:260:920:700",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 0,
+          "expectedDecision": "newWindow",
+          "expectedConfidence": "low"
+        }
+      ]
+    },
+    {
+      "label": "stale-ax",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 7001,
+          "cgWindowID": null,
+          "title": "Stale AX Window",
+          "appName": "DemoApp",
+          "bounds": "260:260:920:700",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 10,
+          "expectedDecision": "newWindow",
+          "expectedConfidence": "low"
+        }
+      ]
+    }
+  ]
+}

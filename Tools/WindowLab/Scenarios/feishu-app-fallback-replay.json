@@ -1,0 +1,46 @@
+{
+  "name": "feishu-app-fallback-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline-cg-empty-title",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 9101,
+          "bundleIdentifier": "com.electron.lark",
+          "cgWindowID": 12001,
+          "title": null,
+          "appName": "飞书",
+          "bounds": "420:160:1280:860",
+          "isMinimized": false,
+          "track": true,
+          "expectedDecision": "newWindow",
+          "expectedReason": "feishu-app-fallback",
+          "expectedConfidence": "medium"
+        }
+      ]
+    },
+    {
+      "label": "later-ax-titled",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 9101,
+          "bundleIdentifier": "com.electron.lark",
+          "cgWindowID": null,
+          "title": "飞书",
+          "appName": "飞书",
+          "bounds": "420:160:1280:860",
+          "isMinimized": false,
+          "track": true,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "feishu-app-fallback",
+          "expectedConfidence": "medium"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "accessibility-streak-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline-ax",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 6001,
+          "cgWindowID": null,
+          "title": "AX Stable Window",
+          "appName": "DemoApp",
+          "bounds": "220:220:960:720",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 0,
+          "expectedDecision": "newWindow",
+          "expectedConfidence": "low"
+        }
+      ]
+    },
+    {
+      "label": "second-ax",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 6001,
+          "cgWindowID": null,
+          "title": "AX Stable Window",
+          "appName": "DemoApp",
+          "bounds": "220:220:960:720",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 1,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "signature-replay-accessibility",
+          "expectedConfidence": "medium"
+        }
+      ]
+    },
+    {
+      "label": "third-ax",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 6001,
+          "cgWindowID": null,
+          "title": "AX Stable Window",
+          "appName": "DemoApp",
+          "bounds": "220:220:960:720",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 2,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "signature-streak-accessibility",
+          "expectedConfidence": "high"
+        }
+      ]
+    }
+  ]
+}

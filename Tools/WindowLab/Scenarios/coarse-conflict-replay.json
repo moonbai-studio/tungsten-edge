@@ -1,0 +1,65 @@
+{
+  "name": "coarse-conflict-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline-a",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 8001,
+          "cgWindowID": null,
+          "title": "Shared AX Title",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 0,
+          "expectedDecision": "newWindow",
+          "expectedConfidence": "low"
+        }
+      ]
+    },
+    {
+      "label": "conflicting-b",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 8001,
+          "cgWindowID": null,
+          "title": "Shared AX Title",
+          "appName": "DemoApp",
+          "bounds": "520:120:800:600",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 1,
+          "expectedDecision": "newWindow",
+          "expectedReason": "conflicting-coarse-signature",
+          "expectedConfidence": "low"
+        }
+      ]
+    },
+    {
+      "label": "revisit-a",
+      "observations": [
+        {
+          "kind": "unchanged",
+          "source": "accessibility",
+          "pid": 8001,
+          "cgWindowID": null,
+          "title": "Shared AX Title",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false,
+          "track": true,
+          "atSeconds": 2,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "signature-replay-accessibility",
+          "expectedConfidence": "medium"
+        }
+      ]
+    }
+  ]
+}

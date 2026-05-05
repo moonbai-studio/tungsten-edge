@@ -1,0 +1,25 @@
+{
+  "name": "wechat-content-filter-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "content-window",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 5001,
+          "bundleIdentifier": "com.tencent.xinWeChat",
+          "cgWindowID": 9101,
+          "title": "收藏",
+          "appName": "微信",
+          "bounds": "200:200:900:700",
+          "isMinimized": false,
+          "track": true,
+          "expectedDecision": "ambiguous",
+          "expectedReason": "filtered-by-rule"
+        }
+      ]
+    }
+  ]
+}

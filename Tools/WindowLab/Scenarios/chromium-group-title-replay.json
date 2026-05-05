@@ -1,0 +1,43 @@
+{
+  "name": "chromium-group-title-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "baseline-cg",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 9001,
+          "bundleIdentifier": "com.google.Chrome.canary",
+          "cgWindowID": 9901,
+          "title": "CPA json 格式 - Google 搜索",
+          "appName": "Google Chrome Canary",
+          "bounds": "0:30:1858:988",
+          "isMinimized": false,
+          "track": true
+        }
+      ]
+    },
+    {
+      "label": "minimized-ax",
+      "observations": [
+        {
+          "kind": "minimized",
+          "source": "accessibility",
+          "pid": 9001,
+          "bundleIdentifier": "com.google.Chrome.canary",
+          "cgWindowID": null,
+          "title": "CPA json 格式 - Google 搜索 - 属于“ai 文档”群组 - Google Chrome Canary",
+          "appName": "Google Chrome Canary",
+          "bounds": "0:30:1858:988",
+          "isMinimized": true,
+          "track": true,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "minimized-side-evidence",
+          "expectedConfidence": "medium"
+        }
+      ]
+    }
+  ]
+}

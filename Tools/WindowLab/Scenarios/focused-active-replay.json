@@ -1,0 +1,34 @@
+{
+  "name": "focused-active-replay",
+  "steps": [
+    {
+      "label": "baseline-inactive",
+      "observation": {
+        "kind": "appeared",
+        "source": "coreGraphics",
+        "pid": 4101,
+        "cgWindowID": 8101,
+        "title": "Focus Demo",
+        "appName": "DemoApp",
+        "bounds": "220:180:900:640",
+        "isMinimized": false
+      },
+      "expectedStatus": "inactive"
+    },
+    {
+      "label": "focused-ax",
+      "observation": {
+        "kind": "unchanged",
+        "source": "accessibility",
+        "pid": 4101,
+        "cgWindowID": null,
+        "title": "Focus Demo",
+        "appName": "DemoApp",
+        "bounds": "220:180:900:640",
+        "isMinimized": false,
+        "isFocusedWindow": true
+      },
+      "expectedStatus": "active"
+    }
+  ]
+}
