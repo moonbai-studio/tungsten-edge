@@ -45,10 +45,10 @@ final class AppComposition {
     @discardableResult
     func perform(intent: UserIntent) -> Bool {
         let request = intentPipeline.plan(intent: intent)
-        intentPipeline.registerPending(intent: intent)
+        intentPipeline.registerPending(intent: intent, request: request)
 
         let success = actionExecutor.execute(request, snapshot: state.snapshot)
-        intentPipeline.registerExecutionResult(intent: intent, success: success)
+        intentPipeline.registerExecutionResult(intent: intent, request: request, success: success)
 
         if success, request.kind == .closeWindow, let windowID = request.windowID {
             pendingCloseTracker.track(windowID: windowID, at: Date())
@@ -148,6 +148,10 @@ final class AppRuntime: ObservableObject {
 
     func activate(windowID: String) {
         trigger(.activate(WindowID(rawValue: windowID)))
+    }
+
+    func toggle(windowID: String) {
+        trigger(.toggle(WindowID(rawValue: windowID)))
     }
 
     func minimize(windowID: String) {
@@ -285,7 +289,7 @@ final class SnapshotDeduper {
 }
 
 final class ExternalCloseTracker {
-    private static let confirmationWindow: TimeInterval = 1.5
+    private static let confirmationWindow: TimeInterval = 2.0
     private var firstDisappearedAtByWindowID: [WindowID: Date] = [:]
     private let axExecutor = AccessibilityWindowActionExecutor()
 
@@ -384,12 +388,15 @@ final class ExternalCloseTracker {
     }
 
     private func stillPresentInAccessibility(record: WindowRecord) -> Bool {
-        axExecutor.captureHandle(
+        let isFinderWindow = FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier)
+        return axExecutor.captureHandle(
             for: AccessibilityWindowActionExecutor.WindowTarget(
                 pid: record.pid,
                 title: record.title,
                 bounds: record.bounds
-            )
+            ),
+            attempts: isFinderWindow ? 3 : 1,
+            retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
         ) != nil
     }
 

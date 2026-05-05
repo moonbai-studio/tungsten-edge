@@ -4,7 +4,7 @@
 
 ## 总体判断
 
-- 当前状态：**v2 已起盘，第一阶段进行中**
+- 当前状态：**Finder P0 窗口级认窗地基已验收通过，v2 仍处在第一阶段收口中**
 - 已完成的是：
   - 新仓库
   - 双目标工程
@@ -13,13 +13,15 @@
   - `window-lab` 双路最小真实观察通路
   - `cgWindowID` 直连式最简认窗闭环
   - `AX` 最小侧证据通路
+  - Finder 窗口级观察、身份、toggle 和动作保护
+  - Finder P0 用户验收与最小化反馈误报修复
 - 还没完成的是：
-  - 真正的认窗第一阶段验收
-  - Finder 窗口级认窗地基
-  - AX 观察通路
   - 时序推断与置信度累积
-  - Lifecycle 与 Placement 的完整落地
+  - 更完整的 `UI/ReadModel` 投影
   - 完整任务栏交互与抽屉策略
+  - 浏览器窗口粒度判断
+  - Feishu 真实前台 AX 窗口样本
+  - 全量生产级验收
 
 ## 已完成
 
@@ -83,7 +85,7 @@
 ### 5. 认窗第一阶段主线
 
 - [x] `CGWindowID` 消失场景下的第一版接回策略
-- [ ] 最小化再恢复不漂 ID
+- [x] 最小化再恢复不漂 ID
 - [x] 标题变化不误判 `NEW_WINDOW`
 - [x] Hide / Unhide 不漂 ID
 - [x] 第一版时序门槛（bridge TTL）
@@ -92,12 +94,14 @@
 
 #### Finder 专项补口
 
-- [ ] Finder 窗口级观察源补完
-- [ ] Finder 必须持续进入 AX 观察范围，不能因运行应用排序靠后被漏扫
-- [ ] Finder 多窗口最小化 / 恢复不串窗
-- [ ] Finder Hide / Unhide 不串窗
-- [ ] Finder activate 不退化为粗暴激活整个 Finder app
-- [ ] Finder 真实样本沉淀为可复盘文档
+- [x] Finder 窗口级观察源补完
+- [x] Finder 必须持续进入 AX 观察范围，不能因运行应用排序靠后被漏扫
+- [x] Finder 多窗口最小化 / 恢复不串窗
+- [x] Finder Hide / Unhide 不串窗
+- [x] Finder activate 不退化为粗暴激活整个 Finder app
+- [x] Finder 真实样本沉淀为可复盘文档
+- [x] Finder P0 用户验收通过
+- [x] Finder 最小化成功但提示失败的反馈误报已修正
 
 ## 主线状态
 
@@ -119,18 +123,32 @@
 
 ### 8. 测试与验收
 
-- [ ] `Identity` 单元测试集
+- [x] Finder P0 最小 XCTest target
+- [ ] `Identity` 全量单元测试集
 - [ ] `Placement` 单元测试集
 - [x] 预设场景驱动的 `window-lab` 对比框架
 - [x] 第一条自动合成 replay 验证
 - [x] 第一条真实验收场景（`minimize-restore`）已落地
-- [ ] 第一阶段行为验收通过
+- [x] Finder P0 行为验收通过
+- [ ] 第一阶段全量行为验收通过
 
 ## 当前下一步
 
-- P0：主攻 Finder 认窗地基，先修 `AccessibilitySource` 重复 signature 崩点，再补 Finder 窗口级观察与动作保护
-- P1：用双 Finder 窗口真实样本验证 minimize / restore、Hide / Unhide、activate 不串窗
-- P2：Finder 收口后，再回到真实 close / activate 收尾与浏览器窗口粒度判断
+- P0：Finder P0 已收口并打检查点
+- P1：继续真实 close / activate 的边界样本，确认不会残留 stale 条目
+- P2：回到浏览器窗口粒度判断与抽屉策略，不把 Finder 地基当作未完成 blocker
+
+## 本轮 Finder P0 推进
+
+- [x] `AccessibilitySource` 已跳过 Finder，避免和 Finder 专用 AX 观察重复产出
+- [x] `FinderSource` 已补为 Finder 专用窗口级观察源
+- [x] 主标签点击已接入 toggle：前台窗口最小化，非前台窗口激活
+- [x] Finder activate / minimize / close 已禁止退回粗暴 app-level fallback
+- [x] 新增最小 XCTest target 覆盖 signature 合并、toggle、Finder 过滤规则
+- [x] 新增 `finder-title-tab-replay` 验证 Finder 同一窗口标题变化不漂 identity
+- [x] 新增双 Finder 窗口真实样本记录：`Docs/18-real-sample-finder-findings.md`
+- [x] Finder P0 正式 app 路径经项目 owner 手测验收通过
+- [x] 修正 Finder 最小化成功但提示“没能最小化这个窗口”的反馈误报
 
 ## 本轮新增完成
 
@@ -178,9 +196,9 @@
   - [x] 飞书标题归一化入口
 - [x] Finder 风险已重新定位：
   - [x] Finder 不是拿不到窗口名；`CG` / `AX` / AppleScript 都能读到具体文件夹窗口名
-  - [x] `Platform/Finder/FinderSource` 仍是空实现，Finder 专项观察源尚未补完
-  - [x] 正式 app 采样显示 `AccessibilitySource.observe()` 可能在重复 signature 字典构造处进入断言/异常路径
-  - [x] 实验台明确选中单个 Finder 测试窗口时，`--lab-minimize` 可通过；正式 app UI 的卡顿 / 串窗风险仍需 Finder 专项收口后复测
+  - [x] P0 前 `Platform/Finder/FinderSource` 是空实现；现已补为 Finder 专用观察源
+  - [x] P0 前正式 app 采样显示 `AccessibilitySource.observe()` 可能在重复 signature 字典构造处进入断言/异常路径；现已改为按优先级合并
+  - [x] 实验台明确选中单个 Finder 测试窗口时，`--lab-minimize` 可通过；P0 后正式 app UI 路径也已通过项目 owner 手测验收
 - [x] `ObservationPipeline` 现在负责组装完整 `StateUpdate`：
   - [x] `State` 不再从 decision 反推 `WindowRecord`
   - [x] 窗口标题 / appID / status 在进入 `State` 前已组装完成
@@ -296,9 +314,11 @@
   - `v2 新仓库和双目标骨架已经落地`
   - `window-lab 双路最小真实观察通路已跑通`
   - `认窗第一阶段已经开始`
-  - `Finder 标题归一化入口已经落地，但 Finder 窗口级认窗地基尚未完成`
+  - `Finder P0 窗口级认窗地基已经验收通过`
+  - `Finder concrete window toggle 已进入正式 app 路径`
 - 不允许说：
   - `v2 架构已经完成`
-  - `认窗地基已经完成`
-  - `最小化恢复问题已经解决`
-  - `Finder 窗口级行为已经收口`
+  - `完整任务栏已经生产可用`
+  - `所有应用的认窗问题已经解决`
+  - `Feishu 已经具备完整窗口级保真`
+  - `抽屉策略已经定稿`

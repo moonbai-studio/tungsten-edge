@@ -20,17 +20,33 @@
 		A0000000000000000000100A /* DockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* DockState.swift */; };
 		A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* WindowIdentityEngine.swift */; };
 		A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000050 /* IdentityRuleEngine.swift */; };
+		A00000000000000000001019 /* ObservationKindMergeRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ObservationKindMergeRule.swift */; };
 		A0000000000000000000100C /* PlacementEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* PlacementEngine.swift */; };
 		A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000D /* LifecycleTransitionEngine.swift */; };
 		A0000000000000000000100E /* LifecycleActionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* LifecycleActionPlanner.swift */; };
+		A0000000000000000000101A /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
 		A0000000000000000000100F /* AccessibilitySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000F /* AccessibilitySource.swift */; };
 		A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* CoreGraphicsSource.swift */; };
 		A00000000000000000001011 /* WorkspaceSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* WorkspaceSource.swift */; };
+		A0000000000000000000101B /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
 		A00000000000000000001012 /* FinderSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* FinderSource.swift */; };
 		A00000000000000000001013 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* PermissionService.swift */; };
 		A00000000000000000001014 /* StripItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* StripItem.swift */; };
 		A00000000000000000001015 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* Assets.xcassets */; };
 		A00000000000000000001016 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* main.swift */; };
+		A0000000000000000000101C /* ObservationKindMergeRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ObservationKindMergeRule.swift */; };
+		A0000000000000000000101D /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
+		A0000000000000000000101E /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
+		A0000000000000000000101F /* FinderP0Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* FinderP0Tests.swift */; };
+		A00000000000000000001020 /* Identifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* Identifiers.swift */; };
+		A00000000000000000001021 /* WindowModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* WindowModels.swift */; };
+		A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* SystemBoundaryModels.swift */; };
+		A00000000000000000001023 /* Decisions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* Decisions.swift */; };
+		A00000000000000000001027 /* DockState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* DockState.swift */; };
+		A00000000000000000001024 /* LifecycleActionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* LifecycleActionPlanner.swift */; };
+		A00000000000000000001025 /* ObservationKindMergeRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ObservationKindMergeRule.swift */; };
+		A00000000000000000001026 /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
+		A00000000000000000001028 /* IntentPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* IntentPipeline.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,12 +63,15 @@
 		A0000000000000000000000A /* DockState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockState.swift; sourceTree = "<group>"; };
 		A0000000000000000000000B /* WindowIdentityEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowIdentityEngine.swift; sourceTree = "<group>"; };
 		A00000000000000000000050 /* IdentityRuleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityRuleEngine.swift; sourceTree = "<group>"; };
+		A00000000000000000000053 /* ObservationKindMergeRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationKindMergeRule.swift; sourceTree = "<group>"; };
 		A0000000000000000000000C /* PlacementEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementEngine.swift; sourceTree = "<group>"; };
 		A0000000000000000000000D /* LifecycleTransitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleTransitionEngine.swift; sourceTree = "<group>"; };
 		A0000000000000000000000E /* LifecycleActionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleActionPlanner.swift; sourceTree = "<group>"; };
+		A00000000000000000000054 /* AXWindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXWindowReader.swift; sourceTree = "<group>"; };
 		A0000000000000000000000F /* AccessibilitySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySource.swift; sourceTree = "<group>"; };
 		A00000000000000000000010 /* CoreGraphicsSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreGraphicsSource.swift; sourceTree = "<group>"; };
 		A00000000000000000000011 /* WorkspaceSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSource.swift; sourceTree = "<group>"; };
+		A00000000000000000000055 /* FinderWindowRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderWindowRules.swift; sourceTree = "<group>"; };
 		A00000000000000000000012 /* FinderSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSource.swift; sourceTree = "<group>"; };
 		A00000000000000000000013 /* PermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionService.swift; sourceTree = "<group>"; };
 		A00000000000000000000014 /* StripItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripItem.swift; sourceTree = "<group>"; };
@@ -61,6 +80,8 @@
 		A00000000000000000000017 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A00000000000000000000018 /* macos-dock-cc-v2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "macos-dock-cc-v2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000019 /* window-lab */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "window-lab"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000058 /* FinderP0Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderP0Tests.swift; sourceTree = "<group>"; };
+		A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-dock-cc-v2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +93,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A0000000000000000000001B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0000000000000000000005D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -90,6 +118,7 @@
 				A00000000000000000000020 /* UI */,
 				A00000000000000000000021 /* Resources */,
 				A00000000000000000000022 /* Tools */,
+				A00000000000000000000056 /* Tests */,
 				A00000000000000000000023 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -166,6 +195,7 @@
 				A00000000000000000000007 /* WindowModels.swift */,
 				A00000000000000000000008 /* SystemBoundaryModels.swift */,
 				A00000000000000000000009 /* Decisions.swift */,
+				A00000000000000000000053 /* ObservationKindMergeRule.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -243,6 +273,7 @@
 		A00000000000000000000030 /* Accessibility */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000054 /* AXWindowReader.swift */,
 				A0000000000000000000000F /* AccessibilitySource.swift */,
 			);
 			path = Accessibility;
@@ -267,6 +298,7 @@
 		A00000000000000000000033 /* Finder */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000055 /* FinderWindowRules.swift */,
 				A00000000000000000000012 /* FinderSource.swift */,
 			);
 			path = Finder;
@@ -329,11 +361,28 @@
 			path = Entry;
 			sourceTree = "<group>";
 		};
+		A00000000000000000000056 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000057 /* Unit */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000057 /* Unit */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000058 /* FinderP0Tests.swift */,
+			);
+			path = Unit;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000023 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000018 /* macos-dock-cc-v2.app */,
 				A00000000000000000000019 /* window-lab */,
+				A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -374,6 +423,22 @@
 			productReference = A00000000000000000000019 /* window-lab */;
 			productType = "com.apple.product-type.tool";
 		};
+		A0000000000000000000005A /* macos-dock-cc-v2Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0000000000000000000005B /* Build configuration list for PBXNativeTarget "macos-dock-cc-v2Tests" */;
+			buildPhases = (
+				A0000000000000000000005C /* Sources */,
+				A0000000000000000000005D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "macos-dock-cc-v2Tests";
+			productName = "macos-dock-cc-v2Tests";
+			productReference = A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -388,6 +453,9 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					A0000000000000000000003C = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					A0000000000000000000005A = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -407,6 +475,7 @@
 			targets = (
 				A00000000000000000000038 /* macos-dock-cc-v2 */,
 				A0000000000000000000003C /* window-lab */,
+				A0000000000000000000005A /* macos-dock-cc-v2Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -440,12 +509,15 @@
 				A0000000000000000000100A /* DockState.swift in Sources */,
 				A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
 				A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
+				A00000000000000000001019 /* ObservationKindMergeRule.swift in Sources */,
 				A0000000000000000000100C /* PlacementEngine.swift in Sources */,
 				A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
 				A0000000000000000000100E /* LifecycleActionPlanner.swift in Sources */,
+				A0000000000000000000101A /* AXWindowReader.swift in Sources */,
 				A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
 				A00000000000000000001011 /* WorkspaceSource.swift in Sources */,
+				A0000000000000000000101B /* FinderWindowRules.swift in Sources */,
 				A00000000000000000001012 /* FinderSource.swift in Sources */,
 				A00000000000000000001013 /* PermissionService.swift in Sources */,
 				A00000000000000000001014 /* StripItem.swift in Sources */,
@@ -463,16 +535,36 @@
 				A0000000000000000000100A /* DockState.swift in Sources */,
 				A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
 				A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
+				A0000000000000000000101C /* ObservationKindMergeRule.swift in Sources */,
 				A0000000000000000000100C /* PlacementEngine.swift in Sources */,
 				A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
 				A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
 				A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
+				A0000000000000000000101D /* AXWindowReader.swift in Sources */,
 				A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
 				A00000000000000000001011 /* WorkspaceSource.swift in Sources */,
+				A0000000000000000000101E /* FinderWindowRules.swift in Sources */,
 				A00000000000000000001012 /* FinderSource.swift in Sources */,
 				A00000000000000000001013 /* PermissionService.swift in Sources */,
 				A00000000000000000001016 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0000000000000000000005C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0000000000000000000101F /* FinderP0Tests.swift in Sources */,
+				A00000000000000000001020 /* Identifiers.swift in Sources */,
+				A00000000000000000001021 /* WindowModels.swift in Sources */,
+				A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */,
+				A00000000000000000001023 /* Decisions.swift in Sources */,
+				A00000000000000000001027 /* DockState.swift in Sources */,
+				A00000000000000000001024 /* LifecycleActionPlanner.swift in Sources */,
+				A00000000000000000001028 /* IntentPipeline.swift in Sources */,
+				A00000000000000000001025 /* ObservationKindMergeRule.swift in Sources */,
+				A00000000000000000001026 /* FinderWindowRules.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -610,6 +702,42 @@
 			};
 			name = Release;
 		};
+		A0000000000000000000005F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A00000000000000000000060 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -627,6 +755,15 @@
 			buildConfigurations = (
 				A00000000000000000000045 /* Debug */,
 				A00000000000000000000046 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0000000000000000000005B /* Build configuration list for PBXNativeTarget "macos-dock-cc-v2Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0000000000000000000005F /* Debug */,
+				A00000000000000000000060 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

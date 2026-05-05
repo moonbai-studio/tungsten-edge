@@ -5,6 +5,7 @@ struct ContentView: View {
     let hasRequiredPermissions: Bool
     let observationStatusText: String
     let feedbackEntriesByWindowID: [String: IntentFeedbackState.Entry]
+    let onToggle: (String) -> Void
     let onActivate: (String) -> Void
     let onMinimize: (String) -> Void
     let onHide: (String) -> Void
@@ -206,7 +207,7 @@ struct ContentView: View {
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .onTapGesture {
             guard isPending == false else { return }
-            onActivate(item.id)
+            onToggle(item.id)
         }
     }
 
@@ -242,6 +243,8 @@ struct ContentView: View {
         switch feedback.phase {
         case .pending:
             switch feedback.action {
+            case .toggle:
+                return "正在尝试切换这个窗口"
             case .activate:
                 return "正在尝试把这个窗口带到前台"
             case .minimize:
@@ -253,6 +256,8 @@ struct ContentView: View {
             }
         case .success:
             switch feedback.action {
+            case .toggle:
+                return "这个窗口已切换"
             case .activate:
                 return "这个窗口已带到前台"
             case .minimize:
@@ -264,6 +269,8 @@ struct ContentView: View {
             }
         case .failure:
             switch feedback.action {
+            case .toggle:
+                return "没能切换这个窗口"
             case .activate:
                 return "没能把这个窗口带到前台"
             case .minimize:

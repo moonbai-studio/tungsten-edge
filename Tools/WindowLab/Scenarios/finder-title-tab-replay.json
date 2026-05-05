@@ -1,0 +1,50 @@
+{
+  "name": "finder-title-tab-replay",
+  "expectedStableIdentity": true,
+  "steps": [
+    {
+      "label": "finder-window-alpha",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 2026,
+          "bundleIdentifier": "com.apple.finder",
+          "cgWindowID": 81001,
+          "title": "codex-finder-test-alpha-20260505",
+          "appName": "Finder",
+          "bounds": "100:120:720:520",
+          "isMinimized": false,
+          "isFocusedWindow": false,
+          "track": true,
+          "atSeconds": 0,
+          "expectedDecision": "newWindow",
+          "expectedReason": "cg-window-id",
+          "expectedConfidence": "high"
+        }
+      ]
+    },
+    {
+      "label": "finder-tab-title-change",
+      "observations": [
+        {
+          "kind": "titleChanged",
+          "source": "coreGraphics",
+          "pid": 2026,
+          "bundleIdentifier": "com.apple.finder",
+          "cgWindowID": 81001,
+          "title": "codex-finder-test-beta-20260505",
+          "appName": "Finder",
+          "bounds": "100:120:720:520",
+          "isMinimized": false,
+          "isFocusedWindow": true,
+          "track": true,
+          "atSeconds": 1,
+          "expectedDecision": "knownWindow",
+          "expectedReason": "cg-window-id",
+          "expectedConfidence": "high"
+        }
+      ]
+    }
+  ]
+}

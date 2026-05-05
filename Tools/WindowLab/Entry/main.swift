@@ -25,6 +25,7 @@ struct LabTarget {
 
 var cgSource = CoreGraphicsSource()
 let axSource = AccessibilitySource()
+let finderSource = FinderSource()
 let axActionExecutor = AccessibilityWindowActionExecutor()
 let identityEngine = WindowIdentityEngine()
 let formatter = ISO8601DateFormatter()
@@ -90,7 +91,8 @@ func printObservation(_ observation: SystemObservation, label: String) -> Identi
 func collectRealObservations() -> [SystemObservation] {
     let cg = cgSource.observe()
     let ax = axSource.observe()
-    return cg + ax
+    let finder = finderSource.observe()
+    return cg + ax + finder
 }
 
 func collectAnalyzedRealObservations() -> [AnalyzedObservation] {

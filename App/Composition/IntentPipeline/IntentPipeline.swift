@@ -18,20 +18,45 @@ final class IntentPipeline {
         feedbackState.canBegin(windowID: intent.windowID.rawValue)
     }
 
-    func registerPending(intent: UserIntent) {
-        feedbackState.begin(intent: intent, at: Date())
+    func registerPending(intent: UserIntent, request: PlatformActionRequest) {
+        feedbackState.begin(
+            windowID: intent.windowID.rawValue,
+            action: feedbackAction(for: request, fallback: intent.action),
+            at: Date()
+        )
     }
 
-    func registerExecutionResult(intent: UserIntent, success: Bool) {
+    func registerExecutionResult(intent: UserIntent, request: PlatformActionRequest, success: Bool) {
+        let action = feedbackAction(for: request, fallback: intent.action)
         if success {
-            feedbackState.markSucceededImmediatelyIfNeeded(for: intent, at: Date())
+            feedbackState.markSucceededImmediatelyIfNeeded(
+                windowID: intent.windowID.rawValue,
+                action: action,
+                at: Date()
+            )
         } else {
-            feedbackState.markFailed(intent: intent, at: Date())
+            feedbackState.markFailed(windowID: intent.windowID.rawValue, action: action, at: Date())
         }
     }
 
     func reconcile(with snapshot: DockSnapshot) {
         feedbackState.reconcile(snapshot: snapshot, now: Date())
+    }
+
+    private func feedbackAction(
+        for request: PlatformActionRequest,
+        fallback: UserIntentAction
+    ) -> UserIntentAction {
+        switch request.kind {
+        case .activateWindow:
+            return .activate
+        case .minimizeWindow:
+            return .minimize
+        case .hideApp:
+            return .hide
+        case .closeWindow:
+            return .close
+        }
     }
 }
 
@@ -43,23 +68,26 @@ struct IntentFeedbackState {
         return entry.phase != .pending
     }
 
-    mutating func begin(intent: UserIntent, at timestamp: Date) {
+    mutating func begin(windowID: String, action: UserIntentAction, at timestamp: Date) {
         let entry = Entry(
-            windowID: intent.windowID.rawValue,
-            action: intent.action,
+            windowID: windowID,
+            action: action,
             phase: .pending,
             updatedAt: timestamp
         )
-        entriesByWindowID[intent.windowID.rawValue] = entry
+        entriesByWindowID[windowID] = entry
     }
 
-    mutating func markSucceededImmediatelyIfNeeded(for intent: UserIntent, at timestamp: Date) {
-        guard intent.action != .activate else { return }
-        update(windowID: intent.windowID.rawValue, phase: .success, at: timestamp)
+    mutating func markSucceededImmediatelyIfNeeded(
+        windowID: String,
+        action: UserIntentAction,
+        at timestamp: Date
+    ) {
+        // Keep the per-window action lock until the observation loop confirms the result.
     }
 
-    mutating func markFailed(intent: UserIntent, at timestamp: Date) {
-        update(windowID: intent.windowID.rawValue, phase: .failure, at: timestamp)
+    mutating func markFailed(windowID: String, action: UserIntentAction, at timestamp: Date) {
+        update(windowID: windowID, phase: .failure, at: timestamp)
     }
 
     mutating func reconcile(snapshot: DockSnapshot, now: Date) {
@@ -80,12 +108,14 @@ struct IntentFeedbackState {
             guard let record = snapshot.windows[typedWindowID] else { continue }
 
             switch entry.action {
+            case .toggle:
+                break
             case .activate:
                 if record.status == .active {
                     update(windowID: windowID, phase: .success, at: now)
                 }
             case .minimize:
-                if record.status == .minimized {
+                if record.status == .minimized || record.status == .disappeared {
                     update(windowID: windowID, phase: .success, at: now)
                 }
             case .hide:

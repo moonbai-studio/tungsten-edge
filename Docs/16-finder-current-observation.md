@@ -2,6 +2,8 @@
 
 > Recorded: 2026-05-05
 
+> Status: historical pre-P0 observation. The Finder P0 implementation was accepted on 2026-05-05; current implementation details are in [17-finder-p0-implementation.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/17-finder-p0-implementation.md:1), and real samples are in [18-real-sample-finder-findings.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/18-real-sample-finder-findings.md:1).
+
 ## Product Takeaway
 
 Finder must be treated as a window-level identity target in this phase.
@@ -22,26 +24,28 @@ It should not be treated like Feishu app-level fallback. A Finder process can li
 - `CGWindowList` can report visible Finder windows with titles and frames.
 - `AXWindows` can report Finder windows with titles and frames.
 
-## Current Implementation Gap
+## Original Implementation Gap
 
-- `FinderIdentityRule` exists only as a title-normalization entry.
-- `Platform/Finder/FinderSource` currently returns no observations.
-- `AccessibilitySource` currently scans only a small prefix of running apps; in one local sample Finder was much later in the running-app list, so it could be missed by steady-state AX observation.
-- `PlatformActionExecutor` may fall back to activating the whole app when it cannot capture a concrete AX window handle. For Finder, that can bring forward the wrong folder window or multiple Finder windows.
+These gaps are now closed for Finder P0:
+
+- `FinderIdentityRule` existed only as a title-normalization entry.
+- `Platform/Finder/FinderSource` returned no observations.
+- `AccessibilitySource` could scan only a small prefix of running apps; in one local sample Finder was much later in the running-app list, so it could be missed by steady-state AX observation.
+- `PlatformActionExecutor` could fall back to activating the whole app when it could not capture a concrete AX window handle. For Finder, that could bring forward the wrong folder window or multiple Finder windows.
 
 ## Verification So Far
 
 - A targeted `window-lab` run passed when explicitly selecting a temporary Finder test window:
   - command: `./Scripts/build_and_run.sh --lab-minimize "codex-finder-test-alpha-20260505"`
   - result: the restored identity stayed stable as the same `cg-61049`
-- This does **not** prove the formal app UI path is healthy.
-- Formal app sampling showed an observation-loop risk:
+- At this point in the investigation, the sample did **not** prove the formal app UI path was healthy.
+- Formal app sampling showed an original observation-loop risk:
   - `AccessibilitySource.observe()` was sampled around the `Dictionary(uniqueKeysWithValues:)` construction path.
   - If duplicate AX signatures occur in one observation round, the current unique-key dictionary construction can enter a Swift assertion / failure path.
 
-## Next Thread Focus
+## P0 Focus That Was Implemented
 
-The next thread should focus on Finder identity foundation before drawer strategy or UI expansion:
+Finder identity foundation was completed before drawer strategy or UI expansion:
 
 - Fix `AccessibilitySource` duplicate-signature handling so observation cannot stall or crash.
 - Ensure Finder is always included in AX observation when Finder windows are present or tracked.
@@ -66,3 +70,5 @@ Passing behavior:
 - no A-window click restoring B window
 - no activate action bringing multiple Finder windows forward
 - no long yellow pending state caused by missing observation feedback
+
+Finder P0 user acceptance passed on 2026-05-05. A post-acceptance feedback fix now treats Finder minimize observations of either `minimized` or temporary `disappeared` as success.

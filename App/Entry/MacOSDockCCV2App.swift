@@ -11,6 +11,7 @@ struct MacOSDockCCV2App: App {
                 hasRequiredPermissions: runtime.hasRequiredPermissions,
                 observationStatusText: runtime.observationStatusText,
                 feedbackEntriesByWindowID: runtime.feedbackEntriesByWindowID,
+                onToggle: runtime.toggle(windowID:),
                 onActivate: runtime.activate(windowID:),
                 onMinimize: runtime.minimize(windowID:),
                 onHide: runtime.hide(windowID:),

@@ -10,7 +10,9 @@ The current phase prioritizes:
 2. stable placement behavior
 3. a minimal usable bottom strip in the app shell
 
-Current next-thread focus: Finder window-level identity foundation.
+Current checkpoint: Finder P0 window-level identity foundation was accepted on 2026-05-05.
+
+Next-thread focus should start from the post-Finder-P0 state, not from rebuilding the Finder foundation.
 
 ## Product Rules
 
@@ -35,7 +37,9 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 - Finder process existence does not mean there is a Finder window.
 - Concrete Finder folder windows should remain window-level items when titles / frames are available.
 - Do not fall back to activating the whole Finder app when a specific Finder window target cannot be captured; that can bring forward the wrong Finder window or multiple windows.
-- Next implementation focus is documented in `Docs/16-finder-current-observation.md`.
+- Finder P0 implementation details are documented in `Docs/17-finder-p0-implementation.md`.
+- Finder real sample findings are documented in `Docs/18-real-sample-finder-findings.md`.
+- Finder minimize feedback treats either `minimized` or temporary `disappeared` observation as success, because macOS can report a minimized concrete Finder window through either path.
 
 ## Validation Entrypoints
 
@@ -45,10 +49,10 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 - `./Scripts/build_and_run.sh --lab-close "<keyword>"`
 - `./Scripts/build_and_run.sh --lab-replay <scenario-name>`
 
-Finder next-thread sample:
+Finder P0 sample:
 
 - Create two Finder folders with unique names and run `./Scripts/build_and_run.sh --lab-minimize "<unique Finder folder title>"`
-- Then validate the formal app UI path for minimize / restore, Hide / Unhide, activate, and repeated clicks.
+- Formal app UI path has been user-accepted for the Finder P0 stage.
 
 ### Placement
 
@@ -64,6 +68,7 @@ Finder next-thread sample:
 
 - The app already renders a minimal bottom task strip.
 - Strip items can activate / hide / minimize / close.
+- Strip item labels can toggle: inactive/minimized concrete windows activate, active concrete windows minimize.
 - Strip actions now surface user-facing feedback and temporarily lock repeated clicks while work is pending.
 - The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
 
@@ -79,4 +84,4 @@ Finder next-thread sample:
 
 - No drawer strategy is final yet.
 - Feishu real frontmost AX samples are useful but not blocking.
-- The project is not yet claiming full production-ready taskbar behavior.
+- Finder P0 acceptance does not mean the full taskbar is production-ready.

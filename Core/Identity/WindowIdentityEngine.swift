@@ -130,6 +130,7 @@ final class WindowIdentityEngine {
 private struct IdentityMemory {
     var seenWindowIDs: Set<WindowID> = []
     var rememberedExactIDBySignature: [String: TimedWindowID] = [:]
+    var rememberedExactCandidatesBySignature: [String: [WindowID: Date]] = [:]
     var rememberedExactIDsByCoarseSignature: [String: [String: TimedWindowID]] = [:]
     var rememberedCoarseCandidatesBySignature: [String: [WindowID: Date]] = [:]
     var rememberedFrameCandidatesBySignature: [String: [WindowID: Date]] = [:]
@@ -146,6 +147,9 @@ private struct IdentityMemory {
 
         let timed = TimedWindowID(id: resolvedID, timestamp: observation.timestamp)
         rememberedExactIDBySignature[exactSignature] = timed
+        var exactCandidates = rememberedExactCandidatesBySignature[exactSignature] ?? [:]
+        exactCandidates[resolvedID] = observation.timestamp
+        rememberedExactCandidatesBySignature[exactSignature] = exactCandidates
 
         var exactEntries = rememberedExactIDsByCoarseSignature[coarseSignature] ?? [:]
         exactEntries[exactSignature] = timed
@@ -195,8 +199,12 @@ private struct IdentityMemory {
         ttl: TimeInterval
     ) -> RememberedIdentityLookup {
         let exactSignature = observation.exactSignature(normalizedTitle: normalizedTitle)
-        if let exactMatch = freshExactMatch(for: exactSignature, now: now, ttl: ttl) {
-            return .matched(exactMatch, .coarse)
+        let exactMatches = freshExactCandidates(for: exactSignature, now: now, ttl: ttl)
+        if exactMatches.count == 1 {
+            return .matched(exactMatches[0], .coarse)
+        }
+        if exactMatches.count > 1 {
+            return .conflict
         }
 
         let coarseSignature = observation.coarseSignature(normalizedTitle: normalizedTitle)
@@ -289,6 +297,10 @@ private struct IdentityMemory {
 
         seenWindowIDs.remove(windowID)
         rememberedExactIDBySignature = rememberedExactIDBySignature.filter { $0.value.id != windowID }
+        rememberedExactCandidatesBySignature = rememberedExactCandidatesBySignature.compactMapValues { entries in
+            let filtered = entries.filter { $0.key != windowID }
+            return filtered.isEmpty ? nil : filtered
+        }
         rememberedExactIDsByCoarseSignature = rememberedExactIDsByCoarseSignature.compactMapValues { entries in
             let filtered = entries.filter { $0.value.id != windowID }
             return filtered.isEmpty ? nil : filtered
@@ -330,6 +342,23 @@ private struct IdentityMemory {
             return nil
         }
         return match.id
+    }
+
+    private func freshExactCandidates(
+        for signature: String,
+        now: Date,
+        ttl: TimeInterval
+    ) -> [WindowID] {
+        guard let candidates = rememberedExactCandidatesBySignature[signature] else {
+            if let single = freshExactMatch(for: signature, now: now, ttl: ttl) {
+                return [single]
+            }
+            return []
+        }
+
+        return candidates.compactMap { candidate, timestamp in
+            now.timeIntervalSince(timestamp) <= ttl ? candidate : nil
+        }
     }
 
     private func hasConflictingFreshExactSignature(

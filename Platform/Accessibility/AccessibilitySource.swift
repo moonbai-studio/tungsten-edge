@@ -5,6 +5,7 @@ import Foundation
 final class AccessibilitySource {
     private let startupScanLimit = 6
     private let steadyStateScanLimit = 12
+    private let reader = AXWindowReader()
     private var observeRounds = 0
     private var previousWindowKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
     private var previousHiddenSignatures: Set<String> = []
@@ -16,7 +17,9 @@ final class AccessibilitySource {
         let scanLimit = observeRounds <= 2 ? startupScanLimit : steadyStateScanLimit
 
         let apps = NSWorkspace.shared.runningApplications.filter {
-            !$0.isTerminated && $0.activationPolicy != .prohibited
+            !$0.isTerminated
+                && $0.activationPolicy != .prohibited
+                && FinderWindowRules.isFinder(bundleIdentifier: $0.bundleIdentifier) == false
         }
         .prefix(scanLimit)
 
@@ -34,25 +37,25 @@ final class AccessibilitySource {
             }
         }
 
-        previousWindowKindsBySignature = Dictionary(
-            uniqueKeysWithValues: observations.map { (observationSignature($0), $0.kind) }
-        )
+        var nextKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
+        for observation in observations {
+            let signature = observationSignature(observation)
+            nextKindsBySignature[signature] = ObservationKindMergeRule.preferred(
+                nextKindsBySignature[signature],
+                observation.kind
+            )
+        }
+        previousWindowKindsBySignature = nextKindsBySignature
         previousHiddenSignatures = currentHiddenSignatures
         return observations
     }
 
     private func observeWindows(for app: NSRunningApplication, now: Date) -> [SystemObservation] {
-        let elements = windows(for: app.processIdentifier)
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
-        let focusedElement = axElementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement)
         let isAppHidden = app.isHidden
 
-        return elements.compactMap { element in
-            let title = axStringAttribute(kAXTitleAttribute as CFString, from: element)
+        return reader.windows(for: app).compactMap { window in
+            let title = window.title
             guard title != nil else { return nil }
-            let isMinimized = axBoolAttribute(kAXMinimizedAttribute as CFString, from: element) ?? false
-            let bounds = axFrame(of: element)
-            let isFocusedWindow = focusedElement.map { CFEqual($0, element) } ?? false
             let baseObservation = SystemObservation(
                 timestamp: now,
                 kind: .unchanged,
@@ -62,16 +65,16 @@ final class AccessibilitySource {
                 cgWindowID: nil,
                 title: title,
                 appName: app.localizedName,
-                bounds: bounds,
-                isMinimized: isMinimized,
-                isFocusedWindow: isFocusedWindow
+                bounds: window.bounds,
+                isMinimized: window.isMinimized,
+                isFocusedWindow: window.isFocusedWindow
             )
             let signature = observationSignature(baseObservation)
             let previousKind = previousWindowKindsBySignature[signature]
             let wasHidden = previousHiddenSignatures.contains(signature)
             let kind: SystemObservation.ObservationKind
 
-            if isMinimized {
+            if window.isMinimized {
                 kind = .minimized
             } else if isAppHidden {
                 kind = .hidden
@@ -90,9 +93,9 @@ final class AccessibilitySource {
                 cgWindowID: nil,
                 title: title,
                 appName: app.localizedName,
-                bounds: bounds,
-                isMinimized: isMinimized,
-                isFocusedWindow: isFocusedWindow
+                bounds: window.bounds,
+                isMinimized: window.isMinimized,
+                isFocusedWindow: window.isFocusedWindow
             )
         }
     }
@@ -107,6 +110,8 @@ final class AccessibilitySource {
 }
 
 struct AccessibilityWindowActionExecutor {
+    private let reader = AXWindowReader()
+
     struct ActionExecution {
         let success: Bool
         let mechanism: String
@@ -126,22 +131,29 @@ struct AccessibilityWindowActionExecutor {
         fileprivate let element: AXUIElement
     }
 
-    func captureHandle(for target: WindowTarget) -> WindowHandle? {
-        guard AXIsProcessTrusted() else { return nil }
-
-        let candidates = windows(for: target.pid)
-        guard let element = bestMatch(for: target, from: candidates) else { return nil }
+    func captureHandle(
+        for target: WindowTarget,
+        attempts: Int = 1,
+        retryIntervalMicroseconds: useconds_t = 0
+    ) -> WindowHandle? {
+        guard let handle = reader.captureHandle(
+            for: AXWindowTarget(pid: target.pid, title: target.title, bounds: target.bounds),
+            attempts: attempts,
+            retryIntervalMicroseconds: retryIntervalMicroseconds
+        ) else {
+            return nil
+        }
         return WindowHandle(
             pid: target.pid,
-            title: axStringAttribute(kAXTitleAttribute as CFString, from: element),
-            bounds: axFrame(of: element),
-            element: element
+            title: handle.title,
+            bounds: handle.bounds,
+            element: handle.element
         )
     }
 
     func minimize(_ handle: WindowHandle) -> ActionExecution {
         if setMinimized(true, for: handle) {
-            let verified = axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+            let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
             if verified == true {
                 return ActionExecution(
                     success: true,
@@ -155,7 +167,7 @@ struct AccessibilityWindowActionExecutor {
             return ActionExecution(
                 success: false,
                 mechanism: "missing-minimize-button",
-                verifiedMinimized: axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+                verifiedMinimized: reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
             )
         }
 
@@ -163,12 +175,12 @@ struct AccessibilityWindowActionExecutor {
             return ActionExecution(
                 success: false,
                 mechanism: "press-minimize-button-failed",
-                verifiedMinimized: axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+                verifiedMinimized: reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
             )
         }
 
         usleep(150_000)
-        let verified = axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+        let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
         return ActionExecution(
             success: verified == true,
             mechanism: "press-minimize-button",
@@ -179,7 +191,7 @@ struct AccessibilityWindowActionExecutor {
     func restore(_ handle: WindowHandle) -> ActionExecution {
         if setMinimized(false, for: handle) {
             _ = AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString)
-            let verified = axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+            let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
             return ActionExecution(
                 success: verified == false,
                 mechanism: "clear-minimized-attribute",
@@ -198,11 +210,11 @@ struct AccessibilityWindowActionExecutor {
             return ActionExecution(
                 success: false,
                 mechanism: "clear-minimized-after-recapture-failed",
-                verifiedMinimized: axBoolAttribute(kAXMinimizedAttribute as CFString, from: rebound.element)
+                verifiedMinimized: reader.boolAttribute(kAXMinimizedAttribute as CFString, from: rebound.element)
             )
         }
         _ = AXUIElementPerformAction(rebound.element, kAXRaiseAction as CFString)
-        let verified = axBoolAttribute(kAXMinimizedAttribute as CFString, from: rebound.element)
+        let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: rebound.element)
         return ActionExecution(
             success: verified == false,
             mechanism: "clear-minimized-after-recapture",
@@ -211,35 +223,34 @@ struct AccessibilityWindowActionExecutor {
     }
 
     func activate(_ handle: WindowHandle) -> Bool {
+        activate(handle, requiresFocusedConfirmation: false)
+    }
+
+    func activate(
+        _ handle: WindowHandle,
+        requiresFocusedConfirmation: Bool,
+        confirmationTimeout: TimeInterval = 0.6,
+        pollIntervalMicroseconds: useconds_t = 100_000
+    ) -> Bool {
         let runningApp = NSRunningApplication(processIdentifier: handle.pid)
-        if let minimized = axBoolAttribute(kAXMinimizedAttribute as CFString, from: handle.element),
-           minimized {
+        if reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element) == true {
             _ = setMinimized(false, for: handle)
-            let activated = runningApp?.activate(options: [.activateIgnoringOtherApps]) ?? false
-            if activated {
-                return true
-            }
         }
 
-        if runningApp?.isActive == true {
-            return AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString) == .success
+        let raised = AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString) == .success
+        if runningApp?.isActive != true {
+            _ = runningApp?.activate(options: [.activateIgnoringOtherApps])
         }
 
-        let appActivated = runningApp?.activate(options: [.activateIgnoringOtherApps]) ?? false
-        guard appActivated else {
-            return AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString) == .success
+        if requiresFocusedConfirmation {
+            return confirmFocused(
+                handle,
+                timeout: confirmationTimeout,
+                pollIntervalMicroseconds: pollIntervalMicroseconds
+            )
         }
 
-        usleep(120_000)
-        if let focusedWindow = axElementAttribute(
-            kAXFocusedWindowAttribute as CFString,
-            from: AXUIElementCreateApplication(handle.pid)
-        ),
-           CFEqual(focusedWindow, handle.element) {
-            return true
-        }
-
-        return AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString) == .success
+        return raised || runningApp?.isActive == true
     }
 
     func close(_ handle: WindowHandle) -> Bool {
@@ -259,14 +270,38 @@ struct AccessibilityWindowActionExecutor {
         )
     }
 
+    private func confirmFocused(
+        _ handle: WindowHandle,
+        timeout: TimeInterval,
+        pollIntervalMicroseconds: useconds_t
+    ) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if isFocused(handle) {
+                return true
+            }
+            if let rebound = recapture(from: handle),
+               isFocused(rebound) {
+                return true
+            }
+            usleep(pollIntervalMicroseconds)
+        } while Date() < deadline
+
+        return false
+    }
+
+    private func isFocused(_ handle: WindowHandle) -> Bool {
+        guard let focusedWindow = reader.focusedWindow(forPID: handle.pid) else {
+            return false
+        }
+        return CFEqual(focusedWindow, handle.element)
+    }
+
     private func setMinimized(_ minimized: Bool, for handle: WindowHandle) -> Bool {
-        let value: CFTypeRef = minimized ? kCFBooleanTrue : kCFBooleanFalse
-        let result = AXUIElementSetAttributeValue(
-            handle.element,
-            kAXMinimizedAttribute as CFString,
-            value
+        reader.setMinimized(
+            minimized,
+            for: AXWindowHandle(pid: handle.pid, title: handle.title, bounds: handle.bounds, element: handle.element)
         )
-        return result == .success
     }
 
     private func bestMatch(for target: WindowTarget, from elements: [AXUIElement]) -> AXUIElement? {
@@ -348,18 +383,36 @@ struct PlatformActionExecutor {
             return executeAppFallback(request: request, record: record)
         }
 
+        if request.kind == .hideApp {
+            return executeAppFallback(request: request, record: record)
+        }
+
+        let isFinderWindow = FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier)
+        if isFinderWindow,
+           request.kind == .activateWindow,
+           NSRunningApplication(processIdentifier: record.pid)?.isHidden == true {
+            return false
+        }
+
         let target = AccessibilityWindowActionExecutor.WindowTarget(
             pid: record.pid,
             title: record.title,
             bounds: record.bounds
         )
-        guard let handle = windowExecutor.captureHandle(for: target) else {
+        guard let handle = windowExecutor.captureHandle(
+            for: target,
+            attempts: isFinderWindow ? 3 : 1,
+            retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
+        ) else {
+            if isFinderWindow {
+                return false
+            }
             return executeAppFallback(request: request, record: record)
         }
 
         switch request.kind {
         case .activateWindow:
-            return windowExecutor.activate(handle)
+            return windowExecutor.activate(handle, requiresFocusedConfirmation: isFinderWindow)
         case .minimizeWindow:
             return windowExecutor.minimize(handle).success
         case .closeWindow:

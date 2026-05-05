@@ -4,14 +4,17 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 
 ## Current State
 
-- Identity and placement are the current core.
+- Finder P0 window-level identity foundation was accepted on 2026-05-05.
+- Identity and placement remain the current core.
 - The app now renders a minimal usable bottom task strip.
 - Strip actions now include activate / hide / minimize / close, with user-facing feedback.
+- Main strip labels now toggle: click an inactive/minimized concrete window to activate it, and click the active concrete window to minimize it.
 - Placement mainline is:
   - minimize / hide / temporary disappearance keep the slot
   - only true close releases the slot
 - Feishu may fall back to a single stable app-level item when window-level AX detail is unreliable.
-- Finder window-level identity is the next P0 focus: concrete folder windows must not collapse into a generic Finder app item.
+- Finder concrete folder windows are handled as window-level items and must not collapse into a generic Finder app item.
+- A Finder minimize feedback bug was fixed: minimized or temporarily disappeared observations both count as successful minimize feedback.
 
 ## Docs
 
@@ -32,6 +35,8 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - [Placement Replay](Docs/14-placement-replay.md)
 - [Feishu Fallback Strategy](Docs/15-feishu-fallback-strategy.md)
 - [Finder Current Observation](Docs/16-finder-current-observation.md)
+- [Finder P0 Implementation](Docs/17-finder-p0-implementation.md)
+- [Finder Real Sample Findings](Docs/18-real-sample-finder-findings.md)
 
 ## Build & Run
 
@@ -55,8 +60,12 @@ v2 of the macOS window-oriented bottom taskbar experiment.
   - `./Scripts/build_and_run.sh --lab-close "<keyword>"`
 - Real sample:
   - `./Scripts/build_and_run.sh --lab-minimize "日历"`
-- Finder next-thread sample:
+- Finder P0 sample:
   - `./Scripts/build_and_run.sh --lab-minimize "<unique Finder folder title>"`
+- Finder title/tab replay:
+  - `./Scripts/build_and_run.sh --lab-replay finder-title-tab-replay`
+- Unit tests:
+  - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
 
 ## Targets
 
