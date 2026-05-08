@@ -27,31 +27,63 @@ struct AXWindowHandle {
     let element: AXUIElement
 }
 
+enum AXWindowReadResult {
+    case success([AXWindowSnapshot])
+    case unread(AXError)
+}
+
 struct AXWindowReader {
     func windows(for app: NSRunningApplication) -> [AXWindowSnapshot] {
         windows(forPID: app.processIdentifier)
     }
 
     func windows(forPID pid: pid_t) -> [AXWindowSnapshot] {
-        let appElement = AXUIElementCreateApplication(pid)
-        guard let value = copyAttributeValue(kAXWindowsAttribute as CFString, from: appElement),
-              let elements = value as? [AXUIElement] else {
+        switch readWindows(forPID: pid, messagingTimeout: nil) {
+        case let .success(windows):
+            return windows
+        case .unread:
             return []
+        }
+    }
+
+    func inventoryWindows(for app: NSRunningApplication, messagingTimeout: TimeInterval) -> AXWindowReadResult {
+        readWindows(forPID: app.processIdentifier, messagingTimeout: messagingTimeout)
+    }
+
+    func inventoryWindows(forPID pid: pid_t, messagingTimeout: TimeInterval) -> AXWindowReadResult {
+        readWindows(forPID: pid, messagingTimeout: messagingTimeout)
+    }
+
+    private func readWindows(forPID pid: pid_t, messagingTimeout: TimeInterval?) -> AXWindowReadResult {
+        let appElement = AXUIElementCreateApplication(pid)
+        applyMessagingTimeout(messagingTimeout, to: appElement)
+
+        var rawWindows: CFTypeRef?
+        let maxAttempts = messagingTimeout == nil ? 2 : 1
+        let result = copyAttributeValue(
+            kAXWindowsAttribute as CFString,
+            from: appElement,
+            into: &rawWindows,
+            maxAttempts: maxAttempts
+        )
+        guard result == .success, let elements = rawWindows as? [AXUIElement] else {
+            return .unread(result)
         }
 
         let focusedElement = elementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement)
-        return elements.map { element in
-            AXWindowSnapshot(
+        return .success(elements.map { element in
+            applyMessagingTimeout(messagingTimeout, to: element)
+            return AXWindowSnapshot(
                 pid: pid,
-                title: stringAttribute(kAXTitleAttribute as CFString, from: element),
-                bounds: frame(of: element),
-                role: stringAttribute(kAXRoleAttribute as CFString, from: element),
-                subrole: stringAttribute(kAXSubroleAttribute as CFString, from: element),
-                isMinimized: boolAttribute(kAXMinimizedAttribute as CFString, from: element) ?? false,
+                title: stringAttribute(kAXTitleAttribute as CFString, from: element, maxAttempts: maxAttempts),
+                bounds: frame(of: element, maxAttempts: maxAttempts),
+                role: stringAttribute(kAXRoleAttribute as CFString, from: element, maxAttempts: maxAttempts),
+                subrole: stringAttribute(kAXSubroleAttribute as CFString, from: element, maxAttempts: maxAttempts),
+                isMinimized: boolAttribute(kAXMinimizedAttribute as CFString, from: element, maxAttempts: maxAttempts) ?? false,
                 isFocusedWindow: focusedElement.map { CFEqual($0, element) } ?? false,
                 element: element
             )
-        }
+        })
     }
 
     func captureHandle(
@@ -84,8 +116,8 @@ struct AXWindowReader {
         elementAttribute(kAXFocusedWindowAttribute as CFString, from: AXUIElementCreateApplication(pid))
     }
 
-    func stringAttribute(_ attribute: CFString, from element: AXUIElement) -> String? {
-        guard let value = copyAttributeValue(attribute, from: element),
+    func stringAttribute(_ attribute: CFString, from element: AXUIElement, maxAttempts: Int = 2) -> String? {
+        guard let value = copyAttributeValue(attribute, from: element, maxAttempts: maxAttempts),
               let text = value as? String else {
             return nil
         }
@@ -93,8 +125,8 @@ struct AXWindowReader {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    func boolAttribute(_ attribute: CFString, from element: AXUIElement) -> Bool? {
-        guard let value = copyAttributeValue(attribute, from: element),
+    func boolAttribute(_ attribute: CFString, from element: AXUIElement, maxAttempts: Int = 2) -> Bool? {
+        guard let value = copyAttributeValue(attribute, from: element, maxAttempts: maxAttempts),
               let number = value as? NSNumber else {
             return nil
         }
@@ -108,9 +140,9 @@ struct AXWindowReader {
         return unsafeBitCast(value, to: AXUIElement.self)
     }
 
-    func frame(of element: AXUIElement) -> CGRect? {
-        guard let positionAX = copyAttributeValue(kAXPositionAttribute as CFString, from: element),
-              let sizeAX = copyAttributeValue(kAXSizeAttribute as CFString, from: element) else {
+    func frame(of element: AXUIElement, maxAttempts: Int = 2) -> CGRect? {
+        guard let positionAX = copyAttributeValue(kAXPositionAttribute as CFString, from: element, maxAttempts: maxAttempts),
+              let sizeAX = copyAttributeValue(kAXSizeAttribute as CFString, from: element, maxAttempts: maxAttempts) else {
             return nil
         }
 
@@ -144,23 +176,41 @@ struct AXWindowReader {
         from element: AXUIElement,
         maxAttempts: Int = 2
     ) -> CFTypeRef? {
+        var value: CFTypeRef?
+        let result = copyAttributeValue(attribute, from: element, into: &value, maxAttempts: maxAttempts)
+        return result == .success ? value : nil
+    }
+
+    @discardableResult
+    func copyAttributeValue(
+        _ attribute: CFString,
+        from element: AXUIElement,
+        into value: inout CFTypeRef?,
+        maxAttempts: Int = 2
+    ) -> AXError {
         var attempt = 0
+        var lastResult: AXError = .failure
         while attempt < maxAttempts {
-            var value: CFTypeRef?
             let result = AXUIElementCopyAttributeValue(element, attribute, &value)
             if result == .success {
-                return value
+                return result
             }
 
+            lastResult = result
             if result != .cannotComplete {
-                return nil
+                return result
             }
 
             attempt += 1
             usleep(20_000)
         }
 
-        return nil
+        return lastResult
+    }
+
+    private func applyMessagingTimeout(_ timeout: TimeInterval?, to element: AXUIElement) {
+        guard let timeout else { return }
+        _ = AXUIElementSetMessagingTimeout(element, Float(timeout))
     }
 
     private func bestMatch(
@@ -168,7 +218,7 @@ struct AXWindowReader {
         from snapshots: [AXWindowSnapshot]
     ) -> AXWindowSnapshot? {
         let scored = snapshots.compactMap { snapshot -> (AXWindowSnapshot, Int)? in
-            matchScore(
+            AXWindowMatchPolicy.matchScore(
                 targetTitle: target.title,
                 targetBounds: target.bounds,
                 candidateTitle: snapshot.title,
@@ -182,51 +232,4 @@ struct AXWindowReader {
         return bestMatches[0].0
     }
 
-    private func matchScore(
-        targetTitle: String?,
-        targetBounds: CGRect?,
-        candidateTitle: String?,
-        candidateBounds: CGRect?
-    ) -> Int? {
-        var score = 0
-
-        if let targetTitle {
-            guard let candidateTitle else {
-                return nil
-            }
-
-            let targetNormalized = normalizedTitle(targetTitle)
-            let candidateNormalized = normalizedTitle(candidateTitle)
-
-            if targetNormalized == candidateNormalized {
-                score += 0
-            } else if candidateNormalized.contains(targetNormalized) || targetNormalized.contains(candidateNormalized) {
-                score += 25
-            } else {
-                return nil
-            }
-        }
-
-        if let targetBounds, let candidateBounds {
-            let delta = Int(
-                abs(targetBounds.origin.x - candidateBounds.origin.x)
-                + abs(targetBounds.origin.y - candidateBounds.origin.y)
-                + abs(targetBounds.width - candidateBounds.width)
-                + abs(targetBounds.height - candidateBounds.height)
-            )
-            return score + delta
-        }
-
-        if targetBounds != nil {
-            return nil
-        }
-
-        return score
-    }
-
-    private func normalizedTitle(_ title: String) -> String {
-        title
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
 }

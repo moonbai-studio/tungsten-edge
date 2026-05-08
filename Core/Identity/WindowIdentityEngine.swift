@@ -3,6 +3,8 @@ import Foundation
 final class WindowIdentityEngine {
     private var memory = IdentityMemory()
     private let bridgeTTL: TimeInterval = 5.0
+    private let inventoryBindingTTL: TimeInterval = 2.0
+    private let inventoryCGFrameTolerance: CGFloat = 12
     private let rememberedSignatureTTL: TimeInterval = 6.0
     private let signatureStreakWindow: TimeInterval = 3.0
     private let rules = IdentityRuleEngine()
@@ -53,6 +55,14 @@ final class WindowIdentityEngine {
 
     private func resolvedWindow(for observation: SystemObservation, normalizedTitle: String?) -> IdentityResolution {
         if let cgWindowID = observation.cgWindowID {
+            if let bound = memory.lookupBoundCGWindowID(cgWindowID) {
+                return IdentityResolution(
+                    windowID: bound,
+                    confidence: .high,
+                    reason: "cg-window-id-bound"
+                )
+            }
+
             if let bridged = memory.lookupPendingBridge(
                 for: observation,
                 normalizedTitle: normalizedTitle,
@@ -63,6 +73,20 @@ final class WindowIdentityEngine {
                     windowID: bridged,
                     confidence: .medium,
                     reason: "restored-via-bridge"
+                )
+            }
+
+            if let inventoryBound = memory.lookupInventoryBinding(
+                for: observation,
+                normalizedTitle: normalizedTitle,
+                now: observation.timestamp,
+                ttl: inventoryBindingTTL,
+                frameTolerance: inventoryCGFrameTolerance
+            ) {
+                return IdentityResolution(
+                    windowID: inventoryBound,
+                    confidence: .high,
+                    reason: "cg-bound-to-inventory"
                 )
             }
 
@@ -134,6 +158,9 @@ private struct IdentityMemory {
     var rememberedExactIDsByCoarseSignature: [String: [String: TimedWindowID]] = [:]
     var rememberedCoarseCandidatesBySignature: [String: [WindowID: Date]] = [:]
     var rememberedFrameCandidatesBySignature: [String: [WindowID: Date]] = [:]
+    var rememberedFramesByCoarseSignature: [String: [WindowID: TimedFrame]] = [:]
+    var recentInventoryCandidatesByCoarseSignature: [String: [WindowID: TimedOptionalFrame]] = [:]
+    var windowIDByCGWindowID: [UInt32: WindowID] = [:]
     var recentDisappearanceIDBySignature: [String: TimedWindowID] = [:]
     var pendingMinimizedIDBySignature: [String: TimedWindowID] = [:]
     var recentObservationEvidenceBySignature: [String: TimedObservationEvidence] = [:]
@@ -163,6 +190,22 @@ private struct IdentityMemory {
             var frameCandidates = rememberedFrameCandidatesBySignature[frameSignature] ?? [:]
             frameCandidates[resolvedID] = observation.timestamp
             rememberedFrameCandidatesBySignature[frameSignature] = frameCandidates
+        }
+        if let bounds = observation.bounds {
+            var frameEntries = rememberedFramesByCoarseSignature[coarseSignature] ?? [:]
+            frameEntries[resolvedID] = TimedFrame(bounds: bounds, timestamp: observation.timestamp)
+            rememberedFramesByCoarseSignature[coarseSignature] = frameEntries
+        }
+        if observation.source == .appWindowInventory {
+            var inventoryEntries = recentInventoryCandidatesByCoarseSignature[coarseSignature] ?? [:]
+            inventoryEntries[resolvedID] = TimedOptionalFrame(
+                bounds: observation.bounds,
+                timestamp: observation.timestamp
+            )
+            recentInventoryCandidatesByCoarseSignature[coarseSignature] = inventoryEntries
+        }
+        if let cgWindowID = observation.cgWindowID {
+            windowIDByCGWindowID[cgWindowID] = resolvedID
         }
 
         for signature in [exactSignature, coarseSignature] {
@@ -208,6 +251,20 @@ private struct IdentityMemory {
         }
 
         let coarseSignature = observation.coarseSignature(normalizedTitle: normalizedTitle)
+        if let tolerantMatches = freshTolerantFrameCandidates(
+            for: observation,
+            coarseSignature: coarseSignature,
+            now: now,
+            ttl: ttl
+        ) {
+            if tolerantMatches.count == 1 {
+                return .matched(tolerantMatches[0], .frameOnly)
+            }
+            if tolerantMatches.count > 1 {
+                return .conflict
+            }
+        }
+
         if observation.bounds != nil,
            hasConflictingFreshExactSignature(
             for: coarseSignature,
@@ -237,6 +294,51 @@ private struct IdentityMemory {
         }
 
         return .none
+    }
+
+    func lookupBoundCGWindowID(_ cgWindowID: UInt32) -> WindowID? {
+        windowIDByCGWindowID[cgWindowID]
+    }
+
+    func lookupInventoryBinding(
+        for observation: SystemObservation,
+        normalizedTitle: String?,
+        now: Date,
+        ttl: TimeInterval,
+        frameTolerance: CGFloat
+    ) -> WindowID? {
+        let coarseSignature = observation.coarseSignature(normalizedTitle: normalizedTitle)
+        guard let candidates = recentInventoryCandidatesByCoarseSignature[coarseSignature] else {
+            return nil
+        }
+
+        let freshCandidates = candidates.filter { _, candidate in
+            now.timeIntervalSince(candidate.timestamp) <= ttl
+        }
+        guard freshCandidates.isEmpty == false else { return nil }
+
+        if let bounds = observation.bounds {
+            let tightFrameMatches = freshCandidates.compactMap { windowID, candidate -> WindowID? in
+                guard let candidateBounds = candidate.bounds else { return nil }
+                return WindowFrameMatchPolicy.areClose(
+                    bounds,
+                    candidateBounds,
+                    tolerance: frameTolerance
+                ) ? windowID : nil
+            }
+            if tightFrameMatches.count == 1 {
+                return tightFrameMatches[0]
+            }
+            if tightFrameMatches.count > 1 {
+                return nil
+            }
+        }
+
+        if freshCandidates.count == 1 {
+            return freshCandidates.keys.first
+        }
+
+        return nil
     }
 
     func lookupPendingBridge(for observation: SystemObservation, normalizedTitle: String?, now: Date, ttl: TimeInterval) -> WindowID? {
@@ -309,6 +411,15 @@ private struct IdentityMemory {
             let filtered = entries.filter { $0.key != windowID }
             return filtered.isEmpty ? nil : filtered
         }
+        rememberedFramesByCoarseSignature = rememberedFramesByCoarseSignature.compactMapValues { entries in
+            let filtered = entries.filter { $0.key != windowID }
+            return filtered.isEmpty ? nil : filtered
+        }
+        recentInventoryCandidatesByCoarseSignature = recentInventoryCandidatesByCoarseSignature.compactMapValues { entries in
+            let filtered = entries.filter { $0.key != windowID }
+            return filtered.isEmpty ? nil : filtered
+        }
+        windowIDByCGWindowID = windowIDByCGWindowID.filter { $0.value != windowID }
         rememberedFrameCandidatesBySignature = rememberedFrameCandidatesBySignature.compactMapValues { entries in
             let filtered = entries.filter { $0.key != windowID }
             return filtered.isEmpty ? nil : filtered
@@ -409,6 +520,23 @@ private struct IdentityMemory {
         }
     }
 
+    private func freshTolerantFrameCandidates(
+        for observation: SystemObservation,
+        coarseSignature: String,
+        now: Date,
+        ttl: TimeInterval
+    ) -> [WindowID]? {
+        guard let bounds = observation.bounds,
+              let entries = rememberedFramesByCoarseSignature[coarseSignature] else {
+            return nil
+        }
+
+        return entries.compactMap { windowID, frame in
+            guard now.timeIntervalSince(frame.timestamp) <= ttl else { return nil }
+            return WindowFrameMatchPolicy.areClose(bounds, frame.bounds) ? windowID : nil
+        }
+    }
+
     private func freshObservationEvidenceCount(
         for signature: String,
         now: Date,
@@ -444,6 +572,16 @@ private struct TimedWindowID {
     let timestamp: Date
 }
 
+private struct TimedFrame {
+    let bounds: CGRect
+    let timestamp: Date
+}
+
+private struct TimedOptionalFrame {
+    let bounds: CGRect?
+    let timestamp: Date
+}
+
 private struct TimedObservationEvidence {
     let count: Int
     let timestamp: Date
@@ -453,11 +591,7 @@ private extension SystemObservation {
     func exactSignature(normalizedTitle: String?) -> String {
         let normalizedTitle = normalizedTitle ?? title?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "untitled"
         let boundsPart: String
-        if let bounds {
-            boundsPart = "\(Int(bounds.origin.x.rounded())):\(Int(bounds.origin.y.rounded())):\(Int(bounds.width.rounded())):\(Int(bounds.height.rounded()))"
-        } else {
-            boundsPart = "no-frame"
-        }
+        boundsPart = WindowFrameMatchPolicy.signature(for: bounds)
 
         return "\(pid)|\(normalizedTitle)|\(boundsPart)"
     }
@@ -469,8 +603,7 @@ private extension SystemObservation {
 
     func frameSignature() -> String? {
         guard let bounds else { return nil }
-        let boundsPart = "\(Int(bounds.origin.x.rounded())):\(Int(bounds.origin.y.rounded())):\(Int(bounds.width.rounded())):\(Int(bounds.height.rounded()))"
-        return "\(pid)|frame-only|\(boundsPart)"
+        return "\(pid)|frame-only|\(WindowFrameMatchPolicy.signature(for: bounds))"
     }
 
     func candidateSignatures(normalizedTitle: String?) -> [String] {

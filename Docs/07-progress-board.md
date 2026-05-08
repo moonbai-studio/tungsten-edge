@@ -1,324 +1,180 @@
 # v2 完成度看板
 
-> Last Updated: 2026-05-05
+> Last Updated: 2026-05-08
 
-## 总体判断
+## 当前一句话
 
-- 当前状态：**Finder P0 窗口级认窗地基已验收通过，v2 仍处在第一阶段收口中**
-- 已完成的是：
-  - 新仓库
-  - 双目标工程
-  - 目录骨架
-  - 第一批架构文档
-  - `window-lab` 双路最小真实观察通路
-  - `cgWindowID` 直连式最简认窗闭环
-  - `AX` 最小侧证据通路
-  - Finder 窗口级观察、身份、toggle 和动作保护
-  - Finder P0 用户验收与最小化反馈误报修复
-- 还没完成的是：
-  - 时序推断与置信度累积
-  - 更完整的 `UI/ReadModel` 投影
-  - 完整任务栏交互与抽屉策略
-  - 浏览器窗口粒度判断
-  - Feishu 真实前台 AX 窗口样本
-  - 全量生产级验收
+- Finder P0 窗口级认窗地基已在 2026-05-05 验收通过。
+- 任务条可信度主线已在 2026-05-08 改成 inventory-first：先看正常用户 App 窗口，再用 `CG` / `AX` 补证据。
+- 当前下一步不是继续重写架构，而是真实桌面验收。
 
-## 已完成
+## 当前产品状态
 
-### 0. 新仓库起盘
+- 正式 app 已有最小可用底部任务条。
+- 条目已支持 activate / hide / minimize / close，并带用户反馈。
+- 主标签 toggle 已接上主线：
+  - 非前台或最小化窗口 -> activate
+  - 当前前台具体窗口 -> minimize
+- 排位规则已经固定：
+  - minimize 不释放位
+  - hide 不释放位
+  - 临时 `disappeared` 不释放位
+  - 只有 true close 才释放位
+- Finder 保持具体窗口级，不退回粗暴 app-level fallback。
+- Feishu 允许稳定 app-level fallback，不阻塞主线。
+- 任务条候选现在先来自正常用户 App 窗口清单；裸 `CG` / 普通 `.accessibility` 候选在主线可用时不再单独进条。
 
-- [x] 新仓库 `macos-dock-cc-v2` 已创建
-- [x] 新 Git 仓库已初始化
-- [x] 新 Xcode 工程已建立
-- [x] 双目标已建立：
-  - [x] `macos-dock-cc-v2`
-  - [x] `window-lab`
+## 已完成里程碑
 
-### 1. 结构骨架
+### 1. 工程骨架
 
-- [x] 顶层目录已建立：
-  - [x] `App/`
-  - [x] `Core/`
-  - [x] `Platform/`
-  - [x] `UI/`
-  - [x] `Resources/`
-  - [x] `Tools/`
-  - [x] `Docs/`
-  - [x] `Scripts/`
-- [x] `Shared/` 未建立
-- [x] `Lifecycle/` 已拆成：
-  - [x] `Transitions/`
-  - [x] `ActionPlanning/`
+- 新仓库 `macos-dock-cc-v2` 已建立。
+- 双目标已建立：
+  - `macos-dock-cc-v2`
+  - `window-lab`
+- 顶层目录和第一批架构文档已落地。
+- `State`、`ObservationPipeline`、`IntentPipeline` 主结构已接通。
 
-### 2. 第一批文档
+### 2. 认窗主线
 
-- [x] `Docs/00-why-v2.md`
-- [x] `Docs/01-boundaries.md`
-- [x] `Docs/02-data-flow.md`
-- [x] `Docs/03-window-lab-output.md`
-- [x] `Docs/04-acceptance.md`
-- [x] `Docs/05-known-platform-quirks.md`
-- [x] `Docs/06-implementation-plan.md`
-- [x] 当前完成度看板
+- `CGWindowID` 直连式 identity 闭环已跑通。
+- `AX` 标题 / frame / minimized 侧证据已进入主线。
+- 第一版 bridge TTL、置信度、stale/conflict 保护已落地。
+- Chromium 标题归一化已接入。
+- 同标题窗口冲突时不再默认乱接回旧 identity。
 
-### 3. 运行入口
+### 3. Finder P0
 
-- [x] `Scripts/build_and_run.sh`
-- [x] Codex Run 按钮环境文件
-- [x] app 目标可构建并启动
-- [x] `window-lab` 可构建并运行
+- `FinderSource` 已补为 Finder 专用窗口级观察源。
+- Finder 已从通用 `AccessibilitySource` 路径中单独分流。
+- Finder activate / minimize / close 已禁止退回粗暴 app-level fallback。
+- 双 Finder 窗口真实样本已通过。
+- Finder P0 正式 app 路径已由项目 owner 验收通过。
+- Finder 最小化成功但提示失败的反馈误报已修正。
 
-### 4. 认窗第一阶段：已起步部分
+参考文档：
 
-- [x] `Platform/CoreGraphics` 最小真实观察通路
-- [x] `Platform/Accessibility` 最小真实观察通路
-- [x] `window-lab` 结构化输出格式已跑通
-- [x] `Identity` 最简版已落地
-- [x] 同一个 `cgWindowID` 在后续轮次可输出 `KNOWNWINDOW`
-- [x] `AX` 标题 / frame / minimized 侧证据已进入实验台日志
-- [x] 第一版跨源接回已落地：
-  - [x] `CG` 继续按 `cgWindowID`
-  - [x] `AX` 先按 `pid + 标题 + frame` 签名接回
+- [17-finder-p0-implementation.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/17-finder-p0-implementation.md)
+- [18-real-sample-finder-findings.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/18-real-sample-finder-findings.md)
 
-## 进行中
+### 4. 任务条可信度收口
 
-### 5. 认窗第一阶段主线
+- 假窗口 / 系统内部窗口 / helper / extension 过滤已集中到 policy 层。
+- round-level anomaly fuse 已接入；异常爆量观察轮会被整轮拒收。
+- 激活反馈已修正，不再因观察延迟误报失败。
+- 飞书 app-level fallback 保位已收口为“进程活着就保留，不因短暂观察缺口提前删除”。
+- 一次真实运行中，任务条已从异常污染恢复到合理数量。
+- 调试壳自家窗口已被排除在任务条准入外，避免 `任务条调试台` 自我复制式污染 strip。
 
-- [x] `CGWindowID` 消失场景下的第一版接回策略
-- [x] 最小化再恢复不漂 ID
-- [x] 标题变化不误判 `NEW_WINDOW`
-- [x] Hide / Unhide 不漂 ID
-- [x] 第一版时序门槛（bridge TTL）
-- [x] 第一版置信度规则
-- [x] 第一版特殊应用识别规则
+参考文档：
 
-#### Finder 专项补口
+- [19-taskbar-trust-incident.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/19-taskbar-trust-incident.md)
 
-- [x] Finder 窗口级观察源补完
-- [x] Finder 必须持续进入 AX 观察范围，不能因运行应用排序靠后被漏扫
-- [x] Finder 多窗口最小化 / 恢复不串窗
-- [x] Finder Hide / Unhide 不串窗
-- [x] Finder activate 不退化为粗暴激活整个 Finder app
-- [x] Finder 真实样本沉淀为可复盘文档
-- [x] Finder P0 用户验收通过
-- [x] Finder 最小化成功但提示失败的反馈误报已修正
+### 5. Inventory-First 主线
 
-## 主线状态
+- `WorkspaceSource` 已进入正式 app 主线。
+- 新增 `.appWindowInventory` 来源，语义是“正常 App 自己报出来的窗口”。
+- inventory 读取策略已固定：
+  - 100ms per-app AX messaging timeout
+  - 并发上限 12
+  - 连续 unread 30 轮后进入 degraded fallback
+- Finder 和 Feishu 在 inventory 阶段跳过，继续走各自例外路径。
+- 主线可用时：
+  - inventory 可准入普通新条目
+  - 裸 `CG` orphan 不可单独准入
+  - 普通 `.accessibility` orphan 不可单独准入
+- 缺少 AX 权限时，`CG` fallback 仍可提供降级可用列表。
+- inventory 条目和后续 `CG` 已能做第一版绑定；同标题歧义时不猜。
 
-### 6. Lifecycle 与 Placement
+参考文档：
 
-- [x] `Lifecycle/Transitions` 真正接入真实观察事件
-- [x] `Lifecycle/ActionPlanning` 第一版已接入真实用户意图
-- [x] `Placement` 的保位 / 释放位规则
-- [x] `ObservationPipeline` 的“按需重排”细化
-- [x] 原子 `StateUpdate` 的完整组装链路
+- [20-inventory-first-taskbar-trust.md](/Users/caye/Projects/macos-dock-cc-v2/Docs/20-inventory-first-taskbar-trust.md)
 
-### 7. UI 主线
+### 6. UI 与动作执行
 
-- [x] 最简任务栏 UI
-- [ ] `UI/ReadModel` 完整投影
-- [x] 主栏条目真实接线
-- [x] 主栏条目已可交互
-- [x] UI 消费 State 完整快照
+- 最简底部 strip UI 已接线。
+- 任务条已消费 live snapshot，而不是纯调试列表。
+- `UI -> IntentPipeline -> PlatformActionExecutor` 动作路径已接通。
+- 权限状态已进入正式 app；缺 AX 权限时 UI 会明确提示降级状态。
 
-### 8. 测试与验收
+### 7. 验证资产
 
-- [x] Finder P0 最小 XCTest target
-- [ ] `Identity` 全量单元测试集
-- [ ] `Placement` 单元测试集
-- [x] 预设场景驱动的 `window-lab` 对比框架
-- [x] 第一条自动合成 replay 验证
-- [x] 第一条真实验收场景（`minimize-restore`）已落地
-- [x] Finder P0 行为验收通过
-- [ ] 第一阶段全量行为验收通过
+- `window-lab` replay / placement / transition 验证入口已建立。
+- 真实 `minimize -> restore` 验证入口已建立。
+- Finder、Calendar、Codex 同标题窗口、Chrome、WeChat 真实样本已积累。
+- Feishu 当前已有 runtime 观察记录和 fallback replay，但还没有可靠 frontmost AX 真样本。
 
-## 当前下一步
+## 自动化验证现状
 
-- P0：Finder P0 已收口并打检查点
-- P1：继续真实 close / activate 的边界样本，确认不会残留 stale 条目
-- P2：回到浏览器窗口粒度判断与抽屉策略，不把 Finder 地基当作未完成 blocker
+- 正式 app target build 已恢复为 green。
+- `window-lab` target build 已通过。
+- 已有回归覆盖：
+  - count spike fuse
+  - eligibility 过滤
+  - Feishu fallback retention
+  - inventory-first 准入
+  - inventory-to-`CG` identity 绑定
+  - 同标题多窗口歧义时不猜 `cgWindowID`
+  - Finder 相关 signature / toggle / feedback 规则
+- 已有 replay 覆盖：
+  - minimize / restore
+  - title changed
+  - hide / unhide
+  - stale bridge
+  - accessibility streak
+  - coarse conflict
+  - chromium group title
+  - feishu app fallback
 
-## 本轮 Finder P0 推进
+## 当前未完成
 
-- [x] `AccessibilitySource` 已跳过 Finder，避免和 Finder 专用 AX 观察重复产出
-- [x] `FinderSource` 已补为 Finder 专用窗口级观察源
-- [x] 主标签点击已接入 toggle：前台窗口最小化，非前台窗口激活
-- [x] Finder activate / minimize / close 已禁止退回粗暴 app-level fallback
-- [x] 新增最小 XCTest target 覆盖 signature 合并、toggle、Finder 过滤规则
-- [x] 新增 `finder-title-tab-replay` 验证 Finder 同一窗口标题变化不漂 identity
-- [x] 新增双 Finder 窗口真实样本记录：`Docs/18-real-sample-finder-findings.md`
-- [x] Finder P0 正式 app 路径经项目 owner 手测验收通过
-- [x] 修正 Finder 最小化成功但提示“没能最小化这个窗口”的反馈误报
+- 真实桌面验收：
+  - 确认正常用户窗口完整进入任务条
+  - 确认 fake/system/helper 窗口不会进入
+  - 确认 Finder 和 Feishu 例外路径在真实桌面上继续稳定
+- `Identity` 全量单元测试集还没补完。
+- `Placement` 全量单元测试集还没补完。
+- `UI/ReadModel` 还不是完整投影版本。
+- 浏览器窗口粒度判断还没最终定稿。
+- 抽屉策略还没定稿。
+- Feishu 真实 frontmost AX 窗口样本仍缺。
+- 还不能宣称“生产可用”。
 
-## 本轮新增完成
+## 现在最应该做的事
 
-- [x] `Platform/Accessibility` 已从“只枚举标题”推进到：
-  - [x] 标题
-  - [x] 最小化状态
-  - [x] frame
-- [x] `window-lab` 已同时输出两路真实观察：
-  - [x] `CG`
-  - [x] `AX`
-- [x] 第一版跨源 identity 接回已能在部分窗口上发生：
-  - [x] `AX` 侧证据可把同标题同 frame 的窗口接回到现有 `CG` identity
-- [x] `minimize-restore` 场景已从占位文件推进到可运行的第一版工具：
-  - [x] 基线 before/after 采集
-  - [x] 候选窗口关键字选择
-  - [x] tracked target 的 identity 对照输出
-- [x] `minimize-restore` 场景已推进到三段式观察：
-  - [x] before
-  - [x] minimized
-  - [x] restored
-- [x] 第一条自动合成 replay 场景已通过：
-  - [x] 最小化后 `CGWindowID` 消失
-  - [x] 恢复后出现新的 `CGWindowID`
-  - [x] 仍接回原 identity
-- [x] 第二条自动合成 replay 场景已通过：
-  - [x] 标题变化
-  - [x] `CGWindowID` 不变
-  - [x] 不误判为 `NEW_WINDOW`
-- [x] 第三条自动合成 replay 场景已通过：
-  - [x] hidden
-  - [x] unhidden
-  - [x] 仍接回原 identity
-- [x] 第四条自动合成 replay 场景已通过：
-  - [x] bridge 过期
-  - [x] 不应再接回旧 identity
-  - [x] 应视为新的 `CGWindowID` 窗口
-- [x] 第一版置信度分层已落地并通过现有 replay 验证：
-  - [x] `cg-window-id` -> `HIGH`
-  - [x] `restored-via-bridge` -> `MEDIUM`
-  - [x] `minimized-side-evidence` -> `MEDIUM`
-  - [x] 无桥接的新 AX title fallback -> `LOW`
-- [x] 第一版特殊应用规则已接入 `Identity/Rules` 并通过 replay：
-  - [x] Finder 标题归一化入口
-  - [x] 微信内容窗过滤
-  - [x] 飞书标题归一化入口
-- [x] Finder 风险已重新定位：
-  - [x] Finder 不是拿不到窗口名；`CG` / `AX` / AppleScript 都能读到具体文件夹窗口名
-  - [x] P0 前 `Platform/Finder/FinderSource` 是空实现；现已补为 Finder 专用观察源
-  - [x] P0 前正式 app 采样显示 `AccessibilitySource.observe()` 可能在重复 signature 字典构造处进入断言/异常路径；现已改为按优先级合并
-  - [x] 实验台明确选中单个 Finder 测试窗口时，`--lab-minimize` 可通过；P0 后正式 app UI 路径也已通过项目 owner 手测验收
-- [x] `ObservationPipeline` 现在负责组装完整 `StateUpdate`：
-  - [x] `State` 不再从 decision 反推 `WindowRecord`
-  - [x] 窗口标题 / appID / status 在进入 `State` 前已组装完成
-- [x] `Placement` 最小规则已收口到更稳定版本：
-  - [x] 已跟踪窗口在普通轮询下不再反复改序
-  - [x] 最小化 / 隐藏 / 临时 `disappeared` 不再默认释放位
-  - [x] 只有 `closedPending` 会释放位
-- [x] 正式 app 已接上 v2 观察链路：
-  - [x] `AppComposition` 会轮询真实 `CoreGraphics` / `Accessibility` 观察源
-  - [x] 观察结果会流经 `ObservationPipeline -> Lifecycle -> Placement -> State`
-  - [x] SwiftUI shell 已显示 live snapshot 中的 tracked windows
-- [x] 权限状态已进入正式 app：
-  - [x] `PermissionService` 不再固定返回 `true`
-  - [x] 缺少 AX 权限时 UI 会明确提示“只有部分侧证据可用”
-- [x] `window-lab minimizeRestore` 已升级为第一条真实验收场景：
-  - [x] 支持按关键字或序号选定真实目标窗
-  - [x] 最小化后会显式检查 baseline `CGWindowID` 是否消失
-  - [x] 恢复后会显式比较 restored identity 与 baseline identity
-  - [x] 通过返回 `0`，失败返回 `1`
-- [x] `Scripts/build_and_run.sh --lab-minimize <keyword>` 已支持把目标关键字透传给实验台
-- [x] 真实验收样本已开始积累：
-  - [x] 当前实验台已支持 `index:` / `cg:` 选择器，避免同名窗口歧义
-  - [x] 实验台现已可通过 AX 自动最小化 / 自动恢复目标窗，不再依赖手工点按
-  - [x] 当前 `macos-dock-cc-v2` SwiftUI shell 真实样本已通过
-  - [x] `日历` 真实样本已通过
-  - [x] `Codex` 同标题多窗口真实样本已通过
-  - [x] `Google Chrome Canary` 浏览器真实样本已通过
-  - [x] `WeChat` 真实样本已通过：
-    - [x] `微信 (窗口)`
-    - [x] `新线程开始时：`
-- [x] 飞书方向已补第一阶段支持：
-  - [x] `feishu-app-fallback-replay` 已通过
-  - [x] 已记录当前 runtime 形态：`CG` 有无标题窗，但 `AXWindows` 为空
-  - [x] 飞书窗口级已降级为 opportunistic，应用级 fallback 已成正式策略
-  - [x] 之前的失败结论已定位为实验台判定口径 bug：
-    - [x] `CG` `disappeared` 事件被误算成“当前仍在列表中的窗口”
-    - [x] 修正后，同一真实样本通过了 `minimize -> restore` 验收
-  - [x] 已新增可复盘记录：
-    - [x] `Docs/08-real-sample-minimize-restore-findings.md`
-    - [x] `Docs/09-real-sample-calendar-findings.md`
-    - [x] `Docs/10-real-sample-codex-same-title-findings.md`
-    - [x] `Docs/11-real-sample-browser-findings.md`
-    - [x] `Docs/12-real-sample-wechat-findings.md`
-    - [x] `Docs/13-feishu-current-observation.md`
-    - [x] `Docs/15-feishu-fallback-strategy.md`
-- [x] `ObservationPipeline` 已收口到“按需重排”版本：
-  - [x] 新窗口进入有序列表时才触发成员级重排
-  - [x] `disappeared` / `hidden` / `minimized` / `restored` 等状态变化会触发排位决策
-  - [x] 普通 `titleChanged` / `unchanged` 不再每轮都重算 `Placement`
-- [x] `Identity` 已进入第一版“连续观察累计”阶段：
-  - [x] 同一 AX signature 连续稳定出现时，confidence 会从 `LOW -> MEDIUM -> HIGH`
-  - [x] `window-lab replay` 已支持 `expectedConfidence` 断言
-  - [x] 新增 `accessibility-streak-replay` 用于锁定这条时序累计行为
-- [x] `Identity` 已补上第一版 stale / conflict 保护：
-  - [x] 记忆中的 AX signature 超过窗口期后不再继续接回旧 identity
-  - [x] 同 pid 同标题但不同 frame 的冲突窗不会再直接吃掉已有 coarse signature
-  - [x] 新增 transient AX identity，避免 stale fallback 复用旧 AX id
-  - [x] 新增 `stale-ax-signature-replay` 与 `coarse-conflict-replay`
-- [x] Chromium 标题归一化第一版已落地：
-  - [x] 已处理 `Google Chrome Canary` 标题后缀
-  - [x] 已处理 `属于“... ”群组` 这类群组后缀
-  - [x] `chromium-group-title-replay` 已通过
-- [x] Feishu 式“无标题 -> 后续补标题”接回已落地：
-  - [x] 已新增 frame-only 兜底接回
-  - [x] 飞书应用级 fallback 已落地
-  - [x] `feishu-app-fallback-replay` 已通过
-- [x] 飞书 fallback 已进入正式代码主线：
-  - [x] 无标题 / 通用标题 / AX 不可靠时会落成稳定应用级 identity
-  - [x] UI 已能把这类条目标记成 `APP`
-- [x] 正式 app 已进入最小可用任务栏阶段：
-  - [x] task strip 已改成底部横向条带，而不是调试列表
-  - [x] 主栏条目已显示真实 title / status
-  - [x] 飞书 fallback 策略已进入 UI 文案和任务条模型
-  - [x] activate / minimize 已接上 `IntentPipeline -> PlatformActionExecutor`
-- [x] `Placement` 第一版保位 / 释放位规则已落地：
-  - [x] 最小化后永久保位
-  - [x] 隐藏后永久保位
-  - [x] 临时 `disappeared` 后永久保位
-  - [x] 只有真正关闭才释放位
-- [x] `Placement` 已有可重复验证入口：
-  - [x] `./Scripts/build_and_run.sh --lab-placement placement-permanent-hold-replay`
-  - [x] `./Scripts/build_and_run.sh --lab-placement placement-close-release-replay`
-  - [x] `window-lab` 现已直接驱动共享 `PlacementEngine`
-  - [x] 验证结果：
-    - [x] `placement-permanent-hold-replay` -> `A,B,C`
-    - [x] `placement-close-release-replay` -> `A,C,B`
-- [x] `Lifecycle`/交互反馈 已补可重复验证入口：
-  - [x] `./Scripts/build_and_run.sh --lab-transition focused-active-replay`
-  - [x] `./Scripts/build_and_run.sh --lab-transition close-timeout-replay`
-  - [x] 已验证 focused AX 观察可把窗口提升到 `active`
-  - [x] 已验证超时后的 close 不会误判成 `closedPending`
-- [x] 已补真实 close 验证入口：
-  - [x] `./Scripts/build_and_run.sh --lab-close "<keyword>"`
-  - [x] 用于验证真实窗口关闭后是否仍残留在观察结果里
-- [x] 真实 close 样本已开始积累：
-  - [x] `OpenAI Platform` 真实关闭后不再残留
-  - [x] `Tailscale` 真实关闭后不再残留
-  - [x] 之前的 `CLI Proxy API Management Center` 失败样本已失效，不能再作为当前 blocker
-- [x] activate / close 收口已推进：
-  - [x] activate 成功提示不再在动作发出瞬间就提前报成功
-  - [x] 真实 close 前会额外确认窗口是否仍可被 AX 捕获，降低误删风险
-- [x] 浏览器当前判断已更新：
-  - [x] 多个 Chrome strip item 不等于 tab duplication
-  - [x] 在最新真实样本里，Chrome 同时暴露了两个真实窗口
-  - [x] 同一真实窗口切 tab 时，本轮未复现“凭空新增第三个 strip item”
-- [x] 旧实验规则已退役：
-  - [x] held-slot TTL 不再作为默认产品规则
-  - [x] “过期后回末尾”不再作为最小化 / 隐藏主线方案
+1. 启动正式 app 做真实桌面验收。
+2. 如果桌面表现仍不好诊断，补 runtime 日志：
+   - inventory duration
+   - unread / degraded PID 数
+   - 准入拒收原因分布
+3. 在真实桌面验收通过后，再决定是否继续补浏览器粒度和抽屉策略。
+
+## 常用入口
+
+- 正式 app：
+  - `./Scripts/build_and_run.sh`
+- 全量验证：
+  - `./Scripts/build_and_run.sh --verify`
+- Finder P0 真样本：
+  - `./Scripts/build_and_run.sh --lab-minimize "<unique Finder folder title>"`
+- replay：
+  - `./Scripts/build_and_run.sh --lab-replay <scenario-name>`
+- placement：
+  - `./Scripts/build_and_run.sh --lab-placement <scenario-name>`
+- transition：
+  - `./Scripts/build_and_run.sh --lab-transition <scenario-name>`
+- unit tests：
+  - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
 
 ## 不允许误判的说法
 
 - 允许说：
-  - `v2 新仓库和双目标骨架已经落地`
-  - `window-lab 双路最小真实观察通路已跑通`
-  - `认窗第一阶段已经开始`
   - `Finder P0 窗口级认窗地基已经验收通过`
-  - `Finder concrete window toggle 已进入正式 app 路径`
+  - `inventory-first 任务条发现入口已经进入正式 app 主线`
+  - `正式 app 已有最小可用底部任务条`
 - 不允许说：
-  - `v2 架构已经完成`
+  - `v2 架构已经全部完成`
   - `完整任务栏已经生产可用`
-  - `所有应用的认窗问题已经解决`
-  - `Feishu 已经具备完整窗口级保真`
-  - `抽屉策略已经定稿`
+  - `所有应用认窗问题已经解决`
+  - `Feishu 已具备完整窗口级保真`
+  - `inventory-first 已完成真实桌面验收`

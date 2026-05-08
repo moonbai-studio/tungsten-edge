@@ -4,8 +4,10 @@ import Foundation
 
 struct CoreGraphicsSource {
     private var previousWindowsByID: [UInt32: CGWindowSnapshot] = [:]
+    private var executablePathByPID: [pid_t: String?] = [:]
+    private let eligibilityPolicy = DockWindowEligibilityPolicy()
 
-    mutating func observe() -> [SystemObservation] {
+    mutating func observe(inventoryDegradedPIDs: Set<pid_t> = []) -> [SystemObservation] {
         let now = Date()
         let currentWindows = currentSnapshots()
         let currentByID = Dictionary(uniqueKeysWithValues: currentWindows.map { ($0.cgWindowID, $0) })
@@ -37,7 +39,8 @@ struct CoreGraphicsSource {
                     bounds: window.bounds
                     ,
                     isMinimized: false,
-                    isFocusedWindow: false
+                    isFocusedWindow: false,
+                    isInventoryDegraded: inventoryDegradedPIDs.contains(window.pid)
                 )
             )
         }
@@ -56,7 +59,8 @@ struct CoreGraphicsSource {
                     bounds: previous.bounds
                     ,
                     isMinimized: false,
-                    isFocusedWindow: false
+                    isFocusedWindow: false,
+                    isInventoryDegraded: inventoryDegradedPIDs.contains(previous.pid)
                 )
             )
         }
@@ -73,7 +77,7 @@ struct CoreGraphicsSource {
         }
     }
 
-    private func currentSnapshots() -> [CGWindowSnapshot] {
+    private mutating func currentSnapshots() -> [CGWindowSnapshot] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         let rawList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
 
@@ -87,22 +91,46 @@ struct CoreGraphicsSource {
             let bounds = (info[kCGWindowBounds as String] as? [String: Any]).flatMap {
                 CGRect(dictionaryRepresentation: $0 as CFDictionary)
             }
-            if let bounds, (bounds.width < 40 || bounds.height < 40) {
-                return nil
-            }
 
             let title = (info[kCGWindowName as String] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            let alpha = (info[kCGWindowAlpha as String] as? NSNumber)?.doubleValue
+            let app = NSRunningApplication(processIdentifier: pid)
+            let bundleIdentifier = app?.bundleIdentifier
+            let executablePath = executablePath(for: pid, app: app)
+
+            let decision = eligibilityPolicy.evaluate(
+                DockWindowEligibilityPolicy.Candidate(
+                    bundleIdentifier: bundleIdentifier,
+                    appName: appName,
+                    title: title,
+                    bounds: bounds,
+                    alpha: alpha,
+                    activationPolicy: app?.activationPolicy ?? .prohibited,
+                    executablePath: executablePath
+                )
+            )
+            guard decision == .keep else { return nil }
 
             return CGWindowSnapshot(
                 cgWindowID: cgWindowID,
                 pid: pid,
-                bundleIdentifier: NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+                bundleIdentifier: bundleIdentifier,
                 appName: appName,
                 title: (title?.isEmpty == false) ? title : nil,
                 bounds: bounds
             )
         }
+    }
+
+    private mutating func executablePath(for pid: pid_t, app: NSRunningApplication?) -> String? {
+        if let cached = executablePathByPID[pid] {
+            return cached
+        }
+
+        let path = app?.executableURL?.path
+        executablePathByPID[pid] = path
+        return path
     }
 }
 

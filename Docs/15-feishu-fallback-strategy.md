@@ -23,7 +23,14 @@ The rule is:
 - Untitled or generic Feishu observations now fall back to:
   - `app-com.electron.lark`
   - or `app-com.feishu.app`
+  - or `app-com.bytedance.lark`
+- Supported Feishu / Lark bundle identifiers:
+  - `com.electron.lark`
+  - `com.feishu.app`
+  - `com.bytedance.lark`
 - That fallback is treated as a stable app item rather than a broken transient window item.
+- The inventory-first path intentionally skips Feishu. Feishu remains on the documented fallback path because current runtime samples can expose empty `CG` titles and empty `AXWindows`.
+- A running Feishu app-level fallback is retained while the process is alive; short observation gaps no longer delete it.
 
 ## Validation
 

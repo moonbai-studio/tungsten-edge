@@ -27,6 +27,18 @@
 		A0000000000000000000101A /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
 		A0000000000000000000100F /* AccessibilitySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000F /* AccessibilitySource.swift */; };
 		A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* CoreGraphicsSource.swift */; };
+		A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */; };
+		A00000000000000000001032 /* ObservationAdmissionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000062 /* ObservationAdmissionGate.swift */; };
+		A00000000000000000001033 /* ObservationAdmissionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000062 /* ObservationAdmissionGate.swift */; };
+		A00000000000000000001034 /* WindowFrameMatchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* WindowFrameMatchPolicy.swift */; };
+		A00000000000000000001035 /* WindowFrameMatchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* WindowFrameMatchPolicy.swift */; };
+		A00000000000000000001036 /* WindowFrameMatchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* WindowFrameMatchPolicy.swift */; };
+		A00000000000000000001037 /* AXWindowMatchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000064 /* AXWindowMatchPolicy.swift */; };
+		A00000000000000000001038 /* AXWindowMatchPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000064 /* AXWindowMatchPolicy.swift */; };
+		A00000000000000000001039 /* AppFallbackRetentionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000065 /* AppFallbackRetentionPolicy.swift */; };
+		A0000000000000000000103A /* AppFallbackRetentionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000065 /* AppFallbackRetentionPolicy.swift */; };
+		A0000000000000000000103B /* AppFallbackRetentionPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000065 /* AppFallbackRetentionPolicy.swift */; };
+		A0000000000000000000103C /* IdentityRuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000050 /* IdentityRuleEngine.swift */; };
 		A00000000000000000001011 /* WorkspaceSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* WorkspaceSource.swift */; };
 		A0000000000000000000101B /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
 		A00000000000000000001012 /* FinderSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* FinderSource.swift */; };
@@ -47,6 +59,7 @@
 		A00000000000000000001025 /* ObservationKindMergeRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ObservationKindMergeRule.swift */; };
 		A00000000000000000001026 /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
 		A00000000000000000001028 /* IntentPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* IntentPipeline.swift */; };
+		A00000000000000000001031 /* DockWindowEligibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +83,11 @@
 		A00000000000000000000054 /* AXWindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXWindowReader.swift; sourceTree = "<group>"; };
 		A0000000000000000000000F /* AccessibilitySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySource.swift; sourceTree = "<group>"; };
 		A00000000000000000000010 /* CoreGraphicsSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreGraphicsSource.swift; sourceTree = "<group>"; };
+		A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockWindowEligibilityPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000062 /* ObservationAdmissionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationAdmissionGate.swift; sourceTree = "<group>"; };
+		A00000000000000000000063 /* WindowFrameMatchPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowFrameMatchPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000064 /* AXWindowMatchPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXWindowMatchPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000065 /* AppFallbackRetentionPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFallbackRetentionPolicy.swift; sourceTree = "<group>"; };
 		A00000000000000000000011 /* WorkspaceSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSource.swift; sourceTree = "<group>"; };
 		A00000000000000000000055 /* FinderWindowRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderWindowRules.swift; sourceTree = "<group>"; };
 		A00000000000000000000012 /* FinderSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderSource.swift; sourceTree = "<group>"; };
@@ -153,10 +171,11 @@
 		};
 		A00000000000000000000027 /* ObservationPipeline */ = {
 			isa = PBXGroup;
-			children = (
-				A00000000000000000000004 /* ObservationPipeline.swift */,
-				A00000000000000000000052 /* PendingCloseTracker.swift */,
-			);
+				children = (
+					A00000000000000000000004 /* ObservationPipeline.swift */,
+					A00000000000000000000052 /* PendingCloseTracker.swift */,
+					A00000000000000000000062 /* ObservationAdmissionGate.swift */,
+				);
 			path = ObservationPipeline;
 			sourceTree = "<group>";
 		};
@@ -193,10 +212,11 @@
 			children = (
 				A00000000000000000000006 /* Identifiers.swift */,
 				A00000000000000000000007 /* WindowModels.swift */,
-				A00000000000000000000008 /* SystemBoundaryModels.swift */,
-				A00000000000000000000009 /* Decisions.swift */,
-				A00000000000000000000053 /* ObservationKindMergeRule.swift */,
-			);
+					A00000000000000000000008 /* SystemBoundaryModels.swift */,
+					A00000000000000000000009 /* Decisions.swift */,
+					A00000000000000000000053 /* ObservationKindMergeRule.swift */,
+					A00000000000000000000063 /* WindowFrameMatchPolicy.swift */,
+				);
 			path = Model;
 			sourceTree = "<group>";
 		};
@@ -244,9 +264,10 @@
 		};
 		A0000000000000000000002E /* Transitions */ = {
 			isa = PBXGroup;
-			children = (
-				A0000000000000000000000D /* LifecycleTransitionEngine.swift */,
-			);
+				children = (
+					A0000000000000000000000D /* LifecycleTransitionEngine.swift */,
+					A00000000000000000000065 /* AppFallbackRetentionPolicy.swift */,
+				);
 			path = Transitions;
 			sourceTree = "<group>";
 		};
@@ -272,10 +293,11 @@
 		};
 		A00000000000000000000030 /* Accessibility */ = {
 			isa = PBXGroup;
-			children = (
-				A00000000000000000000054 /* AXWindowReader.swift */,
-				A0000000000000000000000F /* AccessibilitySource.swift */,
-			);
+				children = (
+					A00000000000000000000054 /* AXWindowReader.swift */,
+					A00000000000000000000064 /* AXWindowMatchPolicy.swift */,
+					A0000000000000000000000F /* AccessibilitySource.swift */,
+				);
 			path = Accessibility;
 			sourceTree = "<group>";
 		};
@@ -283,6 +305,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000010 /* CoreGraphicsSource.swift */,
+				A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */,
 			);
 			path = CoreGraphics;
 			sourceTree = "<group>";
@@ -495,27 +518,32 @@
 		A0000000000000000000003A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
-				A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */,
-				A00000000000000000001002 /* ContentView.swift in Sources */,
-				A00000000000000000001003 /* AppComposition.swift in Sources */,
-				A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
-				A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
-				A00000000000000000001005 /* IntentPipeline.swift in Sources */,
-				A00000000000000000001006 /* Identifiers.swift in Sources */,
-				A00000000000000000001007 /* WindowModels.swift in Sources */,
-				A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
-				A00000000000000000001009 /* Decisions.swift in Sources */,
-				A0000000000000000000100A /* DockState.swift in Sources */,
-				A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
-				A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
-				A00000000000000000001019 /* ObservationKindMergeRule.swift in Sources */,
-				A0000000000000000000100C /* PlacementEngine.swift in Sources */,
-				A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
-				A0000000000000000000100E /* LifecycleActionPlanner.swift in Sources */,
-				A0000000000000000000101A /* AXWindowReader.swift in Sources */,
-				A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
+				files = (
+					A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */,
+					A00000000000000000001002 /* ContentView.swift in Sources */,
+					A00000000000000000001003 /* AppComposition.swift in Sources */,
+					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
+					A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
+					A00000000000000000001032 /* ObservationAdmissionGate.swift in Sources */,
+					A00000000000000000001005 /* IntentPipeline.swift in Sources */,
+					A00000000000000000001006 /* Identifiers.swift in Sources */,
+					A00000000000000000001007 /* WindowModels.swift in Sources */,
+					A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
+					A00000000000000000001009 /* Decisions.swift in Sources */,
+					A00000000000000000001034 /* WindowFrameMatchPolicy.swift in Sources */,
+					A0000000000000000000100A /* DockState.swift in Sources */,
+					A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
+					A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
+					A00000000000000000001019 /* ObservationKindMergeRule.swift in Sources */,
+					A0000000000000000000100C /* PlacementEngine.swift in Sources */,
+					A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
+					A00000000000000000001039 /* AppFallbackRetentionPolicy.swift in Sources */,
+					A0000000000000000000100E /* LifecycleActionPlanner.swift in Sources */,
+					A0000000000000000000101A /* AXWindowReader.swift in Sources */,
+					A00000000000000000001037 /* AXWindowMatchPolicy.swift in Sources */,
+					A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
+				A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */,
 				A00000000000000000001011 /* WorkspaceSource.swift in Sources */,
 				A0000000000000000000101B /* FinderWindowRules.swift in Sources */,
 				A00000000000000000001012 /* FinderSource.swift in Sources */,
@@ -530,19 +558,23 @@
 			files = (
 				A00000000000000000001006 /* Identifiers.swift in Sources */,
 				A00000000000000000001007 /* WindowModels.swift in Sources */,
-				A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
-				A00000000000000000001009 /* Decisions.swift in Sources */,
-				A0000000000000000000100A /* DockState.swift in Sources */,
-				A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
-				A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
-				A0000000000000000000101C /* ObservationKindMergeRule.swift in Sources */,
-				A0000000000000000000100C /* PlacementEngine.swift in Sources */,
-				A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
-				A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
-				A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
-				A0000000000000000000101D /* AXWindowReader.swift in Sources */,
-				A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
+					A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
+					A00000000000000000001009 /* Decisions.swift in Sources */,
+					A00000000000000000001035 /* WindowFrameMatchPolicy.swift in Sources */,
+					A0000000000000000000100A /* DockState.swift in Sources */,
+					A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
+					A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
+					A0000000000000000000101C /* ObservationKindMergeRule.swift in Sources */,
+					A0000000000000000000100C /* PlacementEngine.swift in Sources */,
+					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
+					A0000000000000000000100D /* LifecycleTransitionEngine.swift in Sources */,
+					A0000000000000000000103A /* AppFallbackRetentionPolicy.swift in Sources */,
+					A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
+					A0000000000000000000101D /* AXWindowReader.swift in Sources */,
+					A00000000000000000001038 /* AXWindowMatchPolicy.swift in Sources */,
+					A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
+				A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */,
 				A00000000000000000001011 /* WorkspaceSource.swift in Sources */,
 				A0000000000000000000101E /* FinderWindowRules.swift in Sources */,
 				A00000000000000000001012 /* FinderSource.swift in Sources */,
@@ -558,14 +590,20 @@
 				A0000000000000000000101F /* FinderP0Tests.swift in Sources */,
 				A00000000000000000001020 /* Identifiers.swift in Sources */,
 				A00000000000000000001021 /* WindowModels.swift in Sources */,
-				A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */,
-				A00000000000000000001023 /* Decisions.swift in Sources */,
-				A00000000000000000001027 /* DockState.swift in Sources */,
-				A00000000000000000001024 /* LifecycleActionPlanner.swift in Sources */,
-				A00000000000000000001028 /* IntentPipeline.swift in Sources */,
-				A00000000000000000001025 /* ObservationKindMergeRule.swift in Sources */,
-				A00000000000000000001026 /* FinderWindowRules.swift in Sources */,
-			);
+					A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */,
+					A00000000000000000001023 /* Decisions.swift in Sources */,
+					A00000000000000000001027 /* DockState.swift in Sources */,
+					A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
+					A00000000000000000001036 /* WindowFrameMatchPolicy.swift in Sources */,
+					A0000000000000000000103C /* IdentityRuleEngine.swift in Sources */,
+					A00000000000000000001024 /* LifecycleActionPlanner.swift in Sources */,
+					A00000000000000000001028 /* IntentPipeline.swift in Sources */,
+					A00000000000000000001025 /* ObservationKindMergeRule.swift in Sources */,
+					A00000000000000000001026 /* FinderWindowRules.swift in Sources */,
+					A00000000000000000001031 /* DockWindowEligibilityPolicy.swift in Sources */,
+					A00000000000000000001033 /* ObservationAdmissionGate.swift in Sources */,
+					A0000000000000000000103B /* AppFallbackRetentionPolicy.swift in Sources */,
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

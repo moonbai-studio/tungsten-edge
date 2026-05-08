@@ -3,6 +3,7 @@ import Foundation
 import Combine
 import os
 import CoreGraphics
+import Darwin
 
 @MainActor
 final class AppComposition {
@@ -13,9 +14,12 @@ final class AppComposition {
     let actionPlanning = LifecycleActionPlanner()
     private let actionExecutor = PlatformActionExecutor()
     private let permissionService = PermissionService()
+    private let roundAnomalyFuse = ObservationRoundAnomalyFuse()
+    private let admissionGate = ObservationAdmissionGate()
     private let pendingCloseTracker = PendingCloseTracker()
     private let externalCloseTracker = ExternalCloseTracker()
     private let deduper = SnapshotDeduper()
+    private let trustLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "taskbar-trust")
 
     lazy var observationPipeline = ObservationPipeline(
         state: state,
@@ -57,9 +61,32 @@ final class AppComposition {
         return success
     }
 
-    func applyObservations(_ observations: [SystemObservation]) -> DockSnapshot {
+    func removeWindows(forTerminatedPID pid: pid_t) {
+        externalCloseTracker.confirmTerminated(pid: pid, in: state, identity: identity)
+    }
+
+    func applyObservations(
+        _ observations: [SystemObservation],
+        inventoryMainlineAvailable: Bool = true
+    ) -> DockSnapshot {
         var processed: [ProcessedObservation] = []
-        for observation in observations {
+        let roundAdmission = roundAnomalyFuse.decide(observations: observations, snapshot: state.snapshot)
+        if roundAdmission.kind == .rejected {
+            let sources = roundAdmission.sourceCounts
+                .map { "\($0.key.rawValue)=\($0.value)" }
+                .sorted()
+                .joined(separator: ",")
+            trustLogger.error("rejected observation round reason=\(roundAdmission.reason, privacy: .public) baseline=\(roundAdmission.baselineCount) candidates=\(roundAdmission.candidateCount) sources=\(sources, privacy: .public)")
+            return state.snapshot
+        }
+
+        admissionGate.beginRound(
+            at: observations.map(\.timestamp).min() ?? Date(),
+            inventoryMainlineAvailable: inventoryMainlineAvailable
+        )
+        for observation in orderedForStableLifecycle(observations) {
+            let admission = admissionGate.decide(observation: observation, snapshot: state.snapshot)
+            guard admission.kind == .accepted else { continue }
             if let result = observationPipeline.process(observation) {
                 processed.append(result)
             }
@@ -70,6 +97,18 @@ final class AppComposition {
         pendingCloseTracker.expire(at: Date())
         intentPipeline.reconcile(with: state.snapshot)
         return state.snapshot
+    }
+
+    private func orderedForStableLifecycle(_ observations: [SystemObservation]) -> [SystemObservation] {
+        observations.sorted { lhs, rhs in
+            if lhs.kind == .disappeared && rhs.kind != .disappeared {
+                return false
+            }
+            if lhs.kind != .disappeared && rhs.kind == .disappeared {
+                return true
+            }
+            return lhs.timestamp < rhs.timestamp
+        }
     }
 }
 
@@ -83,6 +122,9 @@ final class AppRuntime: ObservableObject {
     private let composition: AppComposition
     private let observationCollector = ObservationCollector()
     private var observationTask: Task<Void, Never>?
+    private var terminateObserver: NSObjectProtocol?
+    private var launchObserver: NSObjectProtocol?
+    private var activateObserver: NSObjectProtocol?
     private var observationStartedAt: Date?
     private var hasReportedWarmStart = false
     private var hasReportedLiveObservation = false
@@ -109,13 +151,10 @@ final class AppRuntime: ObservableObject {
         hasReportedWarmStart = false
         hasReportedLiveObservation = false
         startupLogger.info("startup began")
+        startWorkspaceObservers()
 
         observationTask = Task { [weak self] in
             guard let self else { return }
-
-            await self.pollNow(includeAccessibility: false)
-            guard Task.isCancelled == false else { return }
-            try? await Task.sleep(nanoseconds: 400_000_000)
 
             while Task.isCancelled == false {
                 await self.pollNow(includeAccessibility: true)
@@ -128,6 +167,18 @@ final class AppRuntime: ObservableObject {
     func stop() {
         observationTask?.cancel()
         observationTask = nil
+        if let terminateObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(terminateObserver)
+            self.terminateObserver = nil
+        }
+        if let launchObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(launchObserver)
+            self.launchObserver = nil
+        }
+        if let activateObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activateObserver)
+            self.activateObserver = nil
+        }
     }
 
     func pollNow() {
@@ -141,7 +192,10 @@ final class AppRuntime: ObservableObject {
         let observations = await observationCollector.collectCurrentObservations(
             includeAccessibility: includeAccessibility && hasRequiredPermissions
         )
-        snapshot = composition.applyObservations(observations)
+        snapshot = composition.applyObservations(
+            observations,
+            inventoryMainlineAvailable: includeAccessibility && hasRequiredPermissions
+        )
         feedbackEntriesByWindowID = composition.feedbackEntriesByWindowID
         updateObservationStatus(didReadAccessibility: includeAccessibility && hasRequiredPermissions)
     }
@@ -178,6 +232,54 @@ final class AppRuntime: ObservableObject {
         }
     }
 
+    private func startWorkspaceObservers() {
+        guard terminateObserver == nil else { return }
+        terminateObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+                return
+            }
+            let pid = app.processIdentifier
+            Task { @MainActor [weak self] in
+                self?.composition.removeWindows(forTerminatedPID: pid)
+                self?.snapshot = self?.composition.state.snapshot ?? .empty
+                self?.feedbackEntriesByWindowID = self?.composition.feedbackEntriesByWindowID ?? [:]
+            }
+        }
+
+        launchObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didLaunchApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.scheduleWorkspaceFollowUpPolls(delays: [200_000_000, 700_000_000])
+            }
+        }
+
+        activateObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.scheduleWorkspaceFollowUpPolls(delays: [200_000_000])
+            }
+        }
+    }
+
+    private func scheduleWorkspaceFollowUpPolls(delays: [UInt64]) {
+        for delay in delays {
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: delay)
+                await self?.pollNow(includeAccessibility: true)
+            }
+        }
+    }
+
     private func updateObservationStatus(didReadAccessibility: Bool) {
         guard let observationStartedAt else { return }
         let elapsedMilliseconds = Int(Date().timeIntervalSince(observationStartedAt) * 1000)
@@ -207,13 +309,21 @@ actor ObservationCollector {
     private let accessibilitySource = AccessibilitySource()
     private let workspaceSource = WorkspaceSource()
     private let finderSource = FinderSource()
+    private let inventoryFirstEnabled = ObservationAdmissionGate.Mode.current() != .legacy
 
     func collectCurrentObservations(includeAccessibility: Bool) -> [SystemObservation] {
+        if includeAccessibility && inventoryFirstEnabled {
+            let inventory = workspaceSource.observe()
+            var observations = inventory.observations
+            observations += coreGraphicsSource.observe(inventoryDegradedPIDs: inventory.degradedPIDs)
+            observations += finderSource.observe()
+            return observations
+        }
+
         var observations = coreGraphicsSource.observe()
         if includeAccessibility {
             observations += accessibilitySource.observe()
         }
-        observations += workspaceSource.observe()
         observations += finderSource.observe()
         return observations
     }
@@ -221,6 +331,8 @@ actor ObservationCollector {
 
 final class SnapshotDeduper {
     func removeStaleChromiumDuplicates(in state: DockState, identity: WindowIdentityEngine) {
+        removeStaleDisappearedDuplicates(in: state, identity: identity)
+
         let snapshot = state.snapshot
         let chromiumRecords = snapshot.windows.values.filter { record in
             guard let bundleIdentifier = record.bundleIdentifier else { return false }
@@ -243,6 +355,35 @@ final class SnapshotDeduper {
                 identity.retire(windowID: record.id)
             }
         }
+    }
+
+    private func removeStaleDisappearedDuplicates(in state: DockState, identity: WindowIdentityEngine) {
+        let snapshot = state.snapshot
+        let grouped = Dictionary(grouping: snapshot.windows.values) { record in
+            duplicateGroupKey(for: record)
+        }
+
+        for records in grouped.values where records.count > 1 {
+            let visibleRecords = records.filter { $0.status != .disappeared && $0.status != .closedPending }
+            guard visibleRecords.count == 1, let keeper = visibleRecords.first else { continue }
+
+            for record in records where record.id != keeper.id && record.status == .disappeared {
+                remove(recordID: record.id, preserving: keeper.id, in: state)
+                identity.retire(windowID: record.id)
+            }
+        }
+    }
+
+    private func duplicateGroupKey(for record: WindowRecord) -> String {
+        let app = record.bundleIdentifier ?? record.appID.rawValue
+        let normalizedTitle = record.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let frame: String
+        if let bounds = record.bounds {
+            frame = "\(Int(bounds.origin.x.rounded())):\(Int(bounds.origin.y.rounded())):\(Int(bounds.width.rounded())):\(Int(bounds.height.rounded()))"
+        } else {
+            frame = "no-frame"
+        }
+        return "\(record.pid)|\(app)|\(normalizedTitle)|\(frame)"
     }
 
     private func chromiumWindowGroupKey(for record: WindowRecord) -> String {
@@ -290,7 +431,9 @@ final class SnapshotDeduper {
 
 final class ExternalCloseTracker {
     private static let confirmationWindow: TimeInterval = 2.0
+    private static let appFallbackGraceWindow: TimeInterval = 5.0
     private var firstDisappearedAtByWindowID: [WindowID: Date] = [:]
+    private var firstMissingFallbackAtByWindowID: [WindowID: Date] = [:]
     private let axExecutor = AccessibilityWindowActionExecutor()
 
     func reconcile(
@@ -299,8 +442,17 @@ final class ExternalCloseTracker {
         processed: [ProcessedObservation],
         now: Date
     ) {
-        let snapshot = state.snapshot
         let liveObservations = processed.filter { $0.lifecycle.newStatus != .disappeared }
+        let liveObservationWindowIDs = Set(liveObservations.map(\.lifecycle.windowID))
+
+        removeTerminatedWindows(in: state, identity: identity)
+        reconcileAppFallbacks(
+            in: state,
+            identity: identity,
+            liveObservationWindowIDs: liveObservationWindowIDs,
+            now: now
+        )
+        let snapshot = state.snapshot
 
         for record in snapshot.windows.values where record.status != .disappeared {
             firstDisappearedAtByWindowID.removeValue(forKey: record.id)
@@ -317,17 +469,12 @@ final class ExternalCloseTracker {
                 continue
             }
 
-            guard let runningApp = NSRunningApplication(processIdentifier: record.pid) else {
+            if isProcessAlive(pid: record.pid) == false {
                 confirmClosed(recordID: record.id, in: state, identity: identity)
                 continue
             }
 
-            if runningApp.isTerminated {
-                confirmClosed(recordID: record.id, in: state, identity: identity)
-                continue
-            }
-
-            if runningApp.isHidden {
+            if NSRunningApplication(processIdentifier: record.pid)?.isHidden == true {
                 firstDisappearedAtByWindowID.removeValue(forKey: record.id)
                 continue
             }
@@ -349,6 +496,67 @@ final class ExternalCloseTracker {
         }
     }
 
+    func confirmTerminated(pid: pid_t, in state: DockState, identity: WindowIdentityEngine) {
+        let ids = state.snapshot.windows.values
+            .filter { $0.pid == pid }
+            .map(\.id)
+        for id in ids {
+            confirmClosed(recordID: id, in: state, identity: identity)
+        }
+    }
+
+    private func removeTerminatedWindows(in state: DockState, identity: WindowIdentityEngine) {
+        let ids = state.snapshot.windows.values
+            .filter { isProcessAlive(pid: $0.pid) == false }
+            .map(\.id)
+        for id in ids {
+            confirmClosed(recordID: id, in: state, identity: identity)
+        }
+    }
+
+    private func reconcileAppFallbacks(
+        in state: DockState,
+        identity: WindowIdentityEngine,
+        liveObservationWindowIDs: Set<WindowID>,
+        now: Date
+    ) {
+        for record in state.snapshot.windows.values where record.id.rawValue.hasPrefix("app-") {
+            if liveObservationWindowIDs.contains(record.id) {
+                firstMissingFallbackAtByWindowID.removeValue(forKey: record.id)
+                continue
+            }
+
+            let processAlive = isProcessAlive(pid: record.pid)
+            if processAlive == false {
+                confirmClosed(recordID: record.id, in: state, identity: identity)
+                continue
+            }
+
+            if AppFallbackRetentionPolicy.shouldRetainMissingFallback(
+                record: record,
+                isProcessAlive: processAlive
+            ) {
+                firstMissingFallbackAtByWindowID.removeValue(forKey: record.id)
+                continue
+            }
+
+            if NSRunningApplication(processIdentifier: record.pid)?.isHidden == true {
+                firstMissingFallbackAtByWindowID.removeValue(forKey: record.id)
+                continue
+            }
+
+            let firstMissingAt = firstMissingFallbackAtByWindowID[record.id] ?? now
+            firstMissingFallbackAtByWindowID[record.id] = firstMissingAt
+            if now.timeIntervalSince(firstMissingAt) >= Self.appFallbackGraceWindow {
+                confirmClosed(recordID: record.id, in: state, identity: identity)
+            }
+        }
+
+        firstMissingFallbackAtByWindowID = firstMissingFallbackAtByWindowID.filter { windowID, _ in
+            state.snapshot.windows[windowID] != nil
+        }
+    }
+
     private func hasLiveReplacement(
         for record: WindowRecord,
         liveObservations: [ProcessedObservation]
@@ -358,21 +566,18 @@ final class ExternalCloseTracker {
             guard observation.pid == record.pid else { return false }
             guard observation.bundleIdentifier == record.bundleIdentifier else { return false }
 
-            if let recordBounds = record.bounds, let observationBounds = observation.bounds {
-                return areClose(recordBounds, observationBounds)
+            if let recordBounds = record.bounds {
+                guard let observationBounds = observation.bounds else { return false }
+                return WindowFrameMatchPolicy.areClose(recordBounds, observationBounds)
             }
 
-            return false
+            return record.bounds == nil && observation.bounds == nil
         }
     }
 
     private func shouldSkipExternalClose(for record: WindowRecord) -> Bool {
-        if record.id.rawValue.hasPrefix("app-") {
-            return true
-        }
-
         guard let bundleIdentifier = record.bundleIdentifier else { return false }
-        return bundleIdentifier == "com.electron.lark" || bundleIdentifier == "com.feishu.app"
+        return FeishuBundleRules.isFeishu(bundleIdentifier: bundleIdentifier)
     }
 
     private func confirmClosed(recordID: WindowID, in state: DockState, identity: WindowIdentityEngine) {
@@ -385,6 +590,7 @@ final class ExternalCloseTracker {
         )
         identity.retire(windowID: recordID)
         firstDisappearedAtByWindowID.removeValue(forKey: recordID)
+        firstMissingFallbackAtByWindowID.removeValue(forKey: recordID)
     }
 
     private func stillPresentInAccessibility(record: WindowRecord) -> Bool {
@@ -400,10 +606,17 @@ final class ExternalCloseTracker {
         ) != nil
     }
 
-    private func areClose(_ lhs: CGRect, _ rhs: CGRect) -> Bool {
-        abs(lhs.origin.x - rhs.origin.x) <= 4
-            && abs(lhs.origin.y - rhs.origin.y) <= 4
-            && abs(lhs.width - rhs.width) <= 4
-            && abs(lhs.height - rhs.height) <= 4
+    private func isProcessAlive(pid: pid_t) -> Bool {
+        errno = 0
+        let result = kill(pid, 0)
+        if result == 0 || errno == EPERM {
+            return true
+        }
+
+        if errno == ESRCH {
+            return false
+        }
+
+        return NSRunningApplication(processIdentifier: pid)?.isTerminated == false
     }
 }

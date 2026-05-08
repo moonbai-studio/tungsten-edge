@@ -3,25 +3,22 @@ import ApplicationServices
 import Foundation
 
 final class AccessibilitySource {
-    private let startupScanLimit = 6
-    private let steadyStateScanLimit = 12
     private let reader = AXWindowReader()
-    private var observeRounds = 0
+    private let eligibilityPolicy = DockWindowEligibilityPolicy()
     private var previousWindowKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
+    private var previousObservationsBySignature: [String: SystemObservation] = [:]
     private var previousHiddenSignatures: Set<String> = []
 
     func observe() -> [SystemObservation] {
         guard AXIsProcessTrusted() else { return [] }
         let now = Date()
-        observeRounds += 1
-        let scanLimit = observeRounds <= 2 ? startupScanLimit : steadyStateScanLimit
 
-        let apps = NSWorkspace.shared.runningApplications.filter {
+        let apps = Array(NSWorkspace.shared.runningApplications.filter {
             !$0.isTerminated
                 && $0.activationPolicy != .prohibited
                 && FinderWindowRules.isFinder(bundleIdentifier: $0.bundleIdentifier) == false
-        }
-        .prefix(scanLimit)
+        })
+        let scannedPIDs = Set(apps.map(\.processIdentifier))
 
         var observations: [SystemObservation] = []
         var currentHiddenSignatures: Set<String> = []
@@ -38,14 +35,37 @@ final class AccessibilitySource {
         }
 
         var nextKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
+        var nextObservationsBySignature: [String: SystemObservation] = [:]
         for observation in observations {
             let signature = observationSignature(observation)
             nextKindsBySignature[signature] = ObservationKindMergeRule.preferred(
                 nextKindsBySignature[signature],
                 observation.kind
             )
+            nextObservationsBySignature[signature] = observation
         }
+
+        for (signature, previous) in previousObservationsBySignature
+            where nextObservationsBySignature[signature] == nil && scannedPIDs.contains(previous.pid) {
+            observations.append(
+                SystemObservation(
+                    timestamp: now,
+                    kind: .disappeared,
+                    source: previous.source,
+                    pid: previous.pid,
+                    bundleIdentifier: previous.bundleIdentifier,
+                    cgWindowID: previous.cgWindowID,
+                    title: previous.title,
+                    appName: previous.appName,
+                    bounds: previous.bounds,
+                    isMinimized: previous.isMinimized,
+                    isFocusedWindow: false
+                )
+            )
+        }
+
         previousWindowKindsBySignature = nextKindsBySignature
+        previousObservationsBySignature = nextObservationsBySignature
         previousHiddenSignatures = currentHiddenSignatures
         return observations
     }
@@ -56,6 +76,24 @@ final class AccessibilitySource {
         return reader.windows(for: app).compactMap { window in
             let title = window.title
             guard title != nil else { return nil }
+            guard window.role == (kAXWindowRole as String) else { return nil }
+            if let subrole = window.subrole,
+               subrole != (kAXStandardWindowSubrole as String) {
+                return nil
+            }
+            let decision = eligibilityPolicy.evaluate(
+                DockWindowEligibilityPolicy.Candidate(
+                    bundleIdentifier: app.bundleIdentifier,
+                    appName: app.localizedName ?? "",
+                    title: title,
+                    bounds: window.bounds,
+                    alpha: nil,
+                    activationPolicy: app.activationPolicy,
+                    executablePath: app.executableURL?.path
+                )
+            )
+            guard decision == .keep else { return nil }
+
             let baseObservation = SystemObservation(
                 timestamp: now,
                 kind: .unchanged,
@@ -308,7 +346,7 @@ struct AccessibilityWindowActionExecutor {
         let scored = elements.compactMap { element -> (AXUIElement, Int)? in
             let title = axStringAttribute(kAXTitleAttribute as CFString, from: element)
             let bounds = axFrame(of: element)
-            let score = matchScore(
+            let score = AXWindowMatchPolicy.matchScore(
                 targetTitle: target.title,
                 targetBounds: target.bounds,
                 candidateTitle: title,
@@ -318,48 +356,6 @@ struct AccessibilityWindowActionExecutor {
         }
 
         return scored.min(by: { $0.1 < $1.1 })?.0
-    }
-
-    private func matchScore(
-        targetTitle: String?,
-        targetBounds: CGRect?,
-        candidateTitle: String?,
-        candidateBounds: CGRect?
-    ) -> Int? {
-        var score = 0
-
-        if let targetTitle {
-            guard let candidateTitle else {
-                return nil
-            }
-
-            let targetNormalized = normalizedTitle(targetTitle)
-            let candidateNormalized = normalizedTitle(candidateTitle)
-
-            if targetNormalized == candidateNormalized {
-                score += 0
-            } else if candidateNormalized.contains(targetNormalized) || targetNormalized.contains(candidateNormalized) {
-                score += 25
-            } else {
-                score += 500
-            }
-        }
-
-        if let targetBounds, let candidateBounds {
-            let delta = Int(
-                abs(targetBounds.origin.x - candidateBounds.origin.x)
-                + abs(targetBounds.origin.y - candidateBounds.origin.y)
-                + abs(targetBounds.width - candidateBounds.width)
-                + abs(targetBounds.height - candidateBounds.height)
-            )
-            return score + delta
-        }
-
-        if targetBounds != nil {
-            return nil
-        }
-
-        return score
     }
 
     private func normalizedTitle(_ title: String) -> String {

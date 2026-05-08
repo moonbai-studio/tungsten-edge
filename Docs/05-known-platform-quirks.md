@@ -8,3 +8,11 @@
 - 某些 app 创建窗口时标题先为空，稍后才填入真实标题。
 - `CG` 的 `disappeared` 事件会带着旧 `cgWindowID` 回流；验收逻辑不能把这类事件当成“当前仍可见窗口”。
 - 当前采样里，飞书可能出现 `CG` 可见但标题为空、同时 `AXWindows` 为空的时刻。
+- `AX` 可能暴露系统内部窗口、小组件、扩展窗口或辅助进程窗口；这些对象看起来像窗口，但不一定是用户想在任务条里操作的窗口。
+- 放宽 `AX` 采样范围时必须先经过窗口准入 policy。否则假窗口进入状态后，会被最小化 / 隐藏 / 临时消失保位规则放大，造成任务条突然出现几十或上百个条目。
+- `System Events` / App 级窗口枚举更接近“用户正在使用哪些 app 窗口”的产品直觉；v2 当前正式实现不用 shell `osascript`，而是用 `NSWorkspace` + `AXWindowReader` 做同类 app-window inventory。
+- 底层 `CG` / `AX` 扫描可能同时出现两种失败：放得太宽会收进假窗口，收得太紧会漏掉真实用户窗口。当前主线已改成用户 app 窗口清单优先，再用底层信号补证据。
+- 透明窗口只应可靠过滤 `alpha == 0` 的情况；不要用“视觉上透明”这种不稳定判断做强过滤。
+- 只有通过准入 policy 的可信窗口，才应该享受 keep-slot 和 `disappeared` retention。
+- `AXUIElementCopyAttributeValue` 可能被单个 App 卡住；inventory 读取使用 100ms per-app messaging timeout 和 12 路并发，慢 App 连续 unread 30 轮后会进入 degraded fallback。
+- 调试壳本身如果被准入任务条，会因为内容变化触发窗口尺寸或观察签名变化，造成同一自家窗口被误认成多个条目。当前主线已直接过滤 `com.caye.macosdockcc.v2`，避免任务条自我污染。

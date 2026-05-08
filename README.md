@@ -15,6 +15,11 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - Feishu may fall back to a single stable app-level item when window-level AX detail is unreliable.
 - Finder concrete folder windows are handled as window-level items and must not collapse into a generic Finder app item.
 - A Finder minimize feedback bug was fixed: minimized or temporarily disappeared observations both count as successful minimize feedback.
+- Taskbar trust hardening is now active: system/widget/internal windows are filtered before they can become strip items, and an anomaly-count fuse rejects obviously bad observation rounds before they mutate the trusted snapshot.
+- Discovery is now inventory-first when Accessibility permission is available: the app starts from normal user App windows, then uses `CG` / `AX` evidence to enrich identity, frame, minimized, hidden, and focus state.
+- The taskbar app now filters its own window from strip admission so the debug shell cannot self-pollute the taskbar.
+- `CG` fallback remains available when Accessibility permission is unavailable. Local rollback flags: `DOCK_INVENTORY_FIRST_ENABLED=0` or `DOCK_AX_ADMISSION_MODE=legacy`.
+- Next product focus: run the app on a real desktop and confirm the strip shows normal user windows without fake/system/helper entries.
 
 ## Docs
 
@@ -37,6 +42,8 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - [Finder Current Observation](Docs/16-finder-current-observation.md)
 - [Finder P0 Implementation](Docs/17-finder-p0-implementation.md)
 - [Finder Real Sample Findings](Docs/18-real-sample-finder-findings.md)
+- [Taskbar Trust Incident](Docs/19-taskbar-trust-incident.md)
+- [Inventory-First Taskbar Trust](Docs/20-inventory-first-taskbar-trust.md)
 
 ## Build & Run
 

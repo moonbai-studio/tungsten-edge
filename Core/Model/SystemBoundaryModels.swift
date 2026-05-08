@@ -13,10 +13,40 @@ struct SystemObservation: Hashable, Sendable {
     let bounds: CGRect?
     let isMinimized: Bool
     let isFocusedWindow: Bool
+    let isInventoryDegraded: Bool
+
+    init(
+        timestamp: Date,
+        kind: ObservationKind,
+        source: ObservationSource,
+        pid: Int32,
+        bundleIdentifier: String?,
+        cgWindowID: UInt32?,
+        title: String?,
+        appName: String?,
+        bounds: CGRect?,
+        isMinimized: Bool,
+        isFocusedWindow: Bool,
+        isInventoryDegraded: Bool = false
+    ) {
+        self.timestamp = timestamp
+        self.kind = kind
+        self.source = source
+        self.pid = pid
+        self.bundleIdentifier = bundleIdentifier
+        self.cgWindowID = cgWindowID
+        self.title = title
+        self.appName = appName
+        self.bounds = bounds
+        self.isMinimized = isMinimized
+        self.isFocusedWindow = isFocusedWindow
+        self.isInventoryDegraded = isInventoryDegraded
+    }
 
     enum ObservationSource: String, Hashable, Codable, Sendable {
         case coreGraphics
         case accessibility
+        case appWindowInventory
     }
 
     enum ObservationKind: String, Hashable, Codable, Sendable {

@@ -154,7 +154,11 @@ private struct WeChatIdentityRule: IdentityRule {
 }
 
 private struct FeishuIdentityRule: IdentityRule {
-    private let bundleIDs: Set<String> = ["com.electron.lark", "com.feishu.app"]
+    private let bundleIDs: Set<String> = [
+        "com.electron.lark",
+        "com.feishu.app",
+        "com.bytedance.lark"
+    ]
 
     func apply(to observation: SystemObservation) -> IdentityRuleResult {
         guard let bundleIdentifier = observation.bundleIdentifier,

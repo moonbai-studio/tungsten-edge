@@ -9,10 +9,14 @@ The current phase prioritizes:
 1. stable window identity
 2. stable placement behavior
 3. a minimal usable bottom strip in the app shell
+4. taskbar trust hardening so only real user-operable windows enter the strip
 
-Current checkpoint: Finder P0 window-level identity foundation was accepted on 2026-05-05.
+Current checkpoints:
 
-Next-thread focus should start from the post-Finder-P0 state, not from rebuilding the Finder foundation.
+- Finder P0 window-level identity foundation was accepted on 2026-05-05.
+- Taskbar trust hardening moved to inventory-first discovery on 2026-05-08.
+
+Next-thread focus should start from the post-Finder-P0 and post-inventory-first state. Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery. The next most important task is real desktop validation: confirm the strip admits normal user App windows, rejects fake/system/helper surfaces, and keeps Finder / Feishu exceptions stable.
 
 ## Product Rules
 
@@ -40,6 +44,19 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 - Finder P0 implementation details are documented in `Docs/17-finder-p0-implementation.md`.
 - Finder real sample findings are documented in `Docs/18-real-sample-finder-findings.md`.
 - Finder minimize feedback treats either `minimized` or temporary `disappeared` observation as success, because macOS can report a minimized concrete Finder window through either path.
+
+### Taskbar Trust
+
+- Only trusted, user-operable windows should enter the bottom strip.
+- System internals, widgets, app extensions, transparent windows, and other fake window-like surfaces must be filtered before they can benefit from keep-slot or `disappeared` retention.
+- Do not widen `AX` sampling again without strict window-type filtering and an observation-count guardrail.
+- The current trust model starts from app-level window inventory: `WorkspaceSource` enumerates normal user apps through `NSWorkspace`, reads their `AXWindows`, and emits `.appWindowInventory` observations.
+- Inventory reads use a 100ms per-app AX messaging timeout, up to 12 concurrent app reads, and a 30-round unread degradation threshold. Once an app is degraded, `CG` may help decide whether its windows still exist.
+- `CG` and generic `.accessibility` observations should not create ordinary new strip entries while inventory-first is available. They should prove or enrich entries from inventory, except for documented Finder and Feishu rules.
+- If AX permission is unavailable, `CG` fallback may still create entries so the app remains useful in reduced-permission mode.
+- Debug rollback flags exist for local diagnosis: `DOCK_INVENTORY_FIRST_ENABLED=0` or `DOCK_AX_ADMISSION_MODE=legacy`.
+- The 2026-05-07 trust incident is documented in `Docs/19-taskbar-trust-incident.md`.
+- The inventory-first implementation is documented in `Docs/20-inventory-first-taskbar-trust.md`.
 
 ## Validation Entrypoints
 
@@ -71,6 +88,7 @@ Finder P0 sample:
 - Strip item labels can toggle: inactive/minimized concrete windows activate, active concrete windows minimize.
 - Strip actions now surface user-facing feedback and temporarily lock repeated clicks while work is pending.
 - The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
+- Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
 
 ## Collaboration Rule
 

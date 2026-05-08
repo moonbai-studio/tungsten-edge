@@ -4,6 +4,7 @@ import Foundation
 final class FinderSource {
     private let reader = AXWindowReader()
     private var previousWindowKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
+    private var previousObservationsBySignature: [String: SystemObservation] = [:]
     private var previousHiddenSignatures: Set<String> = []
 
     func observe() -> [SystemObservation] {
@@ -12,6 +13,7 @@ final class FinderSource {
         let apps = NSWorkspace.shared.runningApplications.filter {
             !$0.isTerminated && FinderWindowRules.isFinder(bundleIdentifier: $0.bundleIdentifier)
         }
+        let scannedPIDs = Set(apps.map(\.processIdentifier))
 
         var observations: [SystemObservation] = []
         var currentHiddenSignatures: Set<String> = []
@@ -26,14 +28,37 @@ final class FinderSource {
         }
 
         var nextKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
+        var nextObservationsBySignature: [String: SystemObservation] = [:]
         for observation in observations {
             let signature = observationSignature(observation)
             nextKindsBySignature[signature] = ObservationKindMergeRule.preferred(
                 nextKindsBySignature[signature],
                 observation.kind
             )
+            nextObservationsBySignature[signature] = observation
         }
+
+        for (signature, previous) in previousObservationsBySignature
+            where nextObservationsBySignature[signature] == nil && scannedPIDs.contains(previous.pid) {
+            observations.append(
+                SystemObservation(
+                    timestamp: now,
+                    kind: .disappeared,
+                    source: previous.source,
+                    pid: previous.pid,
+                    bundleIdentifier: previous.bundleIdentifier,
+                    cgWindowID: previous.cgWindowID,
+                    title: previous.title,
+                    appName: previous.appName,
+                    bounds: previous.bounds,
+                    isMinimized: previous.isMinimized,
+                    isFocusedWindow: false
+                )
+            )
+        }
+
         previousWindowKindsBySignature = nextKindsBySignature
+        previousObservationsBySignature = nextObservationsBySignature
         previousHiddenSignatures = currentHiddenSignatures
         return observations
     }

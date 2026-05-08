@@ -302,6 +302,125 @@ macOS 系统事件回流
 9. `Lifecycle/ActionPlanning`
 10. 最后接最简 app UI
 
+## 2026-05-07 任务条可信度执行计划
+
+### 目标
+
+- 这轮不是重做 Finder 地基，而是把任务条可信度收口到“正式 app 可构建、异常爆量不会污染主快照、飞书 fallback 不会被观察缺口误删”。
+- 本轮完成标准只有三个：
+  - `macos-dock-cc-v2` 正式 app target 重新 build 通过
+  - 单轮异常爆量会被整轮拒收，UI 继续显示上一份可信快照
+  - 飞书 app-level fallback 只因进程退出而释放，不因短时采样缺口释放
+
+### 执行顺序
+
+1. **先恢复 target wiring**
+   - 把 `ObservationAdmissionGate.swift` 接入 `macos-dock-cc-v2` target。
+   - 把 `AXWindowMatchPolicy.swift` 与 `WindowFrameMatchPolicy.swift` 接入所有实际引用它们的 target。
+   - 以 `xcodebuild build -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2 -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'` 通过为硬门槛。
+
+2. **保留 source hardening，但明确它不是最终保险**
+   - `DockWindowEligibilityPolicy` 继续负责“这个候选看起来像不像真实可操作窗口”。
+   - `ObservationAdmissionGate` 继续负责“陌生 AX-only 候选不要第一轮就进入正式状态”。
+   - 当前 gate 的职责固定为“预热闸门”，不再承担“整轮异常爆量保护”。
+
+3. **新增 round-level anomaly fuse**
+   - 新 guard 放在 `AppComposition.applyObservations` 的 round 入口，先看整轮候选规模，再决定是否允许这轮进入正式状态流。
+   - 这层 guard 在任何 `State`、`IdentityMemory`、close tracker 被修改之前执行；如果整轮拒收，就直接返回当前快照，不做回滚逻辑。
+   - 判断口径固定为：
+     - 基线使用当前可信快照里的非 `disappeared` 条目数
+     - 本轮规模使用去掉 `disappeared` 后、按 `pid + bundle/app + normalizedTitle + frame bucket` 粗去重的候选数
+     - 当基线大于 `0`，且本轮候选数同时满足 `>= 48` 且 `>= 基线 * 3` 时，判定为异常爆量
+   - 爆量时行为固定为：
+     - 拒收整轮
+     - 保留上一份可信快照
+     - 记录一条带基线数量、本轮数量、主要来源分布的日志
+
+4. **修正飞书 fallback retention**
+   - 这轮先不做飞书从 app-level fallback 自动晋升回 window-level 的复杂迁移设计。
+   - 对 `app-com.electron.lark` / `app-com.feishu.app` / `app-com.bytedance.lark`：
+     - 只要进程仍存活，就继续保留条目
+     - 不再使用“缺少 live observation 达 5 秒就删掉”的时间窗策略
+     - 只有进程退出，或已有更明确的退出确认，才释放条目
+   - 这条规则优先级高于“观察缺口 -> 视为外部关闭”的通用兜底。
+
+5. **最后补回归验证**
+   - 单元测试新增一组任务条可信度测试，独立覆盖：
+     - source eligibility 过滤
+     - AX-only 预热 gate
+     - round-level anomaly fuse
+     - 飞书 fallback retention
+   - 命令级验证固定为：
+     - `xcodebuild build -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2 -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
+     - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
+
+### 本轮明确不做
+
+- 不重开 Finder P0 地基，不把 Finder 再退回 app-level fallback。
+- 不把 `ObservationAdmissionGate` 扩成唯一总保险。
+- 不在这一轮解决飞书完整窗口级保真或 app-level / window-level 双向迁移。
+
+## 2026-05-08 用户 App 窗口清单准入实现收口
+
+> Status: implemented in the formal app mainline.
+
+### 目标
+
+- 这轮不是继续把过滤名单越补越长，而是把任务条发现入口从“底层窗口扫描”改成“用户 App 窗口清单优先”。
+- 产品效果：Finder、Chrome、微信、Photoshop、Terminal、Illustrator、Codex、飞书等真实用户窗口应能被纳入任务条；`Software Cursor`、helper、系统内部面板不应进入。
+- 改动复杂度评估为中等：不推翻 `Core` / `State` / `Placement`，但会新增一个更靠近产品语义的候选入口，并调整 `CG` / `AX` 在准入中的职责。
+
+### 实现结果
+
+- 新增 `.appWindowInventory` 来源，语义是“正常 App 自己报出来的窗口”。
+- `WorkspaceSource` 通过 `NSWorkspace.shared.runningApplications` 枚举用户 App，再用 `AXWindowReader` 读取每个 App 的 `AXWindows`。
+- inventory 读取配置固定为：
+  - per-app AX messaging timeout: `100ms`
+  - 并发上限: `12`
+  - 连续 unread 降级阈值: `30` 轮
+- inventory 跳过 Finder 和 Feishu：
+  - Finder 继续由 `FinderSource` 负责具体窗口
+  - Feishu 继续走 app-level fallback 例外
+- 有 AX 权限时，普通任务条新条目必须来自 inventory、Finder 或 Feishu 例外；裸 `CG` / `.accessibility` 不再单独准入。
+- 缺 AX 权限时，`CG` fallback 仍可创建条目，保证降级可用。
+- 如果某个 App 连续 unread 后进入 degraded 状态，`CG` 可作为这个 PID 的存在性降级证据。
+- 新 App 补轮询已接入：
+  - launch 后约 `200ms` 和 `700ms`
+  - activate 后约 `200ms`
+- Debug rollback flag 已接入：
+  - `DOCK_INVENTORY_FIRST_ENABLED=0`
+  - `DOCK_AX_ADMISSION_MODE=legacy`
+
+### 原计划与当前对应
+
+1. **新增用户 App 窗口清单入口**
+   - 已完成。正式实现复用 `NSRunningApplication` + `AXWindowReader` / Accessibility API，不把 shell 调用 `osascript` 作为主路径。
+   - 输出仍使用 `SystemObservation`，并通过 `.appWindowInventory` 区分裸 `AX-only` 候选。
+
+2. **调整准入模型**
+   - 已完成。用户 App 窗口清单是普通任务条条目的候选入口。
+   - `CG` 负责证明可见窗口、`cgWindowID`、frame 和当前屏幕存在。
+   - `AX` 负责补充 minimized / hidden / focused 状态，以及执行窗口操作所需的 handle。
+   - 裸 `CG` / `AX` 底层扫描不得单独决定一个新条目是否进入任务条，除非走 Finder / Feishu 已记录的例外规则，或 AX 权限不可用的 `CG` fallback。
+
+3. **合并同一真实窗口**
+   - 已完成第一版。`WindowIdentityEngine` 可把后续 `CG` 观察绑定到 inventory identity。
+   - 同 PID / 标题 / frame 的匹配使用 `12px` 紧容差；同标题兄弟窗口无法唯一命中时不猜。
+   - Chrome / Chromium 标题归一化继续保留，避免 `CG` 标题和 `AX` 标题后缀不同导致重复或漏收。
+   - 最小化或隐藏窗口如果来自用户 App 窗口清单，可保留条目；helper / 工具光标仍需经过 eligibility policy。
+
+4. **保留现有防线**
+   - 已完成。`ObservationRoundAnomalyFuse` 继续保留，防止未来采样 bug 一次性污染快照。
+   - `DockWindowEligibilityPolicy` 继续过滤明显系统 / helper / extension / transparent / tool cursor 类型。
+   - Finder P0 不重做，Feishu 继续允许 app-level fallback。
+
+### 下一步验收标准
+
+- 当前真实桌面样本中，任务条不应只剩 3 个条目；应能纳入诊断采样确认的用户 app 窗口。
+- `Software Cursor` / `com.openai.sky.CUAService` 不得进入任务条。
+- 最小化或隐藏的真实用户窗口可被保留，但系统内部窗口不能享受 keep-slot。
+- 正式 app build 和 `macos-dock-cc-v2Tests` 继续通过。
+
 ## 测试与验收
 
 ### 结构验收

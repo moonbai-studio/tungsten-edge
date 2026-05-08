@@ -83,7 +83,9 @@ struct IntentFeedbackState {
         action: UserIntentAction,
         at timestamp: Date
     ) {
-        // Keep the per-window action lock until the observation loop confirms the result.
+        if action == .activate {
+            update(windowID: windowID, phase: .success, at: timestamp)
+        }
     }
 
     mutating func markFailed(windowID: String, action: UserIntentAction, at timestamp: Date) {

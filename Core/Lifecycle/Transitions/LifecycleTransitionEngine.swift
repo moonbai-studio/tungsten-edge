@@ -8,7 +8,8 @@ final class LifecycleTransitionEngine {
         case .appeared, .restored, .unhidden:
             status = observation.isFocusedWindow ? .active : .inactive
         case .titleChanged, .unchanged:
-            if observation.source == .accessibility, observation.isMinimized == false {
+            if (observation.source == .accessibility || observation.source == .appWindowInventory),
+               observation.isMinimized == false {
                 status = observation.isFocusedWindow ? .active : .inactive
             } else {
                 status = existingStatus ?? .inactive
