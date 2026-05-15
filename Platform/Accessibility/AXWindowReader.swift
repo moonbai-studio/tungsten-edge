@@ -1,10 +1,12 @@
 import AppKit
 import ApplicationServices
 import CoreGraphics
+import Darwin
 import Foundation
 
 struct AXWindowSnapshot {
     let pid: Int32
+    let cgWindowID: UInt32?
     let title: String?
     let bounds: CGRect?
     let role: String?
@@ -75,6 +77,7 @@ struct AXWindowReader {
             applyMessagingTimeout(messagingTimeout, to: element)
             return AXWindowSnapshot(
                 pid: pid,
+                cgWindowID: cgWindowID(for: element, maxAttempts: maxAttempts),
                 title: stringAttribute(kAXTitleAttribute as CFString, from: element, maxAttempts: maxAttempts),
                 bounds: frame(of: element, maxAttempts: maxAttempts),
                 role: stringAttribute(kAXRoleAttribute as CFString, from: element, maxAttempts: maxAttempts),
@@ -131,6 +134,20 @@ struct AXWindowReader {
             return nil
         }
         return number.boolValue
+    }
+
+    func cgWindowID(for element: AXUIElement, maxAttempts: Int = 2) -> UInt32? {
+        if let bridgedID = AXWindowIDBridge.cgWindowID(for: element) {
+            return bridgedID
+        }
+
+        for attribute in AXWindowIDBridge.fallbackAttributeNames {
+            if let id = numericWindowIDAttribute(attribute, from: element, maxAttempts: maxAttempts) {
+                return id
+            }
+        }
+
+        return nil
     }
 
     func elementAttribute(_ attribute: CFString, from element: AXUIElement) -> AXUIElement? {
@@ -208,6 +225,17 @@ struct AXWindowReader {
         return lastResult
     }
 
+    private func numericWindowIDAttribute(
+        _ attribute: CFString,
+        from element: AXUIElement,
+        maxAttempts: Int
+    ) -> UInt32? {
+        guard let value = copyAttributeValue(attribute, from: element, maxAttempts: maxAttempts) else {
+            return nil
+        }
+        return AXWindowIDBridge.cgWindowID(from: value)
+    }
+
     private func applyMessagingTimeout(_ timeout: TimeInterval?, to element: AXUIElement) {
         guard let timeout else { return }
         _ = AXUIElementSetMessagingTimeout(element, Float(timeout))
@@ -232,4 +260,59 @@ struct AXWindowReader {
         return bestMatches[0].0
     }
 
+}
+
+private enum AXWindowIDBridge {
+    typealias GetWindowFunction = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+
+    static let fallbackAttributeNames: [CFString] = [
+        "AXWindowID" as CFString,
+        "AXWindowNumber" as CFString
+    ]
+
+    private static let getWindowFunction: GetWindowFunction? = {
+        let frameworkPaths = [
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices",
+            "/System/Library/Frameworks/ApplicationServices.framework/Frameworks/HIServices.framework/HIServices"
+        ]
+        let symbolNames = [
+            "_AXUIElementGetWindow",
+            "AXUIElementGetWindow"
+        ]
+
+        for path in frameworkPaths {
+            guard let handle = dlopen(path, RTLD_LAZY) else { continue }
+            for symbolName in symbolNames {
+                if let symbol = dlsym(handle, symbolName) {
+                    return unsafeBitCast(symbol, to: GetWindowFunction.self)
+                }
+            }
+        }
+
+        return nil
+    }()
+
+    static func cgWindowID(for element: AXUIElement) -> UInt32? {
+        guard let getWindowFunction else { return nil }
+
+        var windowID = CGWindowID(0)
+        guard getWindowFunction(element, &windowID) == .success else {
+            return nil
+        }
+        return windowID == 0 ? nil : UInt32(windowID)
+    }
+
+    static func cgWindowID(from value: CFTypeRef) -> UInt32? {
+        if let number = value as? NSNumber {
+            let id = number.uint32Value
+            return id == 0 ? nil : id
+        }
+
+        if let string = value as? String,
+           let id = UInt32(string.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return id == 0 ? nil : id
+        }
+
+        return nil
+    }
 }
