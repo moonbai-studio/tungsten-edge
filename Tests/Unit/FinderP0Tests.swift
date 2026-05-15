@@ -258,6 +258,466 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(cgDecision.reason, "cg-window-id")
     }
 
+    func testIdentityMatchesRetainedMinimizedWindowAfterLongGap() {
+        let identity = WindowIdentityEngine()
+        let retainedID = WindowID(rawValue: "cg-retained-minimized")
+        let bounds = CGRect(x: 100, y: 120, width: 700, height: 500)
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: retainedID,
+                pid: 2701,
+                bundleIdentifier: "com.example.editor",
+                title: "Quarterly.ai",
+                bounds: bounds,
+                status: .minimized
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(12 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2701,
+            bundleIdentifier: "com.example.editor",
+            title: "Quarterly.ai",
+            bounds: CGRect(x: 108, y: 124, width: 700, height: 500),
+            isMinimized: true
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, retainedID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "retained-seat-title-frame")
+    }
+
+    func testIdentityMatchesRetainedWindowByUniqueFrameWhenTitleChanged() {
+        let identity = WindowIdentityEngine()
+        let retainedID = WindowID(rawValue: "cg-retained-renamed")
+        let bounds = CGRect(x: 80, y: 90, width: 640, height: 420)
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: retainedID,
+                pid: 2702,
+                bundleIdentifier: "com.example.design",
+                title: "Draft.ai",
+                bounds: bounds,
+                status: .disappeared
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2702,
+            bundleIdentifier: "com.example.design",
+            title: "Draft.ai @ 125%",
+            bounds: CGRect(x: 82, y: 92, width: 640, height: 420)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, retainedID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "retained-seat-frame")
+    }
+
+    func testIdentityDoesNotGuessRetainedWindowWhenFrameCandidatesAreAmbiguous() {
+        let identity = WindowIdentityEngine()
+        let firstID = WindowID(rawValue: "cg-retained-first")
+        let secondID = WindowID(rawValue: "cg-retained-second")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: firstID,
+                pid: 2703,
+                bundleIdentifier: "com.example.notes",
+                title: "Old A",
+                bounds: CGRect(x: 100, y: 100, width: 600, height: 400),
+                status: .minimized
+            ),
+            windowRecord(
+                id: secondID,
+                pid: 2703,
+                bundleIdentifier: "com.example.notes",
+                title: "Old B",
+                bounds: CGRect(x: 112, y: 108, width: 600, height: 400),
+                status: .hidden
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2703,
+            bundleIdentifier: "com.example.notes",
+            title: "Renamed",
+            bounds: CGRect(x: 106, y: 104, width: 600, height: 400)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, firstID)
+        XCTAssertNotEqual(decision.windowID, secondID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityDoesNotMatchRetainedWindowFromDifferentProcess() {
+        let identity = WindowIdentityEngine()
+        let retainedID = WindowID(rawValue: "cg-retained-other-process")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: retainedID,
+                pid: 2704,
+                bundleIdentifier: "com.example.editor",
+                title: "Same Title",
+                bounds: CGRect(x: 100, y: 100, width: 600, height: 400),
+                status: .minimized
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2705,
+            bundleIdentifier: "com.example.editor",
+            title: "Same Title",
+            bounds: CGRect(x: 100, y: 100, width: 600, height: 400)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, retainedID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityDoesNotMatchClosedPendingRetainedWindow() {
+        let identity = WindowIdentityEngine()
+        let retainedID = WindowID(rawValue: "cg-retained-closed")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: retainedID,
+                pid: 2706,
+                bundleIdentifier: "com.example.editor",
+                title: "Closed Title",
+                bounds: CGRect(x: 100, y: 100, width: 600, height: 400),
+                status: .closedPending
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2706,
+            bundleIdentifier: "com.example.editor",
+            title: "Closed Title",
+            bounds: CGRect(x: 100, y: 100, width: 600, height: 400)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, retainedID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityMatchesRetainedWindowByUniqueTitleWhenFrameMoved() {
+        let identity = WindowIdentityEngine()
+        let retainedID = WindowID(rawValue: "cg-retained-moved")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: retainedID,
+                pid: 2707,
+                bundleIdentifier: "com.example.photo",
+                title: "Poster.psd",
+                bounds: CGRect(x: 0, y: 490, width: 2500, height: 1410),
+                status: .minimized
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2707,
+            bundleIdentifier: "com.example.photo",
+            title: "Poster.psd",
+            bounds: CGRect(x: 0, y: 30, width: 2500, height: 1410)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, retainedID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "retained-seat-title")
+    }
+
+    func testIdentityDoesNotGuessRetainedTitleOnlyWhenAmbiguous() {
+        let identity = WindowIdentityEngine()
+        let firstID = WindowID(rawValue: "cg-retained-title-first")
+        let secondID = WindowID(rawValue: "cg-retained-title-second")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: firstID,
+                pid: 2708,
+                bundleIdentifier: "com.example.finderlike",
+                title: "Downloads",
+                bounds: CGRect(x: 100, y: 100, width: 700, height: 500),
+                status: .minimized
+            ),
+            windowRecord(
+                id: secondID,
+                pid: 2708,
+                bundleIdentifier: "com.example.finderlike",
+                title: "Downloads",
+                bounds: CGRect(x: 900, y: 100, width: 700, height: 500),
+                status: .hidden
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2708,
+            bundleIdentifier: "com.example.finderlike",
+            title: "Downloads",
+            bounds: CGRect(x: 500, y: 500, width: 700, height: 500)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, firstID)
+        XCTAssertNotEqual(decision.windowID, secondID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityMatchesActiveWindowFromSnapshotAfterLongGap() {
+        let identity = WindowIdentityEngine()
+        let existingID = WindowID(rawValue: "ax-existing-active")
+        let bounds = CGRect(x: 120, y: 140, width: 900, height: 700)
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: existingID,
+                pid: 2710,
+                bundleIdentifier: "com.example.browser",
+                title: "Inbox",
+                bounds: bounds,
+                status: .active
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(10 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2710,
+            bundleIdentifier: "com.example.browser",
+            title: "Inbox",
+            bounds: CGRect(x: 130, y: 146, width: 900, height: 700)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, existingID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "snapshot-seat-title-frame")
+    }
+
+    func testIdentityMatchesActiveWindowByUniqueFrameWhenTitleChanged() {
+        let identity = WindowIdentityEngine()
+        let existingID = WindowID(rawValue: "ax-existing-renamed")
+        let bounds = CGRect(x: 220, y: 240, width: 1000, height: 760)
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: existingID,
+                pid: 2711,
+                bundleIdentifier: "com.example.design",
+                title: "Draft.ai @ 50%",
+                bounds: bounds,
+                status: .inactive
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(9 * 60 * 60),
+            kind: .titleChanged,
+            source: .appWindowInventory,
+            pid: 2711,
+            bundleIdentifier: "com.example.design",
+            title: "Final.ai @ 125%",
+            bounds: CGRect(x: 224, y: 244, width: 1000, height: 760)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, existingID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "snapshot-seat-frame")
+    }
+
+    func testIdentityMatchesActiveWindowByUniqueTitleWhenFrameMoved() {
+        let identity = WindowIdentityEngine()
+        let existingID = WindowID(rawValue: "ax-existing-moved")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: existingID,
+                pid: 2715,
+                bundleIdentifier: "com.example.finder",
+                title: "Downloads",
+                bounds: CGRect(x: 1170, y: 705, width: 1034, height: 436),
+                status: .active
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(9 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2715,
+            bundleIdentifier: "com.example.finder",
+            title: "Downloads",
+            bounds: CGRect(x: 1446, y: 661, width: 1034, height: 436)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, existingID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "snapshot-seat-title")
+    }
+
+    func testIdentityDoesNotGuessActiveWindowWhenFrameCandidatesAreAmbiguous() {
+        let identity = WindowIdentityEngine()
+        let firstID = WindowID(rawValue: "ax-existing-first")
+        let secondID = WindowID(rawValue: "ax-existing-second")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: firstID,
+                pid: 2712,
+                bundleIdentifier: "com.example.terminal",
+                title: "Old A",
+                bounds: CGRect(x: 300, y: 320, width: 600, height: 420),
+                status: .active
+            ),
+            windowRecord(
+                id: secondID,
+                pid: 2712,
+                bundleIdentifier: "com.example.terminal",
+                title: "Old B",
+                bounds: CGRect(x: 308, y: 328, width: 600, height: 420),
+                status: .inactive
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(9 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2712,
+            bundleIdentifier: "com.example.terminal",
+            title: "Renamed",
+            bounds: CGRect(x: 304, y: 324, width: 600, height: 420)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, firstID)
+        XCTAssertNotEqual(decision.windowID, secondID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityDoesNotGuessActiveTitleOnlyWhenAmbiguous() {
+        let identity = WindowIdentityEngine()
+        let firstID = WindowID(rawValue: "ax-existing-title-first")
+        let secondID = WindowID(rawValue: "ax-existing-title-second")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: firstID,
+                pid: 2716,
+                bundleIdentifier: "com.example.browser",
+                title: "Inbox",
+                bounds: CGRect(x: 100, y: 100, width: 900, height: 700),
+                status: .active
+            ),
+            windowRecord(
+                id: secondID,
+                pid: 2716,
+                bundleIdentifier: "com.example.browser",
+                title: "Inbox",
+                bounds: CGRect(x: 1200, y: 100, width: 900, height: 700),
+                status: .inactive
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(9 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2716,
+            bundleIdentifier: "com.example.browser",
+            title: "Inbox",
+            bounds: CGRect(x: 600, y: 600, width: 900, height: 700)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, firstID)
+        XCTAssertNotEqual(decision.windowID, secondID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
+    func testIdentityBindsCGToExistingActiveSnapshotAfterLongGap() {
+        let identity = WindowIdentityEngine()
+        let existingID = WindowID(rawValue: "ax-existing-cg")
+        let bounds = CGRect(x: 420, y: 440, width: 1100, height: 800)
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: existingID,
+                pid: 2713,
+                bundleIdentifier: "com.example.editor",
+                title: "Notes",
+                bounds: bounds,
+                status: .inactive
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(11 * 60 * 60),
+            kind: .unchanged,
+            source: .coreGraphics,
+            pid: 2713,
+            bundleIdentifier: "com.example.editor",
+            cgWindowID: 9301,
+            title: "Notes",
+            bounds: CGRect(x: 424, y: 442, width: 1100, height: 800)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertEqual(decision.windowID, existingID)
+        XCTAssertEqual(decision.kind, .knownWindow)
+        XCTAssertEqual(decision.reason, "snapshot-seat-title-frame")
+    }
+
+    func testIdentityDoesNotTreatAppLevelFallbackAsLiveWindowSeat() {
+        let identity = WindowIdentityEngine()
+        let appLevelID = WindowID(rawValue: "app-com.example.chat")
+        let snapshot = retainedSnapshot(
+            windowRecord(
+                id: appLevelID,
+                pid: 2714,
+                bundleIdentifier: "com.example.chat",
+                title: "Chat",
+                bounds: CGRect(x: 520, y: 540, width: 700, height: 500),
+                status: .active
+            )
+        )
+        let returningObservation = observation(
+            timestamp: Date().addingTimeInterval(8 * 60 * 60),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: 2714,
+            bundleIdentifier: "com.example.chat",
+            title: "Chat",
+            bounds: CGRect(x: 520, y: 540, width: 700, height: 500)
+        )
+
+        let decision = identity.identify(observation: returningObservation, snapshot: snapshot)
+
+        XCTAssertNotEqual(decision.windowID, appLevelID)
+        XCTAssertEqual(decision.kind, .newWindow)
+    }
+
     func testRoundAnomalyFuseRejectsCandidateExplosion() {
         let fuse = ObservationRoundAnomalyFuse()
         let snapshot = snapshot(windowCount: 2)
@@ -632,6 +1092,32 @@ final class FinderP0Tests: XCTestCase {
         }
 
         return DockSnapshot(windows: windows, orderedWindowIDs: orderedWindowIDs)
+    }
+
+    private func retainedSnapshot(_ records: WindowRecord...) -> DockSnapshot {
+        DockSnapshot(
+            windows: Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) }),
+            orderedWindowIDs: records.map(\.id)
+        )
+    }
+
+    private func windowRecord(
+        id: WindowID,
+        pid: Int32,
+        bundleIdentifier: String,
+        title: String,
+        bounds: CGRect,
+        status: WindowStatus
+    ) -> WindowRecord {
+        WindowRecord(
+            id: id,
+            appID: AppID(rawValue: bundleIdentifier),
+            pid: pid,
+            bundleIdentifier: bundleIdentifier,
+            title: title,
+            bounds: bounds,
+            status: status
+        )
     }
 
     private func observation(

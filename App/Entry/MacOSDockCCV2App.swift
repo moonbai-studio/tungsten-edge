@@ -26,5 +26,13 @@ struct MacOSDockCCV2App: App {
                     runtime.stop()
                 }
         }
+        .commands {
+            CommandMenu("Debug") {
+                Button("导出任务条快照") {
+                    runtime.exportDebugSnapshot()
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+            }
+        }
     }
 }

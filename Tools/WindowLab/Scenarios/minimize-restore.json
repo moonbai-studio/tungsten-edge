@@ -1,11 +1,51 @@
 {
   "name": "minimize-restore",
-  "notes": "Pick one visible CG window, minimize it until its baseline CGWindowID disappears, restore it, and pass only if the restored window keeps the original identity.",
+  "expectedStableIdentity": true,
   "steps": [
-    "collect baseline observations",
-    "select one tracked target by index or keyword",
-    "minimize the target and confirm its baseline CGWindowID disappears",
-    "restore the target window",
-    "pass only if the restored observation resolves back to the baseline identity"
+    {
+      "label": "baseline",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 1001,
+          "cgWindowID": 5001,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false
+        }
+      ]
+    },
+    {
+      "label": "minimized",
+      "observations": [
+        {
+          "kind": "minimized",
+          "source": "accessibility",
+          "pid": 1001,
+          "cgWindowID": null,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": true
+        }
+      ]
+    },
+    {
+      "label": "restored",
+      "observations": [
+        {
+          "kind": "appeared",
+          "source": "coreGraphics",
+          "pid": 1001,
+          "cgWindowID": 5009,
+          "title": "Demo Window",
+          "appName": "DemoApp",
+          "bounds": "100:100:800:600",
+          "isMinimized": false
+        }
+      ]
+    }
   ]
 }

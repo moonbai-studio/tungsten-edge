@@ -18,8 +18,10 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - Taskbar trust hardening is now active: system/widget/internal windows are filtered before they can become strip items, and an anomaly-count fuse rejects obviously bad observation rounds before they mutate the trusted snapshot.
 - Discovery is now inventory-first when Accessibility permission is available: the app starts from normal user App windows, then uses `CG` / `AX` evidence to enrich identity, frame, minimized, hidden, and focus state.
 - The taskbar app now filters its own window from strip admission so the debug shell cannot self-pollute the taskbar.
+- A long-gap duplicate-card issue was captured and fixed on 2026-05-13: before creating a new card, identity now checks the existing taskbar snapshot for a matching same-app, same-process seat.
+- The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
 - `CG` fallback remains available when Accessibility permission is unavailable. Local rollback flags: `DOCK_INVENTORY_FIRST_ENABLED=0` or `DOCK_AX_ADMISSION_MODE=legacy`.
-- Next product focus: run the app on a real desktop and confirm the strip shows normal user windows without fake/system/helper entries.
+- Next product focus: keep running the fixed app on a real desktop, especially across long idle/sleep/overnight gaps, and confirm the strip shows normal user windows without fake/system/helper entries or duplicate cards.
 
 ## Docs
 
@@ -44,6 +46,7 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - [Finder Real Sample Findings](Docs/18-real-sample-finder-findings.md)
 - [Taskbar Trust Incident](Docs/19-taskbar-trust-incident.md)
 - [Inventory-First Taskbar Trust](Docs/20-inventory-first-taskbar-trust.md)
+- [Long-Gap Duplicate Card Fix](Docs/21-long-gap-duplicate-card-fix.md)
 
 ## Build & Run
 
@@ -73,6 +76,10 @@ v2 of the macOS window-oriented bottom taskbar experiment.
   - `./Scripts/build_and_run.sh --lab-replay finder-title-tab-replay`
 - Unit tests:
   - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
+- Runtime taskbar snapshot:
+  - Debug menu `导出任务条快照`
+  - `kill -USR2 $(pgrep -x macos-dock-cc-v2)`
+  - latest file: `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
 
 ## Targets
 

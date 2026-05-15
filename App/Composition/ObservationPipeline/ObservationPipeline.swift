@@ -30,7 +30,7 @@ final class ObservationPipeline {
     @discardableResult
     func process(_ observation: SystemObservation) -> ProcessedObservation? {
         let snapshot = state.snapshot
-        let identityDecision = identity.identify(observation: observation)
+        let identityDecision = identity.identify(observation: observation, snapshot: snapshot)
         guard identityDecision.kind != .ambiguous else { return nil }
 
         var lifecycleDecision = transitions.transition(identity: identityDecision, observation: observation, snapshot: snapshot)

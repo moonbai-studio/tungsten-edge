@@ -45,6 +45,15 @@ The intended user-visible result is:
 - The inventory-to-`CG` frame tolerance is `12px`.
 - If a same-title sibling set cannot be uniquely matched, the code does not guess a `cgWindowID`.
 - A window without a confirmed `cgWindowID` may still remain as an inventory-backed strip item; screenshot/thumbnail-like features should treat that as a degraded visual state until a later round binds it.
+- After long observation gaps, identity also checks the current taskbar snapshot before creating a new card.
+- Snapshot-seat matching applies to both retained seats and live seats:
+  - minimized / hidden / disappeared
+  - active / inactive
+- Snapshot-seat matching requires the same process and same app/bundle.
+- It prefers normalized title + nearby frame; if only one candidate exists, unique frame or unique title can bridge title/frame drift.
+- Ambiguous candidates are not merged.
+- App-level fallback IDs such as `app-*` are not treated as concrete window seats.
+- `closedPending` records are not revived.
 
 ## Exceptions
 

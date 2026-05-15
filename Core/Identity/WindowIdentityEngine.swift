@@ -9,7 +9,7 @@ final class WindowIdentityEngine {
     private let signatureStreakWindow: TimeInterval = 3.0
     private let rules = IdentityRuleEngine()
 
-    func identify(observation: SystemObservation) -> IdentityDecision {
+    func identify(observation: SystemObservation, snapshot: DockSnapshot? = nil) -> IdentityDecision {
         let ruleResult = rules.evaluate(observation)
         guard ruleResult.accepted else {
             return IdentityDecision(
@@ -21,7 +21,9 @@ final class WindowIdentityEngine {
         }
 
         if let fallbackIdentity = ruleResult.fallbackIdentity {
-            let kind: DecisionKind = memory.seenWindowIDs.contains(fallbackIdentity.windowID) ? .knownWindow : .newWindow
+            let isKnown = memory.seenWindowIDs.contains(fallbackIdentity.windowID)
+                || snapshot?.windows[fallbackIdentity.windowID] != nil
+            let kind: DecisionKind = isKnown ? .knownWindow : .newWindow
             memory.seenWindowIDs.insert(fallbackIdentity.windowID)
             memory.record(
                 observation: observation,
@@ -36,9 +38,14 @@ final class WindowIdentityEngine {
             )
         }
 
-        let resolution = resolvedWindow(for: observation, normalizedTitle: ruleResult.normalizedTitle)
+        let resolution = resolvedWindow(
+            for: observation,
+            normalizedTitle: ruleResult.normalizedTitle,
+            snapshot: snapshot
+        )
         let id = resolution.windowID
-        let kind: DecisionKind = memory.seenWindowIDs.contains(id) ? .knownWindow : .newWindow
+        let isKnown = memory.seenWindowIDs.contains(id) || snapshot?.windows[id] != nil
+        let kind: DecisionKind = isKnown ? .knownWindow : .newWindow
         memory.seenWindowIDs.insert(id)
         memory.record(observation: observation, normalizedTitle: ruleResult.normalizedTitle, resolvedID: id)
         return IdentityDecision(
@@ -53,7 +60,11 @@ final class WindowIdentityEngine {
         memory.retire(windowID: windowID)
     }
 
-    private func resolvedWindow(for observation: SystemObservation, normalizedTitle: String?) -> IdentityResolution {
+    private func resolvedWindow(
+        for observation: SystemObservation,
+        normalizedTitle: String?,
+        snapshot: DockSnapshot?
+    ) -> IdentityResolution {
         if let cgWindowID = observation.cgWindowID {
             if let bound = memory.lookupBoundCGWindowID(cgWindowID) {
                 return IdentityResolution(
@@ -88,6 +99,22 @@ final class WindowIdentityEngine {
                     confidence: .high,
                     reason: "cg-bound-to-inventory"
                 )
+            }
+
+            if let retained = retainedWindowResolution(
+                for: observation,
+                normalizedTitle: normalizedTitle,
+                snapshot: snapshot
+            ) {
+                return retained
+            }
+
+            if let existing = existingLiveWindowResolution(
+                for: observation,
+                normalizedTitle: normalizedTitle,
+                snapshot: snapshot
+            ) {
+                return existing
             }
 
             return IdentityResolution(
@@ -142,12 +169,193 @@ final class WindowIdentityEngine {
                 reason: "conflicting-coarse-signature"
             )
         case .none:
+            if let retained = retainedWindowResolution(
+                for: observation,
+                normalizedTitle: normalizedTitle,
+                snapshot: snapshot
+            ) {
+                return retained
+            }
+
+            if let existing = existingLiveWindowResolution(
+                for: observation,
+                normalizedTitle: normalizedTitle,
+                snapshot: snapshot
+            ) {
+                return existing
+            }
+
             return IdentityResolution(
                 windowID: memory.makeTransientAXWindowID(pid: observation.pid),
                 confidence: .low,
                 reason: observation.title ?? observation.appName ?? "unlabeled-window"
             )
         }
+    }
+
+    private func retainedWindowResolution(
+        for observation: SystemObservation,
+        normalizedTitle: String?,
+        snapshot: DockSnapshot?
+    ) -> IdentityResolution? {
+        snapshotSeatResolution(
+            for: observation,
+            normalizedTitle: normalizedTitle,
+            snapshot: snapshot,
+            acceptsStatus: isRetainedSeatStatus,
+            reasonPrefix: "retained-seat",
+            allowsTitleOnly: true
+        )
+    }
+
+    private func existingLiveWindowResolution(
+        for observation: SystemObservation,
+        normalizedTitle: String?,
+        snapshot: DockSnapshot?
+    ) -> IdentityResolution? {
+        snapshotSeatResolution(
+            for: observation,
+            normalizedTitle: normalizedTitle,
+            snapshot: snapshot,
+            acceptsStatus: isLiveSeatStatus,
+            reasonPrefix: "snapshot-seat",
+            allowsTitleOnly: true
+        )
+    }
+
+    private func snapshotSeatResolution(
+        for observation: SystemObservation,
+        normalizedTitle: String?,
+        snapshot: DockSnapshot?,
+        acceptsStatus: (WindowStatus) -> Bool,
+        reasonPrefix: String,
+        allowsTitleOnly: Bool
+    ) -> IdentityResolution? {
+        guard let snapshot else {
+            return nil
+        }
+
+        let baseCandidates = snapshot.windows.values.filter { record in
+            guard acceptsStatus(record.status) else { return false }
+            guard record.id.rawValue.hasPrefix("app-") == false else { return false }
+            guard record.pid == observation.pid else { return false }
+            guard matchesApplication(observation: observation, record: record) else { return false }
+            return true
+        }
+        let frameCandidates: [WindowRecord]
+        if let observationBounds = observation.bounds {
+            frameCandidates = baseCandidates.filter { record in
+                guard let recordBounds = record.bounds else { return false }
+                return WindowFrameMatchPolicy.areClose(observationBounds, recordBounds)
+            }
+        } else {
+            frameCandidates = []
+        }
+
+        if let observationNormalizedTitle = normalizedTitle {
+            let titleAndFrameCandidates = frameCandidates.filter { record in
+                normalizedRecordTitle(for: record) == observationNormalizedTitle
+            }
+
+            if titleAndFrameCandidates.count == 1, let match = titleAndFrameCandidates.first {
+                return IdentityResolution(
+                    windowID: match.id,
+                    confidence: .high,
+                    reason: "\(reasonPrefix)-title-frame"
+                )
+            }
+
+            if titleAndFrameCandidates.count > 1 {
+                return nil
+            }
+        }
+
+        guard frameCandidates.count == 1, let match = frameCandidates.first else {
+            if allowsTitleOnly, let observationNormalizedTitle = normalizedTitle {
+                let titleCandidates = baseCandidates.filter { record in
+                    normalizedRecordTitle(for: record) == observationNormalizedTitle
+                }
+
+                if titleCandidates.count == 1, let titleMatch = titleCandidates.first {
+                    return IdentityResolution(
+                        windowID: titleMatch.id,
+                        confidence: .medium,
+                        reason: "\(reasonPrefix)-title"
+                    )
+                }
+            }
+
+            return nil
+        }
+
+        return IdentityResolution(
+            windowID: match.id,
+            confidence: .medium,
+            reason: "\(reasonPrefix)-frame"
+        )
+    }
+
+    private func isRetainedSeatStatus(_ status: WindowStatus) -> Bool {
+        switch status {
+        case .minimized, .hidden, .disappeared:
+            return true
+        case .active, .inactive, .closedPending:
+            return false
+        }
+    }
+
+    private func isLiveSeatStatus(_ status: WindowStatus) -> Bool {
+        switch status {
+        case .active, .inactive:
+            return true
+        case .minimized, .hidden, .disappeared, .closedPending:
+            return false
+        }
+    }
+
+    private func matchesApplication(observation: SystemObservation, record: WindowRecord) -> Bool {
+        if let observationBundle = nonEmpty(observation.bundleIdentifier) {
+            if let recordBundle = nonEmpty(record.bundleIdentifier) {
+                return observationBundle == recordBundle
+            }
+
+            return record.appID.rawValue == observationBundle
+        }
+
+        if nonEmpty(record.bundleIdentifier) != nil {
+            return false
+        }
+
+        if let appName = nonEmpty(observation.appName) {
+            return record.appID.rawValue == appName || record.appID.rawValue == "pid-\(observation.pid)"
+        }
+
+        return record.appID.rawValue == "pid-\(observation.pid)"
+    }
+
+    private func normalizedRecordTitle(for record: WindowRecord) -> String? {
+        let observation = SystemObservation(
+            timestamp: Date(),
+            kind: .unchanged,
+            source: .appWindowInventory,
+            pid: record.pid,
+            bundleIdentifier: record.bundleIdentifier,
+            cgWindowID: nil,
+            title: record.title,
+            appName: nil,
+            bounds: record.bounds,
+            isMinimized: record.status == .minimized,
+            isFocusedWindow: false
+        )
+
+        return rules.evaluate(observation).normalizedTitle
+            ?? record.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed, trimmed.isEmpty == false else { return nil }
+        return trimmed
     }
 }
 

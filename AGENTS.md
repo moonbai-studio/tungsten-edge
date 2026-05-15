@@ -15,8 +15,9 @@ Current checkpoints:
 
 - Finder P0 window-level identity foundation was accepted on 2026-05-05.
 - Taskbar trust hardening moved to inventory-first discovery on 2026-05-08.
+- Long-gap duplicate card root cause was captured and fixed on 2026-05-13.
 
-Next-thread focus should start from the post-Finder-P0 and post-inventory-first state. Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery. The next most important task is real desktop validation: confirm the strip admits normal user App windows, rejects fake/system/helper surfaces, and keeps Finder / Feishu exceptions stable.
+Next-thread focus should start from the post-Finder-P0, post-inventory-first, and post-long-gap-duplicate-fix state. Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery. The next most important task is continued real desktop validation: confirm the strip admits normal user App windows, rejects fake/system/helper surfaces, keeps Finder / Feishu exceptions stable, and does not recreate duplicate cards after long idle/sleep/overnight gaps.
 
 ## Product Rules
 
@@ -34,6 +35,7 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 - Feishu window-level handling is opportunistic.
 - If frontmost AX windows are unreliable, titles are generic, or titles are missing, Feishu may fall back to a single stable app-level item.
 - Do not block the taskbar mainline on perfect Feishu per-window fidelity.
+- For current V2 validation, a stable app-level Feishu fallback is sufficient; real frontmost AX samples are future window-level enhancement evidence, not a blocker.
 
 ### Finder
 
@@ -58,6 +60,22 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 - The 2026-05-07 trust incident is documented in `Docs/19-taskbar-trust-incident.md`.
 - The inventory-first implementation is documented in `Docs/20-inventory-first-taskbar-trust.md`.
 
+### Long-Gap Duplicate Cards
+
+- The 2026-05-13 duplicate-card incident is documented in `Docs/21-long-gap-duplicate-card-fix.md`.
+- A running app snapshot showed real internal duplication: `trackedCount = 35`, `duplicateGroups = 8`.
+- This was not a SwiftUI accessibility-tree illusion.
+- Root cause: after long observation gaps, short identity memory expired while old taskbar cards still existed; identity matching only reused minimized/hidden/disappeared retained seats, not active/inactive existing seats.
+- Current fix: before creating a new identity, match against the current `DockSnapshot` seats when the candidate is same process and same app.
+- Matching is conservative:
+  - title + nearby frame is preferred
+  - unique nearby frame can survive title drift
+  - unique title can survive frame movement
+  - ambiguous candidates do not merge
+  - app-level fallback IDs (`app-*`) are not treated as concrete window seats
+  - `closedPending` records are never revived
+- Chrome, Illustrator, WeChat, Finder, Terminal, Codex, Photoshop, and Wanlian SD-WAN are validation samples only, not app-specific rule targets.
+
 ## Validation Entrypoints
 
 ### Identity / real samples
@@ -81,6 +99,15 @@ Finder P0 sample:
 - `./Scripts/build_and_run.sh --lab-transition focused-active-replay`
 - `./Scripts/build_and_run.sh --lab-transition close-timeout-replay`
 
+### Runtime debug snapshot
+
+- Debug menu: `导出任务条快照`
+- Shortcut: `Cmd+Shift+D`
+- Debug signal path: `kill -USR2 $(pgrep -x macos-dock-cc-v2)`
+- Latest file usually lives at:
+  - `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
+- The snapshot is read-only: it lists cards and live AX/CG samples but does not activate, hide, minimize, close, or clear windows.
+
 ## Current App State
 
 - The app already renders a minimal bottom task strip.
@@ -89,6 +116,8 @@ Finder P0 sample:
 - Strip actions now surface user-facing feedback and temporarily lock repeated clicks while work is pending.
 - The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
 - Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
+- Current identity now also uses the existing taskbar snapshot as a long-term seat map, so long-idle windows can be recognized after the short 6-second memory expires.
+- The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
 
 ## Collaboration Rule
 

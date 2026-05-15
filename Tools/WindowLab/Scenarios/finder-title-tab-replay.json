@@ -41,7 +41,7 @@
           "track": true,
           "atSeconds": 1,
           "expectedDecision": "knownWindow",
-          "expectedReason": "cg-window-id",
+          "expectedReason": "cg-window-id-bound",
           "expectedConfidence": "high"
         }
       ]
