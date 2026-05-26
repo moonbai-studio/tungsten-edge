@@ -60,6 +60,7 @@
 		A00000000000000000001026 /* FinderWindowRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* FinderWindowRules.swift */; };
 		A00000000000000000001028 /* IntentPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* IntentPipeline.swift */; };
 		A00000000000000000001031 /* DockWindowEligibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */; };
+		A0000000000000000000103D /* StripItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* StripItem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -603,6 +604,7 @@
 					A00000000000000000001031 /* DockWindowEligibilityPolicy.swift in Sources */,
 					A00000000000000000001033 /* ObservationAdmissionGate.swift in Sources */,
 					A0000000000000000000103B /* AppFallbackRetentionPolicy.swift in Sources */,
+					A0000000000000000000103D /* StripItem.swift in Sources */,
 				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

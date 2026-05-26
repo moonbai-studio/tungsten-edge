@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -12,9 +13,7 @@ struct ContentView: View {
     let onClose: (String) -> Void
 
     private var stripItems: [StripItem] {
-        snapshot.orderedWindowIDs.compactMap { windowID in
-            snapshot.windows[windowID].map(StripItem.init(record:))
-        }
+        StripItem.items(from: snapshot)
     }
 
     private var visibleStatusCount: Int {
@@ -117,19 +116,38 @@ struct ContentView: View {
         .background(Color.white.opacity(0.08), in: Capsule())
     }
 
+    @ViewBuilder
     private func taskStripChip(_ item: StripItem) -> some View {
         let feedback = feedbackEntriesByWindowID[item.id]
         let isPending = feedback?.phase == .pending
 
-        return VStack(alignment: .leading, spacing: 8) {
+        Group {
+            if item.showsTitle {
+                expandedTaskStripChip(item, feedback: feedback, isPending: isPending)
+            } else {
+                compactTaskStripChip(item, feedback: feedback, isPending: isPending)
+            }
+        }
+        .help(localizedTitle(item))
+        .contextMenu {
+            taskStripContextMenu(item, isDisabled: isPending)
+        }
+        .animation(.easeInOut(duration: 0.18), value: item.showsTitle)
+    }
+
+    private func expandedTaskStripChip(
+        _ item: StripItem,
+        feedback: IntentFeedbackState.Entry?,
+        isPending: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor(item.status))
-                    .frame(width: 10, height: 10)
+                appIcon(for: item)
                 Text(localizedTitle(item))
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
 
             HStack(spacing: 8) {
@@ -209,6 +227,95 @@ struct ContentView: View {
             guard isPending == false else { return }
             onToggle(item.id)
         }
+    }
+
+    private func compactTaskStripChip(
+        _ item: StripItem,
+        feedback: IntentFeedbackState.Entry?,
+        isPending: Bool
+    ) -> some View {
+        let borderColor = feedback.map { feedbackColor($0).opacity(0.36) } ?? Color.white.opacity(0.08)
+
+        return ZStack {
+            appIcon(for: item)
+
+            if isPending {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.white.opacity(0.88))
+                    .frame(width: 22, height: 22)
+                    .background(Color.black.opacity(0.36), in: Circle())
+                    .offset(x: 17, y: -17)
+            }
+        }
+        .padding(12)
+        .frame(width: 58, height: 58)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.09))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(borderColor, lineWidth: 1)
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .transition(.opacity.combined(with: .scale(scale: 0.92)))
+        .onTapGesture {
+            guard isPending == false else { return }
+            onToggle(item.id)
+        }
+    }
+
+    @ViewBuilder
+    private func taskStripContextMenu(_ item: StripItem, isDisabled: Bool) -> some View {
+        Button("激活") {
+            onActivate(item.id)
+        }
+        .disabled(isDisabled)
+
+        if item.canHide {
+            Button("隐藏") {
+                onHide(item.id)
+            }
+            .disabled(isDisabled)
+        }
+
+        if item.canMinimize {
+            Button("最小化") {
+                onMinimize(item.id)
+            }
+            .disabled(isDisabled)
+        }
+
+        if item.canClose {
+            Divider()
+            Button("关闭") {
+                onClose(item.id)
+            }
+            .disabled(isDisabled)
+        }
+    }
+
+    private func appIcon(for item: StripItem) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            Image(nsImage: AppIconResolver.icon(for: item.bundleIdentifier ?? item.appID))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 28, height: 28)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+
+            Circle()
+                .fill(statusColor(item.status))
+                .frame(width: 9, height: 9)
+                .overlay(
+                    Circle()
+                        .stroke(Color.black.opacity(0.46), lineWidth: 1)
+                )
+                .offset(x: 2, y: 2)
+        }
+        .frame(width: 32, height: 32)
+        .accessibilityLabel("\(localizedTitle(item)) 应用图标")
     }
 
     private func statusColor(_ status: String) -> Color {
@@ -320,5 +427,26 @@ struct ContentView: View {
         case .failure:
             return Color(red: 0.95, green: 0.43, blue: 0.40)
         }
+    }
+}
+
+private enum AppIconResolver {
+    private static var cache: [String: NSImage] = [:]
+
+    static func icon(for bundleIdentifier: String) -> NSImage {
+        if let cached = cache[bundleIdentifier] {
+            return cached
+        }
+
+        let icon: NSImage
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            icon = NSWorkspace.shared.icon(forFile: appURL.path)
+        } else {
+            icon = NSWorkspace.shared.icon(for: .applicationBundle)
+        }
+
+        icon.size = NSSize(width: 32, height: 32)
+        cache[bundleIdentifier] = icon
+        return icon
     }
 }

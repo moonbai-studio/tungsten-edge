@@ -1109,6 +1109,96 @@ final class FinderP0Tests: XCTestCase {
         )
     }
 
+    func testStripItemsHideTitleForSingleAppCard() {
+        let record = windowRecord(
+            id: WindowID(rawValue: "cg-chrome-1"),
+            pid: 101,
+            bundleIdentifier: "com.google.Chrome",
+            title: "Chrome",
+            bounds: CGRect(x: 0, y: 0, width: 800, height: 600),
+            status: .inactive
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(record))
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertFalse(items[0].showsTitle)
+        XCTAssertEqual(items[0].sameAppCardCount, 1)
+    }
+
+    func testStripItemsShowTitlesForMultipleCardsFromSameApp() {
+        let first = windowRecord(
+            id: WindowID(rawValue: "cg-chrome-1"),
+            pid: 101,
+            bundleIdentifier: "com.google.Chrome",
+            title: "First",
+            bounds: CGRect(x: 0, y: 0, width: 800, height: 600),
+            status: .inactive
+        )
+        let second = windowRecord(
+            id: WindowID(rawValue: "cg-chrome-2"),
+            pid: 101,
+            bundleIdentifier: "com.google.Chrome",
+            title: "Second",
+            bounds: CGRect(x: 20, y: 20, width: 800, height: 600),
+            status: .active
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(first, second))
+
+        XCTAssertEqual(items.map(\.showsTitle), [true, true])
+        XCTAssertEqual(items.map(\.sameAppCardCount), [2, 2])
+    }
+
+    func testStripItemsGroupFallbacksByAppIDWhenBundleIsMissing() {
+        let first = WindowRecord(
+            id: WindowID(rawValue: "fallback-1"),
+            appID: AppID(rawValue: "fallback-app"),
+            pid: 201,
+            bundleIdentifier: nil,
+            title: "First",
+            bounds: nil,
+            status: .inactive
+        )
+        let second = WindowRecord(
+            id: WindowID(rawValue: "fallback-2"),
+            appID: AppID(rawValue: "fallback-app"),
+            pid: 202,
+            bundleIdentifier: nil,
+            title: "Second",
+            bounds: nil,
+            status: .inactive
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(first, second))
+
+        XCTAssertEqual(items.map(\.showsTitle), [true, true])
+        XCTAssertEqual(items.map(\.sameAppCardCount), [2, 2])
+    }
+
+    func testStripItemsHideTitlesForDifferentSingleAppCards() {
+        let chrome = windowRecord(
+            id: WindowID(rawValue: "cg-chrome-1"),
+            pid: 101,
+            bundleIdentifier: "com.google.Chrome",
+            title: "Chrome",
+            bounds: CGRect(x: 0, y: 0, width: 800, height: 600),
+            status: .inactive
+        )
+        let terminal = windowRecord(
+            id: WindowID(rawValue: "cg-terminal-1"),
+            pid: 102,
+            bundleIdentifier: "com.apple.Terminal",
+            title: "Terminal",
+            bounds: CGRect(x: 20, y: 20, width: 800, height: 600),
+            status: .inactive
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(chrome, terminal))
+
+        XCTAssertEqual(items.map(\.showsTitle), [false, false])
+    }
+
     private func snapshot(windowID: WindowID, status: WindowStatus) -> DockSnapshot {
         DockSnapshot(
             windows: [
