@@ -15,9 +15,11 @@ enum FinderWindowRules {
         subrole: String?,
         bounds: CGRect?
     ) -> Bool {
-        guard role == (kAXWindowRole as String) else { return false }
-        if let subrole,
-           subrole != (kAXStandardWindowSubrole as String) {
+        guard AXTaskbarWindowRules.isMainWindow(
+            role: role,
+            subrole: subrole,
+            bounds: bounds
+        ) else {
             return false
         }
 

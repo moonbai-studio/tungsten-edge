@@ -1,8 +1,14 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import OSLog
 
 final class AccessibilitySource {
+    private static let logger = Logger(
+        subsystem: DockWindowEligibilityPolicy.selfBundleIdentifier,
+        category: "WindowFiltering"
+    )
+
     private let reader = AXWindowReader()
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
     private var previousWindowKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
@@ -76,11 +82,14 @@ final class AccessibilitySource {
         return reader.windows(for: app).compactMap { window in
             let title = window.title
             guard title != nil else { return nil }
-            guard window.role == (kAXWindowRole as String) else { return nil }
-            if let subrole = window.subrole,
-               subrole != (kAXStandardWindowSubrole as String) {
-                return nil
-            }
+            let axDecision = AXTaskbarWindowRules.decision(
+                role: window.role,
+                subrole: window.subrole,
+                bounds: window.bounds
+            )
+            guard axDecision.isAccepted else { return nil }
+            logUnconfirmedWindowIfNeeded(axDecision, window: window, app: app)
+
             let decision = eligibilityPolicy.evaluate(
                 DockWindowEligibilityPolicy.Candidate(
                     bundleIdentifier: app.bundleIdentifier,
@@ -136,6 +145,17 @@ final class AccessibilitySource {
                 isFocusedWindow: window.isFocusedWindow
             )
         }
+    }
+
+    private func logUnconfirmedWindowIfNeeded(
+        _ decision: AXTaskbarWindowRules.Decision,
+        window: AXWindowSnapshot,
+        app: NSRunningApplication
+    ) {
+        guard decision == .unconfirmedMainWindow else { return }
+        Self.logger.debug(
+            "Admitting AXWindow with missing subrole app=\(app.localizedName ?? "", privacy: .public) bundle=\(app.bundleIdentifier ?? "", privacy: .public) title=\(window.title ?? "", privacy: .public)"
+        )
     }
 
     private func observationSignature(_ observation: SystemObservation) -> String {

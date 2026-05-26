@@ -831,6 +831,56 @@ final class FinderP0Tests: XCTestCase {
         )
     }
 
+    func testAXTaskbarWindowRulesKeepsStandardWindows() {
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(
+                role: "AXWindow",
+                subrole: "AXStandardWindow",
+                bounds: CGRect(x: 0, y: 0, width: 400, height: 300)
+            ),
+            .mainWindow
+        )
+    }
+
+    func testAXTaskbarWindowRulesAllowsMissingSubroleForReasonableWindow() {
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(
+                role: "AXWindow",
+                subrole: nil,
+                bounds: CGRect(x: 0, y: 0, width: 400, height: 300)
+            ),
+            .unconfirmedMainWindow
+        )
+    }
+
+    func testAXTaskbarWindowRulesRejectsMissingSubroleForTinyWindow() {
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(
+                role: "AXWindow",
+                subrole: nil,
+                bounds: CGRect(x: 0, y: 0, width: 79, height: 40)
+            ),
+            .rejected
+        )
+    }
+
+    func testAXTaskbarWindowRulesRejectsSheetsDialogsAndNonWindows() {
+        let bounds = CGRect(x: 0, y: 0, width: 400, height: 300)
+
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(role: "AXWindow", subrole: "AXSheet", bounds: bounds),
+            .rejected
+        )
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(role: "AXWindow", subrole: "AXDialog", bounds: bounds),
+            .rejected
+        )
+        XCTAssertEqual(
+            AXTaskbarWindowRules.decision(role: "AXGroup", subrole: "AXStandardWindow", bounds: bounds),
+            .rejected
+        )
+    }
+
     func testWindowEligibilityFiltersUntitledRegularWindows() {
         let policy = DockWindowEligibilityPolicy()
 
@@ -1038,6 +1088,14 @@ final class FinderP0Tests: XCTestCase {
                 title: "Preview",
                 role: "AXWindow",
                 subrole: "AXDialog",
+                bounds: bounds
+            )
+        )
+        XCTAssertTrue(
+            FinderWindowRules.isTrackable(
+                title: "Documents",
+                role: "AXWindow",
+                subrole: nil,
                 bounds: bounds
             )
         )

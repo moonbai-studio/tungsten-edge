@@ -1,3 +1,4 @@
+import ApplicationServices
 import AppKit
 import CoreGraphics
 import Foundation
@@ -125,5 +126,40 @@ enum FeishuBundleRules {
     static func isFeishu(bundleIdentifier: String?) -> Bool {
         guard let bundleIdentifier else { return false }
         return bundleIdentifiers.contains(bundleIdentifier)
+    }
+}
+
+enum AXTaskbarWindowRules {
+    enum Decision: Equatable {
+        case mainWindow
+        case unconfirmedMainWindow
+        case rejected
+
+        var isAccepted: Bool {
+            self != .rejected
+        }
+    }
+
+    static func decision(role: String?, subrole: String?, bounds: CGRect?) -> Decision {
+        guard role == (kAXWindowRole as String) else { return .rejected }
+
+        if subrole == (kAXStandardWindowSubrole as String) {
+            return .mainWindow
+        }
+
+        guard subrole == nil, hasReasonableFrame(bounds) else {
+            return .rejected
+        }
+
+        return .unconfirmedMainWindow
+    }
+
+    static func isMainWindow(role: String?, subrole: String?, bounds: CGRect?) -> Bool {
+        decision(role: role, subrole: subrole, bounds: bounds).isAccepted
+    }
+
+    private static func hasReasonableFrame(_ bounds: CGRect?) -> Bool {
+        guard let bounds else { return false }
+        return bounds.width >= 80 && bounds.height >= 40
     }
 }

@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import OSLog
 
 struct WorkspaceObservationBatch {
     let observations: [SystemObservation]
@@ -13,6 +14,10 @@ final class WorkspaceSource {
     private static let inventoryMessagingTimeout: TimeInterval = 0.10
     private static let maxConcurrentInventoryReads = 12
     private static let degradedUnreadRoundThreshold = 30
+    private static let logger = Logger(
+        subsystem: DockWindowEligibilityPolicy.selfBundleIdentifier,
+        category: "WindowFiltering"
+    )
 
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
     private var previousWindowKindsBySignature: [String: SystemObservation.ObservationKind] = [:]
@@ -116,11 +121,13 @@ final class WorkspaceSource {
         windows.compactMap { window in
             let title = window.title
             guard title != nil else { return nil }
-            guard window.role == (kAXWindowRole as String) else { return nil }
-            if let subrole = window.subrole,
-               subrole != (kAXStandardWindowSubrole as String) {
-                return nil
-            }
+            let axDecision = AXTaskbarWindowRules.decision(
+                role: window.role,
+                subrole: window.subrole,
+                bounds: window.bounds
+            )
+            guard axDecision.isAccepted else { return nil }
+            logUnconfirmedWindowIfNeeded(axDecision, window: window, app: app)
 
             let decision = eligibilityPolicy.evaluate(
                 DockWindowEligibilityPolicy.Candidate(
@@ -177,6 +184,17 @@ final class WorkspaceSource {
                 isFocusedWindow: window.isFocusedWindow
             )
         }
+    }
+
+    private func logUnconfirmedWindowIfNeeded(
+        _ decision: AXTaskbarWindowRules.Decision,
+        window: AXWindowSnapshot,
+        app: AppContext
+    ) {
+        guard decision == .unconfirmedMainWindow else { return }
+        Self.logger.debug(
+            "Admitting AXWindow with missing subrole app=\(app.localizedName ?? "", privacy: .public) bundle=\(app.bundleIdentifier ?? "", privacy: .public) title=\(window.title ?? "", privacy: .public)"
+        )
     }
 
     private func readApps(_ contexts: [AppContext]) -> [AppWindowRead] {
