@@ -1,17 +1,15 @@
 import Foundation
 
 final class IntentPipeline {
-    private let state: DockState
     private let actionPlanning: LifecycleActionPlanner
     private(set) var feedbackState = IntentFeedbackState()
 
-    init(state: DockState, actionPlanning: LifecycleActionPlanner) {
-        self.state = state
+    init(actionPlanning: LifecycleActionPlanner) {
         self.actionPlanning = actionPlanning
     }
 
-    func plan(intent: UserIntent) -> PlatformActionRequest {
-        actionPlanning.plan(intent: intent, snapshot: state.snapshot)
+    func plan(intent: UserIntent, snapshot: DockSnapshot) -> PlatformActionRequest {
+        actionPlanning.plan(intent: intent, snapshot: snapshot)
     }
 
     func canBegin(intent: UserIntent) -> Bool {

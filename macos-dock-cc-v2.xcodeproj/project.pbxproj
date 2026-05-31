@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A00000000000000000001040 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000066 /* AppDelegate.swift */; };
+		A00000000000000000001041 /* DockStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000067 /* DockStripView.swift */; };
 		A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* MacOSDockCCV2App.swift */; };
 		A00000000000000000001002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
 		A00000000000000000001003 /* AppComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* AppComposition.swift */; };
@@ -61,9 +63,15 @@
 		A00000000000000000001028 /* IntentPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* IntentPipeline.swift */; };
 		A00000000000000000001031 /* DockWindowEligibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */; };
 		A0000000000000000000103D /* StripItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* StripItem.swift */; };
+		A00000000000000000001042 /* AppWindowObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000068 /* AppWindowObserver.swift */; };
+		A00000000000000000001043 /* AppTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000069 /* AppTracker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A00000000000000000000068 /* AppWindowObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppWindowObserver.swift; sourceTree = "<group>"; };
+		A00000000000000000000069 /* AppTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTracker.swift; sourceTree = "<group>"; };
+		A00000000000000000000066 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A00000000000000000000067 /* DockStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockStripView.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* MacOSDockCCV2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSDockCCV2App.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000003 /* AppComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComposition.swift; sourceTree = "<group>"; };
@@ -156,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000001 /* MacOSDockCCV2App.swift */,
+				A00000000000000000000066 /* AppDelegate.swift */,
 			);
 			path = Entry;
 			sourceTree = "<group>";
@@ -192,6 +201,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000002 /* ContentView.swift */,
+				A00000000000000000000067 /* DockStripView.swift */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -288,8 +298,18 @@
 				A00000000000000000000032 /* Workspace */,
 				A00000000000000000000033 /* Finder */,
 				A00000000000000000000034 /* Permissions */,
+				A00000000000000000000070 /* AppTracking */,
 			);
 			path = Platform;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000070 /* AppTracking */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000068 /* AppWindowObserver.swift */,
+				A00000000000000000000069 /* AppTracker.swift */,
+			);
+			path = AppTracking;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000030 /* Accessibility */ = {
@@ -521,6 +541,8 @@
 			buildActionMask = 2147483647;
 				files = (
 					A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */,
+					A00000000000000000001040 /* AppDelegate.swift in Sources */,
+					A00000000000000000001041 /* DockStripView.swift in Sources */,
 					A00000000000000000001002 /* ContentView.swift in Sources */,
 					A00000000000000000001003 /* AppComposition.swift in Sources */,
 					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
@@ -550,6 +572,8 @@
 				A00000000000000000001012 /* FinderSource.swift in Sources */,
 				A00000000000000000001013 /* PermissionService.swift in Sources */,
 				A00000000000000000001014 /* StripItem.swift in Sources */,
+				A00000000000000000001042 /* AppWindowObserver.swift in Sources */,
+				A00000000000000000001043 /* AppTracker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

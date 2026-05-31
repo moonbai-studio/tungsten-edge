@@ -136,6 +136,10 @@ struct AXWindowReader {
         return number.boolValue
     }
 
+    static func cgWindowID(for element: AXUIElement) -> CGWindowID? {
+        AXWindowIDBridge.cgWindowID(for: element)
+    }
+
     func cgWindowID(for element: AXUIElement, maxAttempts: Int = 2) -> UInt32? {
         if let bridgedID = AXWindowIDBridge.cgWindowID(for: element) {
             return bridgedID

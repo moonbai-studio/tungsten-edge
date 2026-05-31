@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum UserIntentAction: String, Hashable, Sendable {
@@ -48,7 +49,8 @@ final class LifecycleActionPlanner {
             if record.id.rawValue.hasPrefix("app-") {
                 return PlatformActionRequest(kind: .activateWindow, windowID: id)
             }
-            if record.status == .active {
+            let appIsFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == record.pid
+            if record.status == .active && appIsFrontmost {
                 return PlatformActionRequest(kind: .minimizeWindow, windowID: id)
             }
             return PlatformActionRequest(kind: .activateWindow, windowID: id)

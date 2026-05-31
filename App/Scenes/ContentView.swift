@@ -430,7 +430,25 @@ struct ContentView: View {
     }
 }
 
-private enum AppIconResolver {
+struct DebugConsoleView: View {
+    @EnvironmentObject var runtime: AppRuntime
+
+    var body: some View {
+        ContentView(
+            snapshot: runtime.snapshot,
+            hasRequiredPermissions: runtime.hasRequiredPermissions,
+            observationStatusText: runtime.observationStatusText,
+            feedbackEntriesByWindowID: runtime.feedbackEntriesByWindowID,
+            onToggle: runtime.toggle(windowID:),
+            onActivate: runtime.activate(windowID:),
+            onMinimize: runtime.minimize(windowID:),
+            onHide: runtime.hide(windowID:),
+            onClose: runtime.close(windowID:)
+        )
+    }
+}
+
+enum AppIconResolver {
     private static var cache: [String: NSImage] = [:]
 
     static func icon(for bundleIdentifier: String) -> NSImage {

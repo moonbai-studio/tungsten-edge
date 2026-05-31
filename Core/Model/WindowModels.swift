@@ -9,6 +9,27 @@ struct WindowRecord: Hashable, Sendable {
     var title: String
     var bounds: CGRect?
     var status: WindowStatus
+    var cgWindowID: CGWindowID?
+
+    init(
+        id: WindowID,
+        appID: AppID,
+        pid: Int32,
+        bundleIdentifier: String?,
+        title: String,
+        bounds: CGRect?,
+        status: WindowStatus,
+        cgWindowID: CGWindowID? = nil
+    ) {
+        self.id = id
+        self.appID = appID
+        self.pid = pid
+        self.bundleIdentifier = bundleIdentifier
+        self.title = title
+        self.bounds = bounds
+        self.status = status
+        self.cgWindowID = cgWindowID
+    }
 }
 
 enum WindowStatus: String, Hashable, Codable, Sendable {

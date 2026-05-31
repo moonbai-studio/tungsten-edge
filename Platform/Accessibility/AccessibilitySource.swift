@@ -189,6 +189,28 @@ struct AccessibilityWindowActionExecutor {
         fileprivate let element: AXUIElement
     }
 
+    func captureHandleByCGWindowID(_ cgWindowID: CGWindowID, pid: Int32) -> WindowHandle? {
+        let snapshots = reader.windows(forPID: pid)
+        guard let snap = snapshots.first(where: { $0.cgWindowID == cgWindowID }) else { return nil }
+        return WindowHandle(pid: pid, title: snap.title, bounds: snap.bounds, element: snap.element)
+    }
+
+    func activateAppWithWindowRecovery(pid: Int32, runningApp: NSRunningApplication?) -> Bool {
+        let liveWindows = reader.windows(forPID: pid)
+        let visibleWindows = liveWindows.filter { !$0.isMinimized }
+
+        if !visibleWindows.isEmpty {
+            _ = AXUIElementPerformAction(visibleWindows[0].element, kAXRaiseAction as CFString)
+            return runningApp?.activate(options: [.activateIgnoringOtherApps]) ?? false
+        }
+
+        guard let app = runningApp, let url = app.bundleURL else { return false }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.openApplication(at: url, configuration: config, completionHandler: nil)
+        return true
+    }
+
     func captureHandle(
         for target: WindowTarget,
         attempts: Int = 1,
@@ -410,19 +432,24 @@ struct PlatformActionExecutor {
             return false
         }
 
-        let target = AccessibilityWindowActionExecutor.WindowTarget(
-            pid: record.pid,
-            title: record.title,
-            bounds: record.bounds
-        )
-        guard let handle = windowExecutor.captureHandle(
-            for: target,
-            attempts: isFinderWindow ? 3 : 1,
-            retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
-        ) else {
-            if isFinderWindow {
-                return false
-            }
+        let handle: AccessibilityWindowActionExecutor.WindowHandle?
+        if let cgWindowID = record.cgWindowID {
+            handle = windowExecutor.captureHandleByCGWindowID(cgWindowID, pid: record.pid)
+                ?? windowExecutor.captureHandle(
+                    for: AccessibilityWindowActionExecutor.WindowTarget(pid: record.pid, title: record.title, bounds: record.bounds),
+                    attempts: isFinderWindow ? 3 : 1,
+                    retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
+                )
+        } else {
+            handle = windowExecutor.captureHandle(
+                for: AccessibilityWindowActionExecutor.WindowTarget(pid: record.pid, title: record.title, bounds: record.bounds),
+                attempts: isFinderWindow ? 3 : 1,
+                retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
+            )
+        }
+
+        guard let handle else {
+            if isFinderWindow { return false }
             return executeAppFallback(request: request, record: record)
         }
 
@@ -443,7 +470,7 @@ struct PlatformActionExecutor {
 
         switch request.kind {
         case .activateWindow:
-            return runningApp?.activate(options: []) ?? false
+            return windowExecutor.activateAppWithWindowRecovery(pid: record.pid, runningApp: runningApp)
         case .minimizeWindow, .hideApp:
             return runningApp?.hide() ?? false
         case .closeWindow:
