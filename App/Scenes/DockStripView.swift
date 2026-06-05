@@ -3,12 +3,13 @@ import SwiftUI
 
 struct DockStripView: View {
     @EnvironmentObject var runtime: AppRuntime
+    @EnvironmentObject var drawerStore: DrawerStore
 
     private var stripItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
+            .filter { !drawerStore.contains($0.bundleIdentifier ?? "") }
     }
 
-    // Animation key: only id + form-state (zero/single/multi). Title/status changes invisible here.
     private var stripLayoutKeys: [StripLayoutKey] {
         stripItems.map(StripLayoutKey.init)
     }
@@ -18,133 +19,128 @@ struct DockStripView: View {
             DockVisualEffectView()
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(height: 0.5)
-                Spacer(minLength: 0)
-            }
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .center, spacing: 8) {
                     ForEach(stripItems, id: \.id) { item in
-                        dockChip(item)
+                        ChipView(item: item)
                             .transition(.scale(scale: 0.88).combined(with: .opacity))
                     }
-                    // 抽屉区插入点（本期不实现）
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, Style.chipContentInset)
                 .frame(height: AppDelegate.panelHeight)
                 .animation(.spring(response: 0.28, dampingFraction: 0.82), value: stripLayoutKeys)
             }
+            .defaultScrollAnchor(.leading)
+            .mask(alignment: .center) {
+                HStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: Style.edgeFadeWidth)
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: Style.edgeFadeWidth)
+                }
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(Style.borderTopOpacity), .white.opacity(Style.borderBottomOpacity)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        }
+        // No .frame(maxWidth: .infinity) here — lets NSHostingView.fittingSize reflect
+        // the natural content width so AppDelegate can read it for panel sizing.
     }
 
-    // MARK: - Chip Dispatch
+}
 
-    @ViewBuilder
-    private func dockChip(_ item: StripItem) -> some View {
-        let isPending = runtime.feedbackEntriesByWindowID[item.id]?.phase == .pending
+// MARK: - Chip View
+
+struct ChipView: View {
+    @EnvironmentObject var runtime: AppRuntime
+    @EnvironmentObject var drawerStore: DrawerStore
+    let item: StripItem
+    var scale: CGFloat = 1.0
+
+    private var isPending: Bool {
+        runtime.feedbackEntriesByWindowID[item.id]?.phase == .pending
+    }
+
+    var body: some View {
         Group {
-            if item.isAppLevelFallback {
-                // State A: 0 windows — dim icon, no highlight
-                bareIconChip(item, isPending: isPending, opacity: 0.45, showActiveHighlight: false)
-            } else if !item.showsTitle {
-                // State B: 1 window — full icon + active strokeBorder
-                bareIconChip(item, isPending: isPending, opacity: 1.0, showActiveHighlight: true)
+            if item.showsTitle {
+                multiWindowChip
             } else {
-                // State C: 2+ windows — per-window labeled chip
-                multiWindowChip(item, isPending: isPending)
+                bareIconChip
             }
         }
         .animation(.easeInOut(duration: 0.2), value: item.showsTitle)
     }
 
-    // MARK: - State A / State B
+    // MARK: - Icon-only chip
 
-    private func bareIconChip(
-        _ item: StripItem,
-        isPending: Bool,
-        opacity: Double,
-        showActiveHighlight: Bool
-    ) -> some View {
-        let isActive = showActiveHighlight && item.status == WindowStatus.active.rawValue
-
+    private var bareIconChip: some View {
+        let iconOpacity: Double = item.isOnDesktop ? 1.0 : 0.45
         return ZStack {
-            appIcon(item, size: 36, opacity: opacity)
+            appIcon(size: 36 * scale, opacity: iconOpacity)
 
             if isPending {
                 ProgressView()
                     .controlSize(.small)
                     .tint(.white.opacity(0.88))
-                    .frame(width: 20, height: 20)
+                    .frame(width: 20 * scale, height: 20 * scale)
                     .background(Color.black.opacity(0.36), in: Circle())
-                    .offset(x: 14, y: -14)
+                    .offset(x: 14 * scale, y: -14 * scale)
             }
         }
-        .overlay(alignment: .bottom) {
-            if isActive {
-                Capsule()
-                    .fill(Color.white.opacity(0.55))
-                    .frame(width: 19, height: 2.5)
-                    .offset(y: -3)
-            }
-        }
-        .frame(width: 44, height: 52)
+        .frame(width: 44 * scale, height: 52 * scale)
         .contentShape(Rectangle())
         .onTapGesture { guard !isPending else { return }; runtime.toggle(windowID: item.id) }
-        .contextMenu { chipContextMenu(item, isDisabled: isPending) }
-        .help(displayTitle(item))
+        .contextMenu { chipContextMenu }
+        .help(displayTitle)
     }
 
-    // MARK: - State C
+    // MARK: - Labeled chip
 
-    private func multiWindowChip(_ item: StripItem, isPending: Bool) -> some View {
-        let isActive = item.status == WindowStatus.active.rawValue
-        let isMinimized = item.status == WindowStatus.minimized.rawValue
+    private var multiWindowChip: some View {
+        let iconOpacity: Double = item.isOnDesktop ? 1.0 : 0.45
+        let textOpacity: Double = item.isOnDesktop ? 0.9 : 0.42
+        return HStack(spacing: 6 * scale) {
+            appIcon(size: 22 * scale, opacity: iconOpacity)
 
-        return HStack(spacing: 6) {
-            appIcon(item, size: 22, opacity: isMinimized ? 0.55 : 1.0)
-
-            Text(displayTitle(item))
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(isMinimized ? .white.opacity(0.42) : .white.opacity(0.9))
+            Text(displayTitle)
+                .font(.system(size: max(10, 12 * scale), weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(textOpacity))
                 .lineLimit(1)
                 .frame(maxWidth: 140, alignment: .leading)
         }
-        .padding(.horizontal, 10)
-        .frame(height: 40)
+        .padding(.horizontal, 10 * scale)
+        .frame(height: 40 * scale)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
                 .fill(Color.white.opacity(0.09))
         )
-        .overlay(alignment: .bottom) {
-            if isActive {
-                Capsule()
-                    .fill(Color.white.opacity(0.55))
-                    .frame(height: 2.5)
-                    .padding(.horizontal, 11)
-                    .offset(y: -3)
-            }
-        }
         .overlay(alignment: .topTrailing) {
             if isPending {
                 ProgressView()
                     .controlSize(.small)
                     .tint(.white.opacity(0.8))
-                    .padding(6)
+                    .padding(6 * scale)
             }
         }
-        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
         .onTapGesture { guard !isPending else { return }; runtime.toggle(windowID: item.id) }
-        .contextMenu { chipContextMenu(item, isDisabled: isPending) }
-        .help(displayTitle(item))
+        .contextMenu { chipContextMenu }
+        .help(displayTitle)
     }
 
     // MARK: - Shared Icon
 
-    private func appIcon(_ item: StripItem, size: CGFloat, opacity: Double) -> some View {
+    private func appIcon(size: CGFloat, opacity: Double) -> some View {
         Image(nsImage: AppIconResolver.icon(for: item.bundleIdentifier ?? item.appID))
             .resizable()
             .aspectRatio(contentMode: .fit)
@@ -157,24 +153,100 @@ struct DockStripView: View {
     // MARK: - Context Menu
 
     @ViewBuilder
-    private func chipContextMenu(_ item: StripItem, isDisabled: Bool) -> some View {
-        Button("激活") { runtime.activate(windowID: item.id) }.disabled(isDisabled)
-        if item.canHide {
-            Button("隐藏") { runtime.hide(windowID: item.id) }.disabled(isDisabled)
-        }
-        if item.canMinimize {
-            Button("最小化") { runtime.minimize(windowID: item.id) }.disabled(isDisabled)
-        }
-        if item.canClose {
+    private var chipContextMenu: some View {
+        if item.isAppLevelFallback {
+            if item.status == "hidden" {
+                Button("显示") { runtime.activate(windowID: item.id) }.disabled(isPending)
+            } else {
+                Button("隐藏") { runtime.hide(windowID: item.id) }.disabled(isPending)
+            }
             Divider()
-            Button("关闭") { runtime.close(windowID: item.id) }.disabled(isDisabled)
+            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
+            if let bid = item.bundleIdentifier {
+                Divider()
+                if drawerStore.contains(bid) {
+                    Button("移回任务栏") { drawerStore.remove(bid) }
+                } else {
+                    Button("收进抽屉") { drawerStore.add(bid) }
+                }
+            }
+        } else {
+            if item.status == "minimized" {
+                Button("还原") { runtime.activate(windowID: item.id) }.disabled(isPending)
+            } else {
+                Button("最小化") { runtime.minimize(windowID: item.id) }.disabled(isPending)
+            }
+            Button("关闭窗口") { runtime.close(windowID: item.id) }.disabled(isPending)
+            Divider()
+            Button("隐藏 App") { runtime.hide(windowID: item.id) }.disabled(isPending)
+            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
+            if let bid = item.bundleIdentifier {
+                Divider()
+                if drawerStore.contains(bid) {
+                    Button("移回任务栏") { drawerStore.remove(bid) }
+                } else {
+                    Button("收进抽屉") { drawerStore.add(bid) }
+                }
+            }
         }
     }
 
     // MARK: - Helpers
 
-    private func displayTitle(_ item: StripItem) -> String {
+    private var displayTitle: String {
         item.title == "macos-dock-cc-v2" ? "任务条" : item.title
+    }
+}
+
+// MARK: - Drawer Capsule Button
+
+struct DrawerCapsuleButton: View {
+    @EnvironmentObject var drawerStore: DrawerStore
+    let action: () -> Void
+
+    private static let iconSize: CGFloat = 10
+    private static let gridSpacing: CGFloat = 5
+
+    private var folderIDs: [String] { Array(drawerStore.bundleIDs.prefix(9)) }
+
+    var body: some View {
+        ZStack {
+            DockVisualEffectView()
+                .ignoresSafeArea()
+
+            if folderIDs.isEmpty {
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.72))
+            } else {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.fixed(Self.iconSize), spacing: Self.gridSpacing), count: 3),
+                    spacing: Self.gridSpacing
+                ) {
+                    ForEach(folderIDs, id: \.self) { id in
+                        Image(nsImage: AppIconResolver.icon(for: id))
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: Self.iconSize, height: Self.iconSize)
+                            .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    }
+                }
+                .padding(6)
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(Style.borderTopOpacity), .white.opacity(Style.borderBottomOpacity)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { action() }
     }
 }
 
@@ -194,14 +266,33 @@ private struct StripLayoutKey: Equatable {
     }
 }
 
+// MARK: - Visual Constants (hand-tune these)
+
+private enum Style {
+    // Shape
+    static let cornerRadius: CGFloat   = 16   // panel corner radius
+
+    // Content layout
+    static let chipContentInset: CGFloat = 20  // horizontal padding inside blur; > cornerRadius avoids corner-clip
+    static let edgeFadeWidth: CGFloat    = 16  // scroll edge fade-out width (pt)
+
+    // Border
+    static let borderTopOpacity: Double    = 0.12  // top-edge highlight (simulates light from above)
+    static let borderBottomOpacity: Double = 0.06  // side/bottom edges (nearly invisible)
+}
+
 // MARK: - Visual Effect Background
 
 private struct DockVisualEffectView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .hudWindow
+        view.material = .sidebar
         view.blendingMode = .behindWindow
         view.state = .active
+        view.wantsLayer = true
+        view.layer?.cornerRadius = Style.cornerRadius
+        view.layer?.cornerCurve = .continuous
+        view.layer?.masksToBounds = true
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}

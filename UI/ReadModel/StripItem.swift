@@ -12,6 +12,7 @@ struct StripItem: Hashable {
     let canMinimize: Bool
     let canHide: Bool
     let canClose: Bool
+    let isOnDesktop: Bool
 
     init(record: WindowRecord, sameAppCardCount: Int = 1) {
         self.id = record.id.rawValue
@@ -25,6 +26,7 @@ struct StripItem: Hashable {
         self.canMinimize = self.isAppLevelFallback == false
         self.canHide = true
         self.canClose = self.isAppLevelFallback == false
+        self.isOnDesktop = record.isOnDesktop
     }
 
     static func items(from snapshot: DockSnapshot) -> [StripItem] {

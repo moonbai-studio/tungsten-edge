@@ -10,6 +10,7 @@ struct WindowRecord: Hashable, Sendable {
     var bounds: CGRect?
     var status: WindowStatus
     var cgWindowID: CGWindowID?
+    var isOnDesktop: Bool
 
     init(
         id: WindowID,
@@ -19,7 +20,8 @@ struct WindowRecord: Hashable, Sendable {
         title: String,
         bounds: CGRect?,
         status: WindowStatus,
-        cgWindowID: CGWindowID? = nil
+        cgWindowID: CGWindowID? = nil,
+        isOnDesktop: Bool = false
     ) {
         self.id = id
         self.appID = appID
@@ -29,6 +31,7 @@ struct WindowRecord: Hashable, Sendable {
         self.bounds = bounds
         self.status = status
         self.cgWindowID = cgWindowID
+        self.isOnDesktop = isOnDesktop
     }
 }
 

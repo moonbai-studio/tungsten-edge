@@ -169,6 +169,7 @@ final class AccessibilitySource {
 
 struct AccessibilityWindowActionExecutor {
     private let reader = AXWindowReader()
+    private static let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
 
     struct ActionExecution {
         let success: Bool
@@ -190,7 +191,7 @@ struct AccessibilityWindowActionExecutor {
     }
 
     func captureHandleByCGWindowID(_ cgWindowID: CGWindowID, pid: Int32) -> WindowHandle? {
-        let snapshots = reader.windows(forPID: pid)
+        guard case .success(let snapshots) = reader.inventoryWindows(forPID: pid, messagingTimeout: 0.5) else { return nil }
         guard let snap = snapshots.first(where: { $0.cgWindowID == cgWindowID }) else { return nil }
         return WindowHandle(pid: pid, title: snap.title, bounds: snap.bounds, element: snap.element)
     }
@@ -219,7 +220,8 @@ struct AccessibilityWindowActionExecutor {
         guard let handle = reader.captureHandle(
             for: AXWindowTarget(pid: target.pid, title: target.title, bounds: target.bounds),
             attempts: attempts,
-            retryIntervalMicroseconds: retryIntervalMicroseconds
+            retryIntervalMicroseconds: retryIntervalMicroseconds,
+            messagingTimeout: 0.5
         ) else {
             return nil
         }
@@ -232,6 +234,23 @@ struct AccessibilityWindowActionExecutor {
     }
 
     func minimize(_ handle: WindowHandle) -> ActionExecution {
+        // ChipProbe: read-only AX survey (background thread, element already has 0.5s messaging timeout)
+        let role = reader.stringAttribute(kAXRoleAttribute as CFString, from: handle.element, maxAttempts: 1)
+        let subrole = reader.stringAttribute(kAXSubroleAttribute as CFString, from: handle.element, maxAttempts: 1)
+        let hasMinimizeButton = axElementAttribute(kAXMinimizeButtonAttribute as CFString, from: handle.element) != nil
+        let currentMinimized = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element, maxAttempts: 1)
+        var minimizedSettable: DarwinBoolean = false
+        _ = AXUIElementIsAttributeSettable(handle.element, kAXMinimizedAttribute as CFString, &minimizedSettable)
+        let probeApp = NSRunningApplication(processIdentifier: handle.pid)
+        let probePolicyStr: String
+        switch probeApp?.activationPolicy {
+        case .regular: probePolicyStr = "regular"
+        case .accessory: probePolicyStr = "accessory"
+        case .prohibited: probePolicyStr = "prohibited"
+        default: probePolicyStr = "nil"
+        }
+        Self.chipProbeLogger.info("minimize-ax-probe app=\(probeApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(probeApp?.bundleIdentifier ?? "(none)", privacy: .public) activationPolicy=\(probePolicyStr, privacy: .public) role=\(role ?? "nil", privacy: .public) subrole=\(subrole ?? "nil", privacy: .public) hasMinimizeButton=\(hasMinimizeButton, privacy: .public) currentMinimized=\(String(describing: currentMinimized), privacy: .public) minimizedSettable=\(minimizedSettable.boolValue, privacy: .public)")
+
         if setMinimized(true, for: handle) {
             let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
             if verified == true {
@@ -259,7 +278,6 @@ struct AccessibilityWindowActionExecutor {
             )
         }
 
-        usleep(150_000)
         let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
         return ActionExecution(
             success: verified == true,
@@ -409,6 +427,7 @@ struct AccessibilityWindowActionExecutor {
 
 struct PlatformActionExecutor {
     private let windowExecutor = AccessibilityWindowActionExecutor()
+    private static let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
 
     @discardableResult
     func execute(_ request: PlatformActionRequest, snapshot: DockSnapshot) -> Bool {
@@ -421,7 +440,7 @@ struct PlatformActionExecutor {
             return executeAppFallback(request: request, record: record)
         }
 
-        if request.kind == .hideApp {
+        if request.kind == .hideApp || request.kind == .quitApp {
             return executeAppFallback(request: request, record: record)
         }
 
@@ -457,10 +476,12 @@ struct PlatformActionExecutor {
         case .activateWindow:
             return windowExecutor.activate(handle, requiresFocusedConfirmation: isFinderWindow)
         case .minimizeWindow:
-            return windowExecutor.minimize(handle).success
+            let minExec = windowExecutor.minimize(handle)
+            Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
+            return minExec.success
         case .closeWindow:
             return windowExecutor.close(handle)
-        case .hideApp:
+        case .hideApp, .quitApp:
             return executeAppFallback(request: request, record: record)
         }
     }
@@ -475,6 +496,8 @@ struct PlatformActionExecutor {
             return runningApp?.hide() ?? false
         case .closeWindow:
             return false
+        case .quitApp:
+            return runningApp?.terminate() ?? false
         }
     }
 }

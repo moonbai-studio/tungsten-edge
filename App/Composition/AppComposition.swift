@@ -18,7 +18,10 @@ final class AppRuntime: ObservableObject {
     private var snapshotSubscription: AnyCancellable?
     private var feedbackTimer: Timer?
     private var startedAt: Date?
+    var onToggleDrawer: (() -> Void)?
+
     private let debugSnapshotLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "debug-snapshot")
+    private let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
 
     func start() {
         guard snapshotSubscription == nil else { return }
@@ -61,16 +64,42 @@ final class AppRuntime: ObservableObject {
     func minimize(windowID: String) { trigger(.minimize(WindowID(rawValue: windowID))) }
     func hide(windowID: String) { trigger(.hide(WindowID(rawValue: windowID))) }
     func close(windowID: String) { trigger(.close(WindowID(rawValue: windowID))) }
+    func quit(windowID: String) { trigger(.quit(WindowID(rawValue: windowID))) }
 
     // MARK: - Private
 
     private func trigger(_ intent: UserIntent) {
         guard intentPipeline.canBegin(intent: intent) else { return }
         let request = intentPipeline.plan(intent: intent, snapshot: snapshot)
+
+        // ChipProbe: log chip state + planned action at tap time (main thread, no AX)
+        if case .toggle(let wid) = intent, let record = snapshot.windows[wid] {
+            let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            let appIsFrontmost = frontPID == record.pid
+            let runningApp = NSRunningApplication(processIdentifier: record.pid)
+            let policyStr: String
+            switch runningApp?.activationPolicy {
+            case .regular: policyStr = "regular"
+            case .accessory: policyStr = "accessory"
+            case .prohibited: policyStr = "prohibited"
+            default: policyStr = "nil"
+            }
+            chipProbeLogger.info("toggle-planned app=\(runningApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(record.bundleIdentifier ?? "(none)", privacy: .public) activationPolicy=\(policyStr, privacy: .public) status=\(record.status.rawValue, privacy: .public) isOnDesktop=\(record.isOnDesktop, privacy: .public) appIsFrontmost=\(appIsFrontmost, privacy: .public) plannedAction=\(request.kind.rawValue, privacy: .public)")
+        }
+
         intentPipeline.registerPending(intent: intent, request: request)
-        let success = actionExecutor.execute(request, snapshot: snapshot)
-        intentPipeline.registerExecutionResult(intent: intent, request: request, success: success)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID
+
+        let executor = actionExecutor
+        let capturedSnapshot = snapshot
+        Task.detached { [weak self] in
+            let success = executor.execute(request, snapshot: capturedSnapshot)
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.intentPipeline.registerExecutionResult(intent: intent, request: request, success: success)
+                self.feedbackEntriesByWindowID = self.intentPipeline.feedbackState.entriesByWindowID
+            }
+        }
     }
 
     private func handleSnapshotUpdate(_ newSnapshot: DockSnapshot) {

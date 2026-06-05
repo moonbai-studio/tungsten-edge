@@ -7,6 +7,7 @@ enum UserIntentAction: String, Hashable, Sendable {
     case minimize
     case hide
     case close
+    case quit
 }
 
 enum UserIntent: Hashable, Sendable {
@@ -15,10 +16,11 @@ enum UserIntent: Hashable, Sendable {
     case minimize(WindowID)
     case hide(WindowID)
     case close(WindowID)
+    case quit(WindowID)
 
     var windowID: WindowID {
         switch self {
-        case let .toggle(id), let .activate(id), let .minimize(id), let .hide(id), let .close(id):
+        case let .toggle(id), let .activate(id), let .minimize(id), let .hide(id), let .close(id), let .quit(id):
             return id
         }
     }
@@ -35,6 +37,8 @@ enum UserIntent: Hashable, Sendable {
             return .hide
         case .close:
             return .close
+        case .quit:
+            return .quit
         }
     }
 }
@@ -46,10 +50,10 @@ final class LifecycleActionPlanner {
             guard let record = snapshot.windows[id] else {
                 return PlatformActionRequest(kind: .activateWindow, windowID: id)
             }
-            if record.id.rawValue.hasPrefix("app-") {
-                return PlatformActionRequest(kind: .activateWindow, windowID: id)
-            }
             let appIsFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == record.pid
+            if record.id.rawValue.hasPrefix("app-") {
+                return PlatformActionRequest(kind: appIsFrontmost ? .hideApp : .activateWindow, windowID: id)
+            }
             if record.status == .active && appIsFrontmost {
                 return PlatformActionRequest(kind: .minimizeWindow, windowID: id)
             }
@@ -62,6 +66,8 @@ final class LifecycleActionPlanner {
             return PlatformActionRequest(kind: .hideApp, windowID: id)
         case let .close(id):
             return PlatformActionRequest(kind: .closeWindow, windowID: id)
+        case let .quit(id):
+            return PlatformActionRequest(kind: .quitApp, windowID: id)
         }
     }
 }

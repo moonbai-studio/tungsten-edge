@@ -1,10 +1,17 @@
 import ApplicationServices
 import Foundation
 
+private struct AXElementKey: Hashable {
+    let e: AXUIElement
+    static func == (l: AXElementKey, r: AXElementKey) -> Bool { CFEqual(l.e, r.e) }
+    func hash(into h: inout Hasher) { h.combine(CFHash(e)) }
+}
+
 final class AppWindowObserver {
     let pid: pid_t
     private var observer: AXObserver?
     private var registeredWindowIDs: Set<CGWindowID> = []
+    private var elementToCGID: [AXElementKey: CGWindowID] = [:]
 
     var onWindowCreated: ((pid_t) -> Void)?
     var onWindowDestroyed: ((pid_t, CGWindowID) -> Void)?
@@ -43,11 +50,14 @@ final class AppWindowObserver {
             observer = nil
         }
         registeredWindowIDs.removeAll()
+        elementToCGID.removeAll()
     }
 
     func registerWindow(_ element: AXUIElement, cgWindowID: CGWindowID) {
         guard let obs = observer else { return }
         guard registeredWindowIDs.insert(cgWindowID).inserted else { return }
+
+        elementToCGID[AXElementKey(e: element)] = cgWindowID
 
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
         AXObserverAddNotification(obs, element, kAXUIElementDestroyedNotification as CFString, selfPtr)
@@ -62,8 +72,10 @@ final class AppWindowObserver {
         } else if notifStr == (kAXFocusedWindowChangedNotification as String) {
             onFocusedWindowChanged?(pid)
         } else if notifStr == (kAXUIElementDestroyedNotification as String) {
-            if let cgID = AXWindowReader.cgWindowID(for: element) {
+            let key = AXElementKey(e: element)
+            if let cgID = AXWindowReader.cgWindowID(for: element) ?? elementToCGID[key] {
                 registeredWindowIDs.remove(cgID)
+                elementToCGID.removeValue(forKey: key)
                 onWindowDestroyed?(pid, cgID)
             }
         } else if notifStr == (kAXWindowMiniaturizedNotification as String) {

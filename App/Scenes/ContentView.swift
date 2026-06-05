@@ -360,6 +360,8 @@ struct ContentView: View {
                 return "正在尝试隐藏这个应用"
             case .close:
                 return "正在尝试关闭这个窗口"
+            case .quit:
+                return "正在尝试退出这个应用"
             }
         case .success:
             switch feedback.action {
@@ -373,6 +375,8 @@ struct ContentView: View {
                 return "这个应用已隐藏"
             case .close:
                 return "这个窗口已关闭"
+            case .quit:
+                return "这个应用已退出"
             }
         case .failure:
             switch feedback.action {
@@ -386,6 +390,8 @@ struct ContentView: View {
                 return "没能隐藏这个应用"
             case .close:
                 return "没能关闭这个窗口"
+            case .quit:
+                return "没能退出这个应用"
             }
         }
     }

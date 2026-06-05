@@ -1,8 +1,10 @@
 import Foundation
+import os
 
 final class IntentPipeline {
     private let actionPlanning: LifecycleActionPlanner
     private(set) var feedbackState = IntentFeedbackState()
+    private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "intent-pipeline")
 
     init(actionPlanning: LifecycleActionPlanner) {
         self.actionPlanning = actionPlanning
@@ -38,7 +40,13 @@ final class IntentPipeline {
     }
 
     func reconcile(with snapshot: DockSnapshot) {
+        let before = feedbackState.entriesByWindowID
         feedbackState.reconcile(snapshot: snapshot, now: Date())
+        for (windowID, entry) in feedbackState.entriesByWindowID {
+            if let old = before[windowID], old.phase == .pending, entry.phase != .pending {
+                logger.info("[B-pending-cleared] t=\(CFAbsoluteTimeGetCurrent(), privacy: .public) windowID=\(windowID, privacy: .public) action=\(entry.action.rawValue, privacy: .public) → \(entry.phase.rawValue, privacy: .public)")
+            }
+        }
     }
 
     private func feedbackAction(
@@ -54,6 +62,8 @@ final class IntentPipeline {
             return .hide
         case .closeWindow:
             return .close
+        case .quitApp:
+            return .quit
         }
     }
 }
@@ -124,6 +134,10 @@ struct IntentFeedbackState {
                 }
             case .close:
                 if record.status == .closedPending {
+                    update(windowID: windowID, phase: .success, at: now)
+                }
+            case .quit:
+                if record.status == .disappeared {
                     update(windowID: windowID, phase: .success, at: now)
                 }
             }

@@ -70,5 +70,6 @@ struct PlatformActionRequest: Hashable, Sendable {
         case minimizeWindow
         case closeWindow
         case hideApp
+        case quitApp
     }
 }

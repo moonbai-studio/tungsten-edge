@@ -32,6 +32,8 @@ final class AppTracker: ObservableObject {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var reconcileTimer: Timer?
     private var isScanningCandidates = false
+    private var destroyedCGIDs: [CGWindowID: Date] = [:]
+    private static let tombstoneTTL: TimeInterval = 3.0
 
     private let reader = AXWindowReader()
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
@@ -55,7 +57,22 @@ final class AppTracker: ObservableObject {
         observers.removeAll()
         apps.removeAll()
         appOrder.removeAll()
+        destroyedCGIDs.removeAll()
         snapshot = .empty
+    }
+
+    // MARK: - Tombstone
+
+    private func isTombstoned(_ cgID: CGWindowID) -> Bool {
+        guard let removedAt = destroyedCGIDs[cgID] else { return false }
+        return Date().timeIntervalSince(removedAt) <= Self.tombstoneTTL
+    }
+
+    private func purgeStaleTombstones() {
+        let now = Date()
+        destroyedCGIDs = destroyedCGIDs.filter { _, date in
+            now.timeIntervalSince(date) <= Self.tombstoneTTL
+        }
     }
 
     // MARK: - CG Window Set
@@ -265,7 +282,7 @@ final class AppTracker: ObservableObject {
                     isFocused: snap.isFocusedWindow
                 )
                 newOrder.append(cgID)
-            } else if cgIDs.contains(cgID) {
+            } else if cgIDs.contains(cgID) && !isTombstoned(cgID) {
                 // AX can't enumerate it but CG confirms it exists → minimized
                 var entry = app.windowsByID[cgID] ?? WindowEntry(
                     cgWindowID: cgID, title: "", bounds: nil, isMinimized: true, isFocused: false
@@ -275,7 +292,7 @@ final class AppTracker: ObservableObject {
                 newWindowsByID[cgID] = entry
                 newOrder.append(cgID)
             }
-            // else: not in AX, not in CG → truly closed; drop it
+            // else: not in AX, not in CG (or tombstoned) → truly closed; drop it
         }
 
         // Pass 2: new AX-visible windows not previously tracked
@@ -339,6 +356,7 @@ final class AppTracker: ObservableObject {
 
     private func handleWindowDestroyed(pid: pid_t, cgWindowID: CGWindowID) {
         guard var app = apps[pid] else { return }
+        destroyedCGIDs[cgWindowID] = Date()
         app.windowsByID.removeValue(forKey: cgWindowID)
         app.windowOrder.removeAll { $0 == cgWindowID }
         apps[pid] = app
@@ -370,6 +388,7 @@ final class AppTracker: ObservableObject {
 
     private func reconcile() {
         guard AXIsProcessTrusted() else { return }
+        purgeStaleTombstones()
         var changed = false
 
         // Snapshot CG window set once for the entire reconcile pass
@@ -386,14 +405,14 @@ final class AppTracker: ObservableObject {
 
             // Remove or CG-veto windows that AX no longer enumerates
             for cgID in trackedIDs.subtracting(liveIDs) {
-                if cgIDs.contains(cgID) {
+                if cgIDs.contains(cgID) && !isTombstoned(cgID) {
                     // Still in CG → minimized; AX just can't enumerate it
                     app.windowsByID[cgID]?.isMinimized = true
                     app.windowsByID[cgID]?.isFocused = false
                     apps[pid] = app
                     changed = true
                 } else {
-                    // Not in CG → truly closed
+                    // Not in CG, or recently destroyed → truly closed
                     app.windowsByID.removeValue(forKey: cgID)
                     app.windowOrder.removeAll { $0 == cgID }
                     apps[pid] = app
@@ -496,7 +515,8 @@ final class AppTracker: ObservableObject {
                     bundleIdentifier: app.bundleIdentifier,
                     title: app.appName,
                     bounds: nil,
-                    status: app.isHidden ? .hidden : .inactive
+                    status: app.isHidden ? .hidden : .inactive,
+                    isOnDesktop: pid == frontmostPID
                 )
                 orderedWindowIDs.append(id)
             } else {
@@ -511,7 +531,8 @@ final class AppTracker: ObservableObject {
                         title: window.title,
                         bounds: window.bounds,
                         status: windowStatus(entry: window, isHidden: app.isHidden, pid: pid, frontmostPID: frontmostPID),
-                        cgWindowID: cgID
+                        cgWindowID: cgID,
+                        isOnDesktop: !window.isMinimized && !app.isHidden
                     )
                     orderedWindowIDs.append(id)
                 }

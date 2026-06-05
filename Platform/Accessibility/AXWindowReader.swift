@@ -92,13 +92,23 @@ struct AXWindowReader {
     func captureHandle(
         for target: AXWindowTarget,
         attempts: Int = 1,
-        retryIntervalMicroseconds: useconds_t = 0
+        retryIntervalMicroseconds: useconds_t = 0,
+        messagingTimeout: TimeInterval? = nil
     ) -> AXWindowHandle? {
         guard AXIsProcessTrusted() else { return nil }
         let boundedAttempts = max(1, attempts)
 
         for attempt in 0..<boundedAttempts {
-            if let snapshot = bestMatch(for: target, from: windows(forPID: target.pid)) {
+            let candidates: [AXWindowSnapshot]
+            if let timeout = messagingTimeout {
+                switch inventoryWindows(forPID: target.pid, messagingTimeout: timeout) {
+                case .success(let s): candidates = s
+                case .unread: candidates = []
+                }
+            } else {
+                candidates = windows(forPID: target.pid)
+            }
+            if let snapshot = bestMatch(for: target, from: candidates) {
                 return AXWindowHandle(
                     pid: target.pid,
                     title: snapshot.title,
@@ -223,7 +233,6 @@ struct AXWindowReader {
             }
 
             attempt += 1
-            usleep(20_000)
         }
 
         return lastResult

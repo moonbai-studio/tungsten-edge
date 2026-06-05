@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		A00000000000000000001040 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000066 /* AppDelegate.swift */; };
 		A00000000000000000001041 /* DockStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000067 /* DockStripView.swift */; };
+		A00000000000000000001044 /* DrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006A /* DrawerView.swift */; };
+		A00000000000000000001045 /* DrawerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006B /* DrawerStore.swift */; };
 		A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* MacOSDockCCV2App.swift */; };
 		A00000000000000000001002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
 		A00000000000000000001003 /* AppComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* AppComposition.swift */; };
@@ -72,6 +74,8 @@
 		A00000000000000000000069 /* AppTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTracker.swift; sourceTree = "<group>"; };
 		A00000000000000000000066 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A00000000000000000000067 /* DockStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockStripView.swift; sourceTree = "<group>"; };
+		A0000000000000000000006A /* DrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerView.swift; sourceTree = "<group>"; };
+		A0000000000000000000006B /* DrawerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerStore.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* MacOSDockCCV2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSDockCCV2App.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000003 /* AppComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComposition.swift; sourceTree = "<group>"; };
@@ -173,6 +177,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000003 /* AppComposition.swift */,
+				A0000000000000000000006B /* DrawerStore.swift */,
 				A00000000000000000000027 /* ObservationPipeline */,
 				A00000000000000000000028 /* IntentPipeline */,
 			);
@@ -202,6 +207,7 @@
 			children = (
 				A00000000000000000000002 /* ContentView.swift */,
 				A00000000000000000000067 /* DockStripView.swift */,
+				A0000000000000000000006A /* DrawerView.swift */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -543,8 +549,10 @@
 					A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */,
 					A00000000000000000001040 /* AppDelegate.swift in Sources */,
 					A00000000000000000001041 /* DockStripView.swift in Sources */,
+					A00000000000000000001044 /* DrawerView.swift in Sources */,
 					A00000000000000000001002 /* ContentView.swift in Sources */,
 					A00000000000000000001003 /* AppComposition.swift in Sources */,
+					A00000000000000000001045 /* DrawerStore.swift in Sources */,
 					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
 					A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
 					A00000000000000000001032 /* ObservationAdmissionGate.swift in Sources */,
