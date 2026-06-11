@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A00000000000000000001040 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000066 /* AppDelegate.swift */; };
+		A00000000000000000001046 /* PanelCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006C /* PanelCoordinator.swift */; };
 		A00000000000000000001041 /* DockStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000067 /* DockStripView.swift */; };
 		A00000000000000000001044 /* DrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006A /* DrawerView.swift */; };
 		A00000000000000000001045 /* DrawerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006B /* DrawerStore.swift */; };
@@ -73,6 +74,7 @@
 		A00000000000000000000068 /* AppWindowObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppWindowObserver.swift; sourceTree = "<group>"; };
 		A00000000000000000000069 /* AppTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTracker.swift; sourceTree = "<group>"; };
 		A00000000000000000000066 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A0000000000000000000006C /* PanelCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000067 /* DockStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockStripView.swift; sourceTree = "<group>"; };
 		A0000000000000000000006A /* DrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerView.swift; sourceTree = "<group>"; };
 		A0000000000000000000006B /* DrawerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerStore.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 			children = (
 				A00000000000000000000001 /* MacOSDockCCV2App.swift */,
 				A00000000000000000000066 /* AppDelegate.swift */,
+				A0000000000000000000006C /* PanelCoordinator.swift */,
 			);
 			path = Entry;
 			sourceTree = "<group>";
@@ -548,6 +551,7 @@
 				files = (
 					A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */,
 					A00000000000000000001040 /* AppDelegate.swift in Sources */,
+					A00000000000000000001046 /* PanelCoordinator.swift in Sources */,
 					A00000000000000000001041 /* DockStripView.swift in Sources */,
 					A00000000000000000001044 /* DrawerView.swift in Sources */,
 					A00000000000000000001002 /* ContentView.swift in Sources */,

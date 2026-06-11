@@ -27,7 +27,7 @@ struct DockStripView: View {
                     }
                 }
                 .padding(.horizontal, Style.chipContentInset)
-                .frame(height: AppDelegate.panelHeight)
+                .frame(height: PanelCoordinator.panelHeight)
                 .animation(.spring(response: 0.28, dampingFraction: 0.82), value: stripLayoutKeys)
             }
             .defaultScrollAnchor(.leading)
