@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var snapshotWidthSubscription: AnyCancellable?
     private var drawerStoreWidthSubscription: AnyCancellable?
     private var lastDesiredWidth: CGFloat = 0
+    private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "dock-panel")
 
     private var isHiddenForFullscreen = false
@@ -76,11 +77,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let drawerSize = CGSize(width: 320, height: 200)
-
         if drawerPanel == nil {
             let panel = NSPanel(
-                contentRect: NSRect(origin: .zero, size: drawerSize),
+                contentRect: NSRect(origin: .zero, size: lastDrawerSize),
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false
@@ -104,13 +103,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let screen = panelCurrentScreen(panel: mainPanel)
         let vf = screen.visibleFrame
         let capsuleFrame = capsule.frame
-        let rawX = capsuleFrame.maxX - drawerSize.width
+        let s = lastDrawerSize
+        let rawX = capsuleFrame.maxX - s.width
         let rawY = capsuleFrame.maxY + 8
-        let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
-        let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
-        let targetFrame = NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height)
-        drawerPanel?.setFrame(targetFrame, display: false)
+        let clampedX = min(max(rawX, vf.minX), vf.maxX - s.width)
+        let clampedY = min(max(rawY, vf.minY), vf.maxY - s.height)
+        drawerPanel?.setFrame(NSRect(x: clampedX, y: clampedY, width: s.width, height: s.height), display: false)
         drawerPanel?.orderFrontRegardless()
+        DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.async { [weak self] in
+                self?.syncDrawerPanel()
+            }
+        }
 
         drawerLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             self?.dismissDrawerIfOutside()
@@ -119,6 +123,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             self?.dismissDrawerIfOutside()
         }
+    }
+
+    private func syncDrawerPanel() {
+        guard let drawer = drawerPanel, drawer.isVisible,
+              let capsule = capsulePanel,
+              let dock = dockPanel,
+              let hosting = drawer.contentView else { return }
+        let fitting = hosting.fittingSize
+        let drawerSize = CGSize(width: max(fitting.width, 60), height: max(fitting.height, 60))
+        lastDrawerSize = drawerSize
+        let screen = panelCurrentScreen(panel: dock)
+        let vf = screen.visibleFrame
+        let capsuleFrame = capsule.frame
+        let rawX = capsuleFrame.maxX - drawerSize.width
+        let rawY = capsuleFrame.maxY + 8
+        let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
+        let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
+        drawer.setFrame(NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height), display: true)
     }
 
     private func closeDrawer() {

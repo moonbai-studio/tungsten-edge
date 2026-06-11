@@ -65,6 +65,7 @@ struct ChipView: View {
     @EnvironmentObject var drawerStore: DrawerStore
     let item: StripItem
     var scale: CGFloat = 1.0
+    var iconOnly: Bool = false
 
     private var isPending: Bool {
         runtime.feedbackEntriesByWindowID[item.id]?.phase == .pending
@@ -72,7 +73,7 @@ struct ChipView: View {
 
     var body: some View {
         Group {
-            if item.showsTitle {
+            if !iconOnly && item.showsTitle {
                 multiWindowChip
             } else {
                 bareIconChip

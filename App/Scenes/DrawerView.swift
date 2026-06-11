@@ -24,14 +24,16 @@ struct DrawerView: View {
         return drawerStore.bundleIDs.filter { !runningBundleIDs.contains($0) }
     }
 
+    private let columns = Array(repeating: GridItem(.fixed(44 * 0.7), spacing: 8), count: 5)
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(NSColor.windowBackgroundColor))
 
-            HStack(spacing: 8) {
+            LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(drawerItems, id: \.id) { item in
-                    ChipView(item: item, scale: 0.7)
+                    ChipView(item: item, scale: 0.7, iconOnly: true)
                 }
                 ForEach(notRunningBundleIDs, id: \.self) { bundleID in
                     DrawerLauncherChip(bundleID: bundleID)
