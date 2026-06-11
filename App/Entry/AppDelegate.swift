@@ -300,7 +300,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func exportDebugSnapshotFromMenu() { exportDebugSnapshot() }
 
     @objc private func screenParametersChanged() {
-        guard let panel = dockPanel, let screen = NSScreen.main else { return }
+        guard let panel = dockPanel else { return }
+        let screen = panelCurrentScreen(panel: panel)
         let contentWidth = panel.contentView?.fittingSize.width ?? 0
         let maxWidth = screen.visibleFrame.width - 2 * (Self.outerMargin + Self.capsuleGap + Self.capsuleWidth)
         let panelWidth = max(min(contentWidth, maxWidth), 120)
