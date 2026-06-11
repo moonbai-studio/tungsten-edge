@@ -100,10 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             drawerPanel = panel
         }
 
-        let allItems = StripItem.items(from: runtime.snapshot)
-        Logger(subsystem: "com.caye.macosdockcc.v2", category: "Drawer")
-            .info("drawer open allChips=[\(allItems.map { "\($0.id):\($0.bundleIdentifier ?? "nil")" }.joined(separator: " "), privacy: .public)] drawerStore=[\(self.drawerStore.bundleIDs.joined(separator: " "), privacy: .public)]")
-
         guard let capsule = capsulePanel else { return }
         let screen = panelCurrentScreen(panel: mainPanel)
         let vf = screen.visibleFrame
@@ -113,8 +109,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
         let targetFrame = NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height)
-        Logger(subsystem: "com.caye.macosdockcc.v2", category: "Drawer")
-            .info("position screen=\(screen.localizedName, privacy: .public) vf=(\(vf.minX, privacy: .public),\(vf.minY, privacy: .public),\(vf.width, privacy: .public),\(vf.height, privacy: .public)) capsuleFrame=(\(capsuleFrame.minX, privacy: .public),\(capsuleFrame.minY, privacy: .public),\(capsuleFrame.width, privacy: .public),\(capsuleFrame.height, privacy: .public)) rawX=\(rawX, privacy: .public) rawY=\(rawY, privacy: .public) clampedX=\(clampedX, privacy: .public) clampedY=\(clampedY, privacy: .public) targetFrame=(\(targetFrame.minX, privacy: .public),\(targetFrame.minY, privacy: .public),\(targetFrame.width, privacy: .public),\(targetFrame.height, privacy: .public))")
         drawerPanel?.setFrame(targetFrame, display: false)
         drawerPanel?.orderFrontRegardless()
 
