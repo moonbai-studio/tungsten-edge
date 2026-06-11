@@ -66,6 +66,8 @@ struct ChipView: View {
     let item: StripItem
     var scale: CGFloat = 1.0
     var iconOnly: Bool = false
+    var showRunningDot: Bool = false
+    var drawerTap: (() -> Void)? = nil
 
     private var isPending: Bool {
         runtime.feedbackEntriesByWindowID[item.id]?.phase == .pending
@@ -99,8 +101,19 @@ struct ChipView: View {
             }
         }
         .frame(width: 44 * scale, height: 52 * scale)
+        .overlay(alignment: .bottom) {
+            if showRunningDot {
+                Circle()
+                    .fill(.white.opacity(0.85))
+                    .frame(width: 4, height: 4)
+                    .padding(.bottom, 2)
+            }
+        }
         .contentShape(Rectangle())
-        .onTapGesture { guard !isPending else { return }; runtime.toggle(windowID: item.id) }
+        .onTapGesture {
+            guard !isPending else { return }
+            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
+        }
         .contextMenu { chipContextMenu }
         .help(displayTitle)
     }
@@ -134,7 +147,10 @@ struct ChipView: View {
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
-        .onTapGesture { guard !isPending else { return }; runtime.toggle(windowID: item.id) }
+        .onTapGesture {
+            guard !isPending else { return }
+            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
+        }
         .contextMenu { chipContextMenu }
         .help(displayTitle)
     }
