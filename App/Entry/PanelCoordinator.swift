@@ -11,6 +11,7 @@ final class PanelCoordinator: NSObject {
     private let runtime: AppRuntime
     private let drawerStore: DrawerStore
     private let messagingStore: MessagingAppStore
+    private let launchFavoriteStore: LaunchFavoriteStore
     private let badgeStore: BadgeStore
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
@@ -20,6 +21,7 @@ final class PanelCoordinator: NSObject {
     private var snapshotWidthSubscription: AnyCancellable?
     private var drawerStoreWidthSubscription: AnyCancellable?
     private var messagingStoreWidthSubscription: AnyCancellable?
+    private var launchFavoriteStoreSubscription: AnyCancellable?
     private var lastDesiredWidth: CGFloat = 0
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "dock-panel")
@@ -27,10 +29,11 @@ final class PanelCoordinator: NSObject {
     private var isHiddenForFullscreen = false
     private var fullscreenReconcileTimer: Timer?
 
-    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, badgeStore: BadgeStore) {
+    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore) {
         self.runtime = runtime
         self.drawerStore = drawerStore
         self.messagingStore = messagingStore
+        self.launchFavoriteStore = launchFavoriteStore
         self.badgeStore = badgeStore
         super.init()
     }
@@ -41,6 +44,7 @@ final class PanelCoordinator: NSObject {
         subscribeSnapshotWidth()
         subscribeDrawerStoreWidth()
         subscribeMessagingStoreWidth()
+        subscribeLaunchFavoriteStore()
         setupFullscreenMonitor()
         setupHoverDiagnostics()
         NotificationCenter.default.addObserver(
@@ -74,7 +78,7 @@ final class PanelCoordinator: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
-            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore))
+            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore))
             hosting.wantsLayer = true
             hosting.layer?.backgroundColor = CGColor.clear
             panel.contentView = hosting
@@ -159,7 +163,7 @@ final class PanelCoordinator: NSObject {
         panel.backgroundColor = .clear
         panel.hasShadow = true
 
-        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(badgeStore))
+        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore))
         hosting.autoresizingMask = [.width, .height]
         // Prevent NSHostingView from adding its own opaque background over the blur
         hosting.wantsLayer = true
@@ -219,6 +223,7 @@ final class PanelCoordinator: NSObject {
                 // Defer one run-loop cycle so SwiftUI finishes layout before we read fittingSize
                 DispatchQueue.main.async { [weak self] in
                     self?.measureAndApplyWidth()
+                    self?.syncDrawerPanel()
                 }
             }
     }
@@ -229,6 +234,7 @@ final class PanelCoordinator: NSObject {
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
                     self?.measureAndApplyWidth()
+                    self?.syncDrawerPanel()
                 }
             }
     }
@@ -239,6 +245,19 @@ final class PanelCoordinator: NSObject {
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
                     self?.measureAndApplyWidth()
+                }
+            }
+    }
+
+    /// Launch favorites never change the strip's content (a favorite stays on the
+    /// strip while running), so no dock-width remeasure — only the open drawer's size
+    /// can change (固定/取消固定 while the drawer is showing).
+    private func subscribeLaunchFavoriteStore() {
+        launchFavoriteStoreSubscription = launchFavoriteStore.$bundleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { [weak self] in
+                    self?.syncDrawerPanel()
                 }
             }
     }

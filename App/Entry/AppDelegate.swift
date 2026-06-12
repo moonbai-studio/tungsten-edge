@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var runtime = AppRuntime()
     let drawerStore = DrawerStore()
     let messagingStore = MessagingAppStore()
+    let launchFavoriteStore = LaunchFavoriteStore()
     let badgeStore = BadgeStore()
     private var panelCoordinator: PanelCoordinator?
     private var debugWindow: NSWindow?
@@ -20,14 +21,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Auto tier of the messaging list: whenever the snapshot updates, register any
         // running app that matches the whitelist / social-networking category.
+        // Launch favorites are excluded: 待启动 is an explicit membership and the four
+        // memberships are mutually exclusive — auto detection must not pull a
+        // just-registered favorite back into the messaging zone.
         messagingAutoRegisterSubscription = runtime.$snapshot
             .receive(on: DispatchQueue.main)
             .sink { [weak self] snapshot in
+                guard let self else { return }
                 let running = Set(snapshot.windows.values.compactMap(\.bundleIdentifier))
-                self?.messagingStore.autoRegister(runningBundleIDs: running)
+                    .filter { !self.launchFavoriteStore.contains($0) }
+                self.messagingStore.autoRegister(runningBundleIDs: running)
             }
 
-        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore, badgeStore: badgeStore)
+        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore, launchFavoriteStore: launchFavoriteStore, badgeStore: badgeStore)
         panelCoordinator = coordinator
         runtime.onToggleDrawer = { [weak coordinator] in coordinator?.toggleDrawer() }
         coordinator.start()

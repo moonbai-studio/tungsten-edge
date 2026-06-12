@@ -18,8 +18,10 @@ struct LauncherChip: View {
     /// stay full-opacity (product decision: "always reachable", not degraded).
     var dimsWhenInactive: Bool = true
     /// Last context-menu item, e.g. "移回任务栏" (drawer) or "取消标记消息应用" (messaging).
-    let removeMenuLabel: String
-    let onRemove: () -> Void
+    /// nil for 待启动 launch buttons: membership management lives on the running
+    /// chip's context menu only (沉淀原则 2026-06-11, no menu on launch buttons).
+    var removeMenuLabel: String? = nil
+    var onRemove: () -> Void = {}
     /// When set, replaces the default tap behavior (drawer show/hide toggle). Used by
     /// the strip's messaging app chip, whose tap must always reopen the main window.
     var onTap: (() -> Void)? = nil
@@ -73,9 +75,11 @@ struct LauncherChip: View {
                 Button("隐藏") { _ = app.hide() }
             }
             Button("退出 App") { _ = app.terminate() }
-            Divider()
+            if removeMenuLabel != nil { Divider() }
         }
-        Button(removeMenuLabel) { onRemove() }
+        if let removeMenuLabel {
+            Button(removeMenuLabel) { onRemove() }
+        }
     }
 
     private func handleTap() {

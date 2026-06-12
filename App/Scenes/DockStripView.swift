@@ -175,6 +175,7 @@ struct ChipView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var messagingStore: MessagingAppStore
+    @EnvironmentObject var launchFavoriteStore: LaunchFavoriteStore
     let item: StripItem
     var scale: CGFloat = 1.0
     var iconOnly: Bool = false
@@ -307,10 +308,11 @@ struct ChipView: View {
         }
     }
 
-    /// Drawer + messaging membership toggles. The messaging flag is permanent until
-    /// explicitly unmarked: moving to the drawer only changes where the app shows
-    /// (drawer wins display) and must NOT clear the flag. Marking pulls the app out
-    /// of the drawer because the explicit intent is "pin it on the strip".
+    /// Drawer + launch-favorite + messaging membership toggles, mutually exclusive
+    /// (2026-06-12 拍板「四者互斥」): choosing one membership clears the others.
+    /// Exception kept from the earlier bug fix: the messaging flag is permanent across
+    /// drawer moves — moving to the drawer only changes where the app shows (drawer
+    /// wins display) and must NOT clear the flag.
     @ViewBuilder
     private var membershipMenuItems: some View {
         if let bid = item.bundleIdentifier {
@@ -318,12 +320,23 @@ struct ChipView: View {
             if drawerStore.contains(bid) {
                 Button("移回任务栏") { drawerStore.remove(bid) }
             } else {
-                Button("收进抽屉") { drawerStore.add(bid) }
+                Button("收进抽屉") { drawerStore.add(bid); launchFavoriteStore.remove(bid) }
+            }
+            if launchFavoriteStore.contains(bid) {
+                Button("取消固定") { launchFavoriteStore.remove(bid) }
+            } else {
+                Button("固定到启动台") {
+                    launchFavoriteStore.add(bid)
+                    drawerStore.remove(bid)
+                    // unmark also records the auto-registration opt-out, so the
+                    // whitelist won't silently pull the app back to the pinned zone.
+                    if messagingStore.contains(bid) { messagingStore.unmark(bid) }
+                }
             }
             if messagingStore.contains(bid) {
                 Button("取消标记消息应用") { messagingStore.unmark(bid) }
             } else {
-                Button("标记为消息应用") { messagingStore.mark(bid); drawerStore.remove(bid) }
+                Button("标记为消息应用") { messagingStore.mark(bid); drawerStore.remove(bid); launchFavoriteStore.remove(bid) }
             }
         }
     }
