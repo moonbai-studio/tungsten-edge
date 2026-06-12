@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -10,10 +11,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var debugWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var messagingAutoRegisterSubscription: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         runtime.start()
+
+        // Auto tier of the messaging list: whenever the snapshot updates, register any
+        // running app that matches the whitelist / social-networking category.
+        messagingAutoRegisterSubscription = runtime.$snapshot
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] snapshot in
+                let running = Set(snapshot.windows.values.compactMap(\.bundleIdentifier))
+                self?.messagingStore.autoRegister(runningBundleIDs: running)
+            }
 
         let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore)
         panelCoordinator = coordinator

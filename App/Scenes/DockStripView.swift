@@ -2,15 +2,22 @@ import AppKit
 import SwiftUI
 
 /// One slot in the strip: either a concrete window chip, or a pinned messaging
-/// launcher chip (shown when a messaging app has no window-backed chip).
+/// app-level entry (Dock-icon-like, 方案 B 2026-06-12).
 enum StripEntry: Identifiable, Hashable {
     case window(StripItem)
-    case messagingLauncher(bundleID: String)
+    /// Constant app-icon chip for a pinned messaging app. Carries the main window's
+    /// StripItem when it exists (the chip then *is* that window: toggle + full window
+    /// menu); when the main window is gone, tap sends a reopen (Dock-icon-click
+    /// equivalent) so the app recreates it — verified to work for WeChat even with
+    /// other chat windows visible.
+    case messagingApp(bundleID: String, mainWindow: StripItem?)
 
     var id: String {
         switch self {
         case let .window(item): return item.id
-        case let .messagingLauncher(bid): return "msg-launcher-\(bid)"
+        // Stable id regardless of main-window presence, so the chip doesn't churn
+        // when the main window opens/closes.
+        case let .messagingApp(bid, _): return "msg-app-\(bid)"
         }
     }
 }
@@ -36,35 +43,35 @@ struct DockStripView: View {
     }
 
     /// Pinned messaging zone (leftmost, in store order) + live window zone.
+    /// Messaging apps show only while running (quit → chip gone; the future drawer
+    /// 待启动区 takes over the not-running role). Drawer membership hides a messaging
+    /// app from the strip without clearing its messaging flag.
+    ///
+    /// 方案 B: each messaging app pins exactly ONE app-level chip. Its main window
+    /// (title matches the app name) is absorbed into that chip; pop-out windows
+    /// (chat windows etc.) flow through the live zone as normal window chips so the
+    /// pinned zone keeps a stable width (muscle memory).
     private var stripEntries: [StripEntry] {
         let msg = messagingStore.bundleIDs            // ordered → drag-reorder friendly
+            .filter { !drawerStore.contains($0) && snapshotBundleIDs.contains($0) }
         let msgSet = Set(msg)
         let items = allNonDrawerItems
 
-        // Drop app-* fallback chips for messaging apps; their pinned launcher chip covers them.
-        let windowItems = items.filter {
-            !($0.isAppLevelFallback && msgSet.contains($0.bundleIdentifier ?? ""))
-        }
-
-        let msgWithWindowChip = Set(
-            windowItems.filter { !$0.isAppLevelFallback }.compactMap(\.bundleIdentifier)
-        ).intersection(msgSet)
-
-        // Pinned zone: messaging apps in store order — windowed → their window chips, else launcher chip.
         var pinned: [StripEntry] = []
+        var absorbedWindowIDs = Set<String>()
         for bid in msg {
-            if msgWithWindowChip.contains(bid) {
-                for item in windowItems where item.bundleIdentifier == bid && !item.isAppLevelFallback {
-                    pinned.append(.window(item))
-                }
-            } else {
-                pinned.append(.messagingLauncher(bundleID: bid))
-            }
+            let appWindows = items.filter { $0.bundleIdentifier == bid && !$0.isAppLevelFallback }
+            let main = appWindows.first { AppDisplayNameResolver.titleMatchesAppName($0.title, bundleID: bid) }
+            if let main { absorbedWindowIDs.insert(main.id) }
+            pinned.append(.messagingApp(bundleID: bid, mainWindow: main))
         }
 
-        // Live zone: everything that isn't a messaging app (windows + non-messaging app-* fallbacks).
-        let live = windowItems
-            .filter { !msgSet.contains($0.bundleIdentifier ?? "") }
+        let live = items
+            .filter { item in
+                guard msgSet.contains(item.bundleIdentifier ?? "") else { return true }
+                if item.isAppLevelFallback { return false }     // app chip replaces the app-* fallback
+                return !absorbedWindowIDs.contains(item.id)     // pop-outs stay as normal chips
+            }
             .map { StripEntry.window($0) }
 
         return pinned + live
@@ -121,14 +128,34 @@ struct DockStripView: View {
         switch entry {
         case let .window(item):
             ChipView(item: item)
-        case let .messagingLauncher(bid):
-            LauncherChip(bundleID: bid,
-                         isRunning: snapshotBundleIDs.contains(bid),
-                         isHidden: isHiddenInSnapshot(bundleID: bid),
-                         scale: 1.0,
-                         removeMenuLabel: "取消标记消息应用",
-                         onRemove: { messagingStore.remove(bid) })
+        case let .messagingApp(bid, main):
+            if let main {
+                // Main window exists → the app chip IS the main window's chip:
+                // standard toggle on tap, full window context menu. Icon-only so the
+                // pinned zone stays a constant-width row of app icons; running dot
+                // marks it as an app entry.
+                ChipView(item: main, iconOnly: true, showRunningDot: true)
+            } else {
+                // Main window closed (app still running) → full-opacity app icon;
+                // tap sends reopen so the app recreates its main window.
+                LauncherChip(bundleID: bid,
+                             isRunning: true,
+                             isHidden: isHiddenInSnapshot(bundleID: bid),
+                             scale: 1.0,
+                             dimsWhenInactive: false,
+                             removeMenuLabel: "取消标记消息应用",
+                             onRemove: { messagingStore.unmark(bid) },
+                             onTap: { Self.reopenMainWindow(bundleID: bid) })
+            }
         }
+    }
+
+    /// Dock-icon-click equivalent: unhide + reopen. The app recreates its main window
+    /// even when other windows are visible (verified with WeChat, 2026-06-12).
+    private static func reopenMainWindow(bundleID: String) {
+        _ = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first?.unhide()
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
     }
 
 }
@@ -271,8 +298,10 @@ struct ChipView: View {
         }
     }
 
-    /// Drawer + messaging membership toggles. The two lists are mutually exclusive:
-    /// joining one leaves the other. Labels reflect current membership.
+    /// Drawer + messaging membership toggles. The messaging flag is permanent until
+    /// explicitly unmarked: moving to the drawer only changes where the app shows
+    /// (drawer wins display) and must NOT clear the flag. Marking pulls the app out
+    /// of the drawer because the explicit intent is "pin it on the strip".
     @ViewBuilder
     private var membershipMenuItems: some View {
         if let bid = item.bundleIdentifier {
@@ -280,12 +309,12 @@ struct ChipView: View {
             if drawerStore.contains(bid) {
                 Button("移回任务栏") { drawerStore.remove(bid) }
             } else {
-                Button("收进抽屉") { drawerStore.add(bid); messagingStore.remove(bid) }
+                Button("收进抽屉") { drawerStore.add(bid) }
             }
             if messagingStore.contains(bid) {
-                Button("取消标记消息应用") { messagingStore.remove(bid) }
+                Button("取消标记消息应用") { messagingStore.unmark(bid) }
             } else {
-                Button("标记为消息应用") { messagingStore.add(bid); drawerStore.remove(bid) }
+                Button("标记为消息应用") { messagingStore.mark(bid); drawerStore.remove(bid) }
             }
         }
     }
@@ -364,8 +393,8 @@ private struct StripLayoutKey: Equatable {
             if item.isAppLevelFallback { form = .zero }
             else if item.showsTitle    { form = .multi }
             else                        { form = .single }
-        case .messagingLauncher:
-            form = .launcher
+        case .messagingApp:
+            form = .launcher    // both states render as a fixed-size icon chip
         }
     }
 }

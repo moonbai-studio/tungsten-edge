@@ -14,9 +14,15 @@ struct LauncherChip: View {
     let isRunning: Bool   // derived from runtime.snapshot by the parent view
     let isHidden: Bool    // derived from runtime.snapshot by the parent view
     var scale: CGFloat = 0.7
+    /// Drawer chips dim by run/hidden state; pinned messaging chips on the strip
+    /// stay full-opacity (product decision: "always reachable", not degraded).
+    var dimsWhenInactive: Bool = true
     /// Last context-menu item, e.g. "移回任务栏" (drawer) or "取消标记消息应用" (messaging).
     let removeMenuLabel: String
     let onRemove: () -> Void
+    /// When set, replaces the default tap behavior (drawer show/hide toggle). Used by
+    /// the strip's messaging app chip, whose tap must always reopen the main window.
+    var onTap: (() -> Void)? = nil
 
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
 
@@ -30,7 +36,7 @@ struct LauncherChip: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 36 * scale, height: 36 * scale)
                 .clipShape(RoundedRectangle(cornerRadius: 36 * scale / 4, style: .continuous))
-                .opacity(!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0))
+                .opacity(dimsWhenInactive ? (!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0)) : 1.0)
                 .shadow(color: .black.opacity(0.22), radius: 3, y: 1)
                 .offset(y: bounceOffset)
         }
@@ -44,7 +50,9 @@ struct LauncherChip: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { handleTap() }
+        .onTapGesture {
+            if let onTap { onTap() } else { handleTap() }
+        }
         .contextMenu { contextMenu }
         .help(displayName)
         .onDisappear { stopBounce(reason: "流入snapshot") }
@@ -89,12 +97,7 @@ struct LauncherChip: View {
     }
 
     private var displayName: String {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-            return bundleID
-        }
-        return Bundle(url: url)?.localizedInfoDictionary?["CFBundleDisplayName"] as? String
-            ?? Bundle(url: url)?.infoDictionary?["CFBundleName"] as? String
-            ?? url.deletingPathExtension().lastPathComponent
+        AppDisplayNameResolver.displayName(for: bundleID)
     }
 
     private func stopBounce(reason: String) {
@@ -132,5 +135,59 @@ struct LauncherChip: View {
                 stopBounce(reason: "回调返回")
             }
         }
+    }
+}
+
+// MARK: - App Display Name Resolver
+
+/// Resolves human-readable names for a bundle identifier, with caching (bundle plist
+/// reads involve disk IO and these get called from SwiftUI body evaluations).
+/// Also answers "does this window title look like the app's main window?" — the
+/// 方案 B heuristic: a messaging app's main window is the one titled like the app
+/// itself (微信 / WeChat / Telegram…), verified to hold for WeChat/QQ/Telegram.
+enum AppDisplayNameResolver {
+    private static var bundleNameCache: [String: Set<String>] = [:]
+
+    static func displayName(for bundleID: String) -> String {
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+           let name = running.localizedName, !name.isEmpty {
+            return name
+        }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            return bundleID
+        }
+        return Bundle(url: url)?.localizedInfoDictionary?["CFBundleDisplayName"] as? String
+            ?? Bundle(url: url)?.infoDictionary?["CFBundleName"] as? String
+            ?? url.deletingPathExtension().lastPathComponent
+    }
+
+    static func titleMatchesAppName(_ title: String, bundleID: String) -> Bool {
+        let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return false }
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+           let name = running.localizedName,
+           normalized == name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            return true
+        }
+        return bundleDerivedNames(for: bundleID).contains(normalized)
+    }
+
+    /// Localized + unlocalized bundle names (covers e.g. 微信 vs WeChat), cached.
+    private static func bundleDerivedNames(for bundleID: String) -> Set<String> {
+        if let cached = bundleNameCache[bundleID] { return cached }
+        var names: Set<String> = []
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            let bundle = Bundle(url: url)
+            for dict in [bundle?.localizedInfoDictionary, bundle?.infoDictionary] {
+                for key in ["CFBundleDisplayName", "CFBundleName"] {
+                    if let name = dict?[key] as? String, !name.isEmpty {
+                        names.insert(name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+                    }
+                }
+            }
+            names.insert(url.deletingPathExtension().lastPathComponent.lowercased())
+        }
+        bundleNameCache[bundleID] = names
+        return names
     }
 }
