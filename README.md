@@ -77,8 +77,7 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - Unit tests:
   - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
 - Runtime taskbar snapshot:
-  - Debug menu `导出任务条快照`
-  - `kill -USR2 $(pgrep -x macos-dock-cc-v2)`
+  - Debug menu `导出任务条快照`（the only trigger; `Cmd+Shift+D` / `SIGUSR2` were attempted on 2026-06-12 and reverted — see `AGENTS.md`）
   - latest file: `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
 
 ## Targets
