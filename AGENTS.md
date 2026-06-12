@@ -101,9 +101,8 @@ Finder P0 sample:
 
 ### Runtime debug snapshot
 
-- Debug menu: `导出任务条快照`
-- Shortcut: `Cmd+Shift+D`
-- Debug signal path: `kill -USR2 $(pgrep -x macos-dock-cc-v2)`
+- Trigger: status bar menu → `导出任务条快照` (the only trigger).
+- A global `Cmd+Shift+D` shortcut and a `SIGUSR2` signal path were attempted on 2026-06-12 but reverted: the global key monitor / signal handler introduced an intermittent main-thread hang, and the menu already covers the need. Do not re-add without a clear plan that keeps the export off the main thread.
 - Latest file usually lives at:
   - `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
 - The snapshot is read-only: it lists cards and live AX/CG samples but does not activate, hide, minimize, close, or clear windows.

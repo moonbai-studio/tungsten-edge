@@ -5,7 +5,6 @@ import SwiftUI
 struct DrawerView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
-    private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "Drawer")
 
     private var drawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -27,11 +26,6 @@ struct DrawerView: View {
 
     private var snapshotBundleIDs: Set<String> {
         Set(StripItem.items(from: runtime.snapshot).compactMap(\.bundleIdentifier))
-    }
-
-    // 诊断专用：uuremote 当前是否在 snapshot 里（.onChange 监听翻转）
-    private var uuremoteInSnapshot: Bool {
-        snapshotBundleIDs.contains("com.netease.uuremote")
     }
 
     private func isHiddenInSnapshot(bundleID: String) -> Bool {
@@ -69,13 +63,6 @@ struct DrawerView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(.white.opacity(0.12), lineWidth: 1)
-        }
-        .onChange(of: uuremoteInSnapshot) { _, newValue in
-            let wsRunning = NSWorkspace.shared.runningApplications
-                .contains { $0.bundleIdentifier == "com.netease.uuremote" }
-            Self.logger.info(
-                "uuremote snapshot翻转 → \(newValue ? "在" : "不在", privacy: .public)，NSWorkspace=\(wsRunning ? "在跑" : "未跑", privacy: .public)"
-            )
         }
     }
 }
