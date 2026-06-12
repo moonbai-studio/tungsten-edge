@@ -5,6 +5,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var runtime = AppRuntime()
     let drawerStore = DrawerStore()
+    let messagingStore = MessagingAppStore()
     private var panelCoordinator: PanelCoordinator?
     private var debugWindow: NSWindow?
     private var statusItem: NSStatusItem?
@@ -14,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         runtime.start()
 
-        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore)
+        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore)
         panelCoordinator = coordinator
         runtime.onToggleDrawer = { [weak coordinator] in coordinator?.toggleDrawer() }
         coordinator.start()

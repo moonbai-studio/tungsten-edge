@@ -10,6 +10,7 @@ final class PanelCoordinator: NSObject {
 
     private let runtime: AppRuntime
     private let drawerStore: DrawerStore
+    private let messagingStore: MessagingAppStore
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
@@ -17,6 +18,7 @@ final class PanelCoordinator: NSObject {
     private var drawerGlobalMonitor: Any?
     private var snapshotWidthSubscription: AnyCancellable?
     private var drawerStoreWidthSubscription: AnyCancellable?
+    private var messagingStoreWidthSubscription: AnyCancellable?
     private var lastDesiredWidth: CGFloat = 0
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "dock-panel")
@@ -24,9 +26,10 @@ final class PanelCoordinator: NSObject {
     private var isHiddenForFullscreen = false
     private var fullscreenReconcileTimer: Timer?
 
-    init(runtime: AppRuntime, drawerStore: DrawerStore) {
+    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore) {
         self.runtime = runtime
         self.drawerStore = drawerStore
+        self.messagingStore = messagingStore
         super.init()
     }
 
@@ -35,6 +38,7 @@ final class PanelCoordinator: NSObject {
         setupCapsulePanel()
         subscribeSnapshotWidth()
         subscribeDrawerStoreWidth()
+        subscribeMessagingStoreWidth()
         setupFullscreenMonitor()
         setupHoverDiagnostics()
         NotificationCenter.default.addObserver(
@@ -68,7 +72,7 @@ final class PanelCoordinator: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
-            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore))
+            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore))
             hosting.wantsLayer = true
             hosting.layer?.backgroundColor = CGColor.clear
             panel.contentView = hosting
@@ -153,7 +157,7 @@ final class PanelCoordinator: NSObject {
         panel.backgroundColor = .clear
         panel.hasShadow = true
 
-        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore))
+        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore))
         hosting.autoresizingMask = [.width, .height]
         // Prevent NSHostingView from adding its own opaque background over the blur
         hosting.wantsLayer = true
@@ -219,6 +223,16 @@ final class PanelCoordinator: NSObject {
 
     private func subscribeDrawerStoreWidth() {
         drawerStoreWidthSubscription = drawerStore.$bundleIDs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { [weak self] in
+                    self?.measureAndApplyWidth()
+                }
+            }
+    }
+
+    private func subscribeMessagingStoreWidth() {
+        messagingStoreWidthSubscription = messagingStore.$bundleIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in

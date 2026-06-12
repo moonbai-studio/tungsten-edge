@@ -1,17 +1,77 @@
 import AppKit
 import SwiftUI
 
+/// One slot in the strip: either a concrete window chip, or a pinned messaging
+/// launcher chip (shown when a messaging app has no window-backed chip).
+enum StripEntry: Identifiable, Hashable {
+    case window(StripItem)
+    case messagingLauncher(bundleID: String)
+
+    var id: String {
+        switch self {
+        case let .window(item): return item.id
+        case let .messagingLauncher(bid): return "msg-launcher-\(bid)"
+        }
+    }
+}
+
 struct DockStripView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
+    @EnvironmentObject var messagingStore: MessagingAppStore
 
-    private var stripItems: [StripItem] {
+    private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
             .filter { !drawerStore.contains($0.bundleIdentifier ?? "") }
     }
 
+    private var snapshotBundleIDs: Set<String> {
+        Set(StripItem.items(from: runtime.snapshot).compactMap(\.bundleIdentifier))
+    }
+
+    private func isHiddenInSnapshot(bundleID: String) -> Bool {
+        StripItem.items(from: runtime.snapshot)
+            .first { $0.bundleIdentifier == bundleID }?
+            .status == "hidden"
+    }
+
+    /// Pinned messaging zone (leftmost, in store order) + live window zone.
+    private var stripEntries: [StripEntry] {
+        let msg = messagingStore.bundleIDs            // ordered → drag-reorder friendly
+        let msgSet = Set(msg)
+        let items = allNonDrawerItems
+
+        // Drop app-* fallback chips for messaging apps; their pinned launcher chip covers them.
+        let windowItems = items.filter {
+            !($0.isAppLevelFallback && msgSet.contains($0.bundleIdentifier ?? ""))
+        }
+
+        let msgWithWindowChip = Set(
+            windowItems.filter { !$0.isAppLevelFallback }.compactMap(\.bundleIdentifier)
+        ).intersection(msgSet)
+
+        // Pinned zone: messaging apps in store order — windowed → their window chips, else launcher chip.
+        var pinned: [StripEntry] = []
+        for bid in msg {
+            if msgWithWindowChip.contains(bid) {
+                for item in windowItems where item.bundleIdentifier == bid && !item.isAppLevelFallback {
+                    pinned.append(.window(item))
+                }
+            } else {
+                pinned.append(.messagingLauncher(bundleID: bid))
+            }
+        }
+
+        // Live zone: everything that isn't a messaging app (windows + non-messaging app-* fallbacks).
+        let live = windowItems
+            .filter { !msgSet.contains($0.bundleIdentifier ?? "") }
+            .map { StripEntry.window($0) }
+
+        return pinned + live
+    }
+
     private var stripLayoutKeys: [StripLayoutKey] {
-        stripItems.map(StripLayoutKey.init)
+        stripEntries.map(StripLayoutKey.init)
     }
 
     var body: some View {
@@ -21,8 +81,8 @@ struct DockStripView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .center, spacing: 8) {
-                    ForEach(stripItems, id: \.id) { item in
-                        ChipView(item: item)
+                    ForEach(stripEntries) { entry in
+                        stripEntryView(entry)
                             .transition(.scale(scale: 0.88).combined(with: .opacity))
                     }
                 }
@@ -56,6 +116,21 @@ struct DockStripView: View {
         // the natural content width so AppDelegate can read it for panel sizing.
     }
 
+    @ViewBuilder
+    private func stripEntryView(_ entry: StripEntry) -> some View {
+        switch entry {
+        case let .window(item):
+            ChipView(item: item)
+        case let .messagingLauncher(bid):
+            LauncherChip(bundleID: bid,
+                         isRunning: snapshotBundleIDs.contains(bid),
+                         isHidden: isHiddenInSnapshot(bundleID: bid),
+                         scale: 1.0,
+                         removeMenuLabel: "取消标记消息应用",
+                         onRemove: { messagingStore.remove(bid) })
+        }
+    }
+
 }
 
 // MARK: - Chip View
@@ -63,6 +138,7 @@ struct DockStripView: View {
 struct ChipView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
+    @EnvironmentObject var messagingStore: MessagingAppStore
     let item: StripItem
     var scale: CGFloat = 1.0
     var iconOnly: Bool = false
@@ -179,14 +255,7 @@ struct ChipView: View {
             }
             Divider()
             Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
-            if let bid = item.bundleIdentifier {
-                Divider()
-                if drawerStore.contains(bid) {
-                    Button("移回任务栏") { drawerStore.remove(bid) }
-                } else {
-                    Button("收进抽屉") { drawerStore.add(bid) }
-                }
-            }
+            membershipMenuItems
         } else {
             Button("新建窗口") { runtime.newWindow(windowID: item.id) }.disabled(isPending)
             if item.status == "minimized" {
@@ -195,17 +264,29 @@ struct ChipView: View {
                 Button("最小化") { runtime.minimize(windowID: item.id) }.disabled(isPending)
             }
             Button("隐藏 App") { runtime.hide(windowID: item.id) }.disabled(isPending)
-            if let bid = item.bundleIdentifier {
-                Divider()
-                if drawerStore.contains(bid) {
-                    Button("移回任务栏") { drawerStore.remove(bid) }
-                } else {
-                    Button("收进抽屉") { drawerStore.add(bid) }
-                }
-            }
+            membershipMenuItems
             Divider()
             Button("关闭窗口") { runtime.close(windowID: item.id) }.disabled(isPending)
             Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
+        }
+    }
+
+    /// Drawer + messaging membership toggles. The two lists are mutually exclusive:
+    /// joining one leaves the other. Labels reflect current membership.
+    @ViewBuilder
+    private var membershipMenuItems: some View {
+        if let bid = item.bundleIdentifier {
+            Divider()
+            if drawerStore.contains(bid) {
+                Button("移回任务栏") { drawerStore.remove(bid) }
+            } else {
+                Button("收进抽屉") { drawerStore.add(bid); messagingStore.remove(bid) }
+            }
+            if messagingStore.contains(bid) {
+                Button("取消标记消息应用") { messagingStore.remove(bid) }
+            } else {
+                Button("标记为消息应用") { messagingStore.add(bid); drawerStore.remove(bid) }
+            }
         }
     }
 
@@ -274,13 +355,18 @@ private struct StripLayoutKey: Equatable {
     let id: String
     let form: Form
 
-    enum Form: Equatable { case zero, single, multi }
+    enum Form: Equatable { case zero, single, multi, launcher }
 
-    init(_ item: StripItem) {
-        id = item.id
-        if item.isAppLevelFallback { form = .zero }
-        else if item.showsTitle    { form = .multi }
-        else                        { form = .single }
+    init(_ entry: StripEntry) {
+        id = entry.id
+        switch entry {
+        case let .window(item):
+            if item.isAppLevelFallback { form = .zero }
+            else if item.showsTitle    { form = .multi }
+            else                        { form = .single }
+        case .messagingLauncher:
+            form = .launcher
+        }
     }
 }
 
