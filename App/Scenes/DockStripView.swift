@@ -26,6 +26,7 @@ struct DockStripView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var messagingStore: MessagingAppStore
+    @EnvironmentObject var badgeStore: BadgeStore
 
     private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -129,23 +130,31 @@ struct DockStripView: View {
         case let .window(item):
             ChipView(item: item)
         case let .messagingApp(bid, main):
-            if let main {
-                // Main window exists → the app chip IS the main window's chip:
-                // standard toggle on tap, full window context menu. Icon-only so the
-                // pinned zone stays a constant-width row of app icons; running dot
-                // marks it as an app entry.
-                ChipView(item: main, iconOnly: true, showRunningDot: true)
-            } else {
-                // Main window closed (app still running) → full-opacity app icon;
-                // tap sends reopen so the app recreates its main window.
-                LauncherChip(bundleID: bid,
-                             isRunning: true,
-                             isHidden: isHiddenInSnapshot(bundleID: bid),
-                             scale: 1.0,
-                             dimsWhenInactive: false,
-                             removeMenuLabel: "取消标记消息应用",
-                             onRemove: { messagingStore.unmark(bid) },
-                             onTap: { Self.reopenMainWindow(bundleID: bid) })
+            // Explicit ZStack: the badge is the LAST child + zIndex, guaranteed to
+            // draw on top of the icon (classic Dock badge sits over the icon corner).
+            ZStack(alignment: .topTrailing) {
+                if let main {
+                    // Main window exists → the app chip IS the main window's chip:
+                    // standard toggle on tap, full window context menu. Icon-only so the
+                    // pinned zone stays a constant-width row of app icons; running dot
+                    // marks it as an app entry.
+                    ChipView(item: main, iconOnly: true, showRunningDot: true)
+                } else {
+                    // Main window closed (app still running) → full-opacity app icon;
+                    // tap sends reopen so the app recreates its main window.
+                    LauncherChip(bundleID: bid,
+                                 isRunning: true,
+                                 isHidden: isHiddenInSnapshot(bundleID: bid),
+                                 scale: 1.0,
+                                 dimsWhenInactive: false,
+                                 removeMenuLabel: "取消标记消息应用",
+                                 onRemove: { messagingStore.unmark(bid) },
+                                 onTap: { Self.reopenMainWindow(bundleID: bid) })
+                }
+                if let badge = badgeStore.badgesByBundleID[bid] {
+                    ChipBadgeView(text: badge)
+                        .zIndex(1)
+                }
             }
         }
     }
@@ -375,6 +384,35 @@ struct DrawerCapsuleButton: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { action() }
+    }
+}
+
+// MARK: - Chip Badge
+
+/// Classic Dock-style unread badge: red capsule, white text, top-right of the chip.
+/// Renders whatever string the app put on its Dock tile ("3", "99+", "•") as-is.
+/// Not a hit target — taps fall through to the chip underneath.
+private struct ChipBadgeView: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 16, minHeight: 16)
+            .background(
+                Capsule().fill(Color(red: 1.0, green: 0.23, blue: 0.19))   // Apple badge red
+            )
+            .overlay(
+                Capsule().strokeBorder(.black.opacity(0.25), lineWidth: 0.5)
+            )
+            // Native Dock badges sit mostly ON the icon, protruding only slightly past
+            // its rounded corner. Chip frame is 44×52, icon inset (4, 8) → this offset
+            // puts the badge center just inside the icon's top-right corner.
+            .offset(x: 2, y: 3)
+            .allowsHitTesting(false)
     }
 }
 
