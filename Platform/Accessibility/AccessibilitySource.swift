@@ -440,6 +440,11 @@ struct PlatformActionExecutor {
             return executeAppFallback(request: request, record: record)
         }
 
+        // New window needs no window handle — just activate the app and send Cmd+N.
+        if request.kind == .newWindow {
+            return performNewWindow(record: record)
+        }
+
         if request.kind == .hideApp || request.kind == .quitApp {
             return executeAppFallback(request: request, record: record)
         }
@@ -483,6 +488,8 @@ struct PlatformActionExecutor {
             return windowExecutor.close(handle)
         case .hideApp, .quitApp:
             return executeAppFallback(request: request, record: record)
+        case .newWindow:
+            return performNewWindow(record: record)
         }
     }
 
@@ -498,7 +505,38 @@ struct PlatformActionExecutor {
             return false
         case .quitApp:
             return runningApp?.terminate() ?? false
+        case .newWindow:
+            return performNewWindow(record: record)
         }
+    }
+
+    /// Opens a new window for a window-backed app by activating it and synthesizing
+    /// the standard Cmd+N key equivalent.
+    ///
+    /// v1 limitations (accepted, documented in README/Backlog): apps where Cmd+N means
+    /// "new document" (Pages/TextEdit) yield a new document; apps not bound to Cmd+N
+    /// do nothing. Covers ~90% of common apps. v2 upgrade path is AX menu traversal
+    /// for a "New Window" item.
+    private func performNewWindow(record: WindowRecord) -> Bool {
+        guard let runningApp = NSRunningApplication(processIdentifier: record.pid) else { return false }
+        runningApp.activate(options: [.activateIgnoringOtherApps])
+        // Short tick so activation settles before the key equivalent is delivered.
+        usleep(80_000)
+        return postCommandN(toPID: record.pid)
+    }
+
+    private func postCommandN(toPID pid: pid_t) -> Bool {
+        guard let source = CGEventSource(stateID: .combinedSessionState) else { return false }
+        let keyN: CGKeyCode = 45 // kVK_ANSI_N
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyN, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyN, keyDown: false) else {
+            return false
+        }
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+        keyDown.postToPid(pid)
+        keyUp.postToPid(pid)
+        return true
     }
 }
 

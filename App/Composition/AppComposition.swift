@@ -65,6 +65,7 @@ final class AppRuntime: ObservableObject {
     func hide(windowID: String) { trigger(.hide(WindowID(rawValue: windowID))) }
     func close(windowID: String) { trigger(.close(WindowID(rawValue: windowID))) }
     func quit(windowID: String) { trigger(.quit(WindowID(rawValue: windowID))) }
+    func newWindow(windowID: String) { trigger(.newWindow(WindowID(rawValue: windowID))) }
 
     // MARK: - Private
 

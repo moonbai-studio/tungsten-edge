@@ -71,5 +71,6 @@ struct PlatformActionRequest: Hashable, Sendable {
         case closeWindow
         case hideApp
         case quitApp
+        case newWindow
     }
 }

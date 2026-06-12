@@ -64,6 +64,8 @@ final class IntentPipeline {
             return .close
         case .quitApp:
             return .quit
+        case .newWindow:
+            return .newWindow
         }
     }
 }
@@ -91,7 +93,10 @@ struct IntentFeedbackState {
         action: UserIntentAction,
         at timestamp: Date
     ) {
-        if action == .activate {
+        // newWindow opens a *new* window (a different windowID), so it can never be
+        // confirmed by reconciling this chip's snapshot status. Treat a successful
+        // executor return as immediate success, same as activate.
+        if action == .activate || action == .newWindow {
             update(windowID: windowID, phase: .success, at: timestamp)
         }
     }
@@ -140,6 +145,10 @@ struct IntentFeedbackState {
                 if record.status == .disappeared {
                     update(windowID: windowID, phase: .success, at: now)
                 }
+            case .newWindow:
+                // Success was marked immediately on executor return; nothing to
+                // reconcile here (the new window is a separate windowID).
+                break
             }
         }
 

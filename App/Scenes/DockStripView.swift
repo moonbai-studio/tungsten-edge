@@ -188,15 +188,13 @@ struct ChipView: View {
                 }
             }
         } else {
+            Button("新建窗口") { runtime.newWindow(windowID: item.id) }.disabled(isPending)
             if item.status == "minimized" {
                 Button("还原") { runtime.activate(windowID: item.id) }.disabled(isPending)
             } else {
                 Button("最小化") { runtime.minimize(windowID: item.id) }.disabled(isPending)
             }
-            Button("关闭窗口") { runtime.close(windowID: item.id) }.disabled(isPending)
-            Divider()
             Button("隐藏 App") { runtime.hide(windowID: item.id) }.disabled(isPending)
-            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
             if let bid = item.bundleIdentifier {
                 Divider()
                 if drawerStore.contains(bid) {
@@ -205,6 +203,9 @@ struct ChipView: View {
                     Button("收进抽屉") { drawerStore.add(bid) }
                 }
             }
+            Divider()
+            Button("关闭窗口") { runtime.close(windowID: item.id) }.disabled(isPending)
+            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
         }
     }
 
