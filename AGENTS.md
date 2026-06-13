@@ -112,7 +112,7 @@ Finder P0 sample:
 - The app already renders a minimal bottom task strip.
 - Strip items can activate / hide / minimize / close.
 - Strip item labels can toggle: inactive/minimized concrete windows activate, active concrete windows minimize.
-- Strip actions now surface user-facing feedback and temporarily lock repeated clicks while work is pending.
+- Strip actions are interruptible (2026-06-13): show/hide-class actions (toggle / activate / minimize / hide) never lock clicks. At tap time the runtime writes an optimistic per-window state (`OptimisticWindowState` overlay in `AppRuntime`); chip rendering and the next toggle plan read the overlay first, so rapid re-clicks strictly alternate (minimize → restore → …) without waiting for the snapshot round-trip. The overlay clears when the real snapshot confirms the prediction, or silently rolls back after a 4s timeout. The pending spinner UI was removed entirely. Only close / quit (windows that disappear) still lock until confirmed, guarded inside `AppRuntime.trigger`, not in the UI.
 - The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
 - Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
 - Current identity now also uses the existing taskbar snapshot as a long-term seat map, so long-idle windows can be recognized after the short 6-second memory expires.

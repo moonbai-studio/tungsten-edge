@@ -29,10 +29,20 @@ final class FinderP0Tests: XCTestCase {
         let activeSnapshot = snapshot(windowID: id, status: .active)
         let inactiveSnapshot = snapshot(windowID: id, status: .inactive)
         let minimizedSnapshot = snapshot(windowID: id, status: .minimized)
+        // 测试进程的窗口（pid=1）不可能是前台，真实 NSWorkspace 前台检查永远 false。
+        // 用乐观态注入前台轴，让「active + 前台 → minimize」分支可确定性测试。
+        let activeFrontmost = [
+            id.rawValue: OptimisticWindowState(status: .active, isAppFrontmost: true, createdAt: Date())
+        ]
 
         XCTAssertEqual(
-            planner.plan(intent: .toggle(id), snapshot: activeSnapshot).kind,
+            planner.plan(intent: .toggle(id), snapshot: activeSnapshot, optimisticStates: activeFrontmost).kind,
             .minimizeWindow
+        )
+        // active 但非前台 → 仍是 activate（带到前台），不是 minimize。
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: activeSnapshot).kind,
+            .activateWindow
         )
         XCTAssertEqual(
             planner.plan(intent: .toggle(id), snapshot: inactiveSnapshot).kind,
@@ -41,6 +51,31 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(
             planner.plan(intent: .toggle(id), snapshot: minimizedSnapshot).kind,
             .activateWindow
+        )
+    }
+
+    /// 可打断（2026-06-13）：快照还停在 active（没翻面）时，乐观态说已 minimized →
+    /// 下一次 toggle 必须规划 activate（还原），而不是重复 minimize。这是连点
+    /// 严格交替的根。
+    func testToggleAlternatesViaOptimisticStateWhileSnapshotIsStale() {
+        let id = WindowID(rawValue: "cg-optimistic")
+        let planner = LifecycleActionPlanner()
+        let staleActiveSnapshot = snapshot(windowID: id, status: .active)
+
+        let afterMinimize = [
+            id.rawValue: OptimisticWindowState(status: .minimized, isAppFrontmost: false, createdAt: Date())
+        ]
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: staleActiveSnapshot, optimisticStates: afterMinimize).kind,
+            .activateWindow
+        )
+
+        let afterActivate = [
+            id.rawValue: OptimisticWindowState(status: .active, isAppFrontmost: true, createdAt: Date())
+        ]
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: staleActiveSnapshot, optimisticStates: afterActivate).kind,
+            .minimizeWindow
         )
     }
 

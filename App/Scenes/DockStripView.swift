@@ -182,8 +182,17 @@ struct ChipView: View {
     var showRunningDot: Bool = false
     var drawerTap: (() -> Void)? = nil
 
-    private var isPending: Bool {
-        runtime.feedbackEntriesByWindowID[item.id]?.phase == .pending
+    /// 乐观态优先（交互打磨 2026-06-13）：点击瞬间 chip 立刻按预测态渲染
+    ///（minimize → 变暗），不等快照 round-trip，也不再转圈。
+    private var effectiveStatus: String {
+        runtime.optimisticStatesByWindowID[item.id]?.status.rawValue ?? item.status
+    }
+
+    private var effectiveIsOnDesktop: Bool {
+        guard let optimistic = runtime.optimisticStatesByWindowID[item.id] else {
+            return item.isOnDesktop
+        }
+        return optimistic.status == .active
     }
 
     var body: some View {
@@ -200,42 +209,30 @@ struct ChipView: View {
     // MARK: - Icon-only chip
 
     private var bareIconChip: some View {
-        let iconOpacity: Double = item.isOnDesktop ? 1.0 : 0.45
-        return ZStack {
-            appIcon(size: 36 * scale, opacity: iconOpacity)
-
-            if isPending {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white.opacity(0.88))
-                    .frame(width: 20 * scale, height: 20 * scale)
-                    .background(Color.black.opacity(0.36), in: Circle())
-                    .offset(x: 14 * scale, y: -14 * scale)
+        let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
+        return appIcon(size: 36 * scale, opacity: iconOpacity)
+            .frame(width: 44 * scale, height: 52 * scale)
+            .overlay(alignment: .bottom) {
+                if showRunningDot {
+                    Circle()
+                        .fill(.white.opacity(0.85))
+                        .frame(width: 4, height: 4)
+                        .padding(.bottom, 2)
+                }
             }
-        }
-        .frame(width: 44 * scale, height: 52 * scale)
-        .overlay(alignment: .bottom) {
-            if showRunningDot {
-                Circle()
-                    .fill(.white.opacity(0.85))
-                    .frame(width: 4, height: 4)
-                    .padding(.bottom, 2)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            guard !isPending else { return }
-            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
-        }
-        .contextMenu { chipContextMenu }
-        .help(displayTitle)
+            .contextMenu { chipContextMenu }
+            .help(displayTitle)
     }
 
     // MARK: - Labeled chip
 
     private var multiWindowChip: some View {
-        let iconOpacity: Double = item.isOnDesktop ? 1.0 : 0.45
-        let textOpacity: Double = item.isOnDesktop ? 0.9 : 0.42
+        let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
+        let textOpacity: Double = effectiveIsOnDesktop ? 0.9 : 0.42
         return HStack(spacing: 6 * scale) {
             appIcon(size: 22 * scale, opacity: iconOpacity)
 
@@ -251,17 +248,8 @@ struct ChipView: View {
             RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
                 .fill(Color.white.opacity(0.09))
         )
-        .overlay(alignment: .topTrailing) {
-            if isPending {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white.opacity(0.8))
-                    .padding(6 * scale)
-            }
-        }
         .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
         .onTapGesture {
-            guard !isPending else { return }
             if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
         }
         .contextMenu { chipContextMenu }
@@ -282,29 +270,32 @@ struct ChipView: View {
 
     // MARK: - Context Menu
 
+    // 可打断（2026-06-13）：菜单项不再按 pending 置灰；显隐类动作随时可点
+    //（乐观 overlay 保证一致性），close / quit 的防重入由 runtime.trigger 兜底。
+    // 状态分支读 effectiveStatus，刚点过最小化立刻右键也能看到「还原」。
     @ViewBuilder
     private var chipContextMenu: some View {
         if item.isAppLevelFallback {
-            if item.status == "hidden" {
-                Button("显示") { runtime.activate(windowID: item.id) }.disabled(isPending)
+            if effectiveStatus == "hidden" {
+                Button("显示") { runtime.activate(windowID: item.id) }
             } else {
-                Button("隐藏") { runtime.hide(windowID: item.id) }.disabled(isPending)
+                Button("隐藏") { runtime.hide(windowID: item.id) }
             }
             Divider()
-            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
+            Button("退出 App") { runtime.quit(windowID: item.id) }
             membershipMenuItems
         } else {
-            Button("新建窗口") { runtime.newWindow(windowID: item.id) }.disabled(isPending)
-            if item.status == "minimized" {
-                Button("还原") { runtime.activate(windowID: item.id) }.disabled(isPending)
+            Button("新建窗口") { runtime.newWindow(windowID: item.id) }
+            if effectiveStatus == "minimized" {
+                Button("还原") { runtime.activate(windowID: item.id) }
             } else {
-                Button("最小化") { runtime.minimize(windowID: item.id) }.disabled(isPending)
+                Button("最小化") { runtime.minimize(windowID: item.id) }
             }
-            Button("隐藏 App") { runtime.hide(windowID: item.id) }.disabled(isPending)
+            Button("隐藏 App") { runtime.hide(windowID: item.id) }
             membershipMenuItems
             Divider()
-            Button("关闭窗口") { runtime.close(windowID: item.id) }.disabled(isPending)
-            Button("退出 App") { runtime.quit(windowID: item.id) }.disabled(isPending)
+            Button("关闭窗口") { runtime.close(windowID: item.id) }
+            Button("退出 App") { runtime.quit(windowID: item.id) }
         }
     }
 

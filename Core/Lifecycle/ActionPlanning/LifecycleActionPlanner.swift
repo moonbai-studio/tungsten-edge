@@ -48,17 +48,26 @@ enum UserIntent: Hashable, Sendable {
 }
 
 final class LifecycleActionPlanner {
-    func plan(intent: UserIntent, snapshot: DockSnapshot) -> PlatformActionRequest {
+    func plan(
+        intent: UserIntent,
+        snapshot: DockSnapshot,
+        optimisticStates: [String: OptimisticWindowState] = [:]
+    ) -> PlatformActionRequest {
         switch intent {
         case let .toggle(id):
             guard let record = snapshot.windows[id] else {
                 return PlatformActionRequest(kind: .activateWindow, windowID: id)
             }
-            let appIsFrontmost = NSWorkspace.shared.frontmostApplication?.processIdentifier == record.pid
+            // 乐观态优先：上一个动作刚发出、快照还没翻面时，按预测态规划，
+            // 连点才能严格交替（minimize → activate → …）而不是重复上一个动作。
+            let optimistic = optimisticStates[id.rawValue]
+            let status = optimistic?.status ?? record.status
+            let appIsFrontmost = optimistic?.isAppFrontmost
+                ?? (NSWorkspace.shared.frontmostApplication?.processIdentifier == record.pid)
             if record.id.rawValue.hasPrefix("app-") {
                 return PlatformActionRequest(kind: appIsFrontmost ? .hideApp : .activateWindow, windowID: id)
             }
-            if record.status == .active && appIsFrontmost {
+            if status == .active && appIsFrontmost {
                 return PlatformActionRequest(kind: .minimizeWindow, windowID: id)
             }
             return PlatformActionRequest(kind: .activateWindow, windowID: id)

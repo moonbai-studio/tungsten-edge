@@ -10,8 +10,12 @@ final class IntentPipeline {
         self.actionPlanning = actionPlanning
     }
 
-    func plan(intent: UserIntent, snapshot: DockSnapshot) -> PlatformActionRequest {
-        actionPlanning.plan(intent: intent, snapshot: snapshot)
+    func plan(
+        intent: UserIntent,
+        snapshot: DockSnapshot,
+        optimisticStates: [String: OptimisticWindowState] = [:]
+    ) -> PlatformActionRequest {
+        actionPlanning.plan(intent: intent, snapshot: snapshot, optimisticStates: optimisticStates)
     }
 
     func canBegin(intent: UserIntent) -> Bool {

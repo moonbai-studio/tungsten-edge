@@ -9,6 +9,7 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - The app now renders a minimal usable bottom task strip.
 - Strip actions now include activate / hide / minimize / close, with user-facing feedback.
 - Main strip labels now toggle: click an inactive/minimized concrete window to activate it, and click the active concrete window to minimize it.
+- Strip actions are interruptible (2026-06-13): no pending spinner, no click lock for show/hide-class actions; an optimistic per-window state overlay keeps rapid re-clicks strictly alternating. Only close / quit stay locked until confirmed.
 - Placement mainline is:
   - minimize / hide / temporary disappearance keep the slot
   - only true close releases the slot

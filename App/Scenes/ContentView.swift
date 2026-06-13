@@ -116,29 +116,29 @@ struct ContentView: View {
         .background(Color.white.opacity(0.08), in: Capsule())
     }
 
+    // 可打断（2026-06-13）：调试台与主任务条同口径 —— 不再按 pending 锁点击/置灰/
+    // 转圈；feedback 文字行保留（pending/success/failure 是诊断信息）。
     @ViewBuilder
     private func taskStripChip(_ item: StripItem) -> some View {
         let feedback = feedbackEntriesByWindowID[item.id]
-        let isPending = feedback?.phase == .pending
 
         Group {
             if item.showsTitle {
-                expandedTaskStripChip(item, feedback: feedback, isPending: isPending)
+                expandedTaskStripChip(item, feedback: feedback)
             } else {
-                compactTaskStripChip(item, feedback: feedback, isPending: isPending)
+                compactTaskStripChip(item, feedback: feedback)
             }
         }
         .help(localizedTitle(item))
         .contextMenu {
-            taskStripContextMenu(item, isDisabled: isPending)
+            taskStripContextMenu(item)
         }
         .animation(.easeInOut(duration: 0.18), value: item.showsTitle)
     }
 
     private func expandedTaskStripChip(
         _ item: StripItem,
-        feedback: IntentFeedbackState.Entry?,
-        isPending: Bool
+        feedback: IntentFeedbackState.Entry?
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -180,24 +180,24 @@ struct ContentView: View {
             }
 
             HStack(spacing: 8) {
-                actionButton(label: "激活", isDisabled: isPending) {
+                actionButton(label: "激活") {
                     onActivate(item.id)
                 }
 
                 if item.canHide {
-                    actionButton(label: "隐藏", isDisabled: isPending) {
+                    actionButton(label: "隐藏") {
                         onHide(item.id)
                     }
                 }
 
                 if item.canMinimize {
-                    actionButton(label: "最小化", isDisabled: isPending) {
+                    actionButton(label: "最小化") {
                         onMinimize(item.id)
                     }
                 }
 
                 if item.canClose {
-                    actionButton(label: "关闭", isDisabled: isPending) {
+                    actionButton(label: "关闭") {
                         onClose(item.id)
                     }
                 }
@@ -214,77 +214,52 @@ struct ContentView: View {
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
         )
-        .overlay(alignment: .topTrailing) {
-            if isPending {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white.opacity(0.8))
-                    .padding(12)
-            }
-        }
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .onTapGesture {
-            guard isPending == false else { return }
             onToggle(item.id)
         }
     }
 
     private func compactTaskStripChip(
         _ item: StripItem,
-        feedback: IntentFeedbackState.Entry?,
-        isPending: Bool
+        feedback: IntentFeedbackState.Entry?
     ) -> some View {
         let borderColor = feedback.map { feedbackColor($0).opacity(0.36) } ?? Color.white.opacity(0.08)
 
-        return ZStack {
-            appIcon(for: item)
-
-            if isPending {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.white.opacity(0.88))
-                    .frame(width: 22, height: 22)
-                    .background(Color.black.opacity(0.36), in: Circle())
-                    .offset(x: 17, y: -17)
+        return appIcon(for: item)
+            .padding(12)
+            .frame(width: 58, height: 58)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.09))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(borderColor, lineWidth: 1)
+                    )
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .transition(.opacity.combined(with: .scale(scale: 0.92)))
+            .onTapGesture {
+                onToggle(item.id)
             }
-        }
-        .padding(12)
-        .frame(width: 58, height: 58)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.09))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(borderColor, lineWidth: 1)
-                )
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .transition(.opacity.combined(with: .scale(scale: 0.92)))
-        .onTapGesture {
-            guard isPending == false else { return }
-            onToggle(item.id)
-        }
     }
 
     @ViewBuilder
-    private func taskStripContextMenu(_ item: StripItem, isDisabled: Bool) -> some View {
+    private func taskStripContextMenu(_ item: StripItem) -> some View {
         Button("激活") {
             onActivate(item.id)
         }
-        .disabled(isDisabled)
 
         if item.canHide {
             Button("隐藏") {
                 onHide(item.id)
             }
-            .disabled(isDisabled)
         }
 
         if item.canMinimize {
             Button("最小化") {
                 onMinimize(item.id)
             }
-            .disabled(isDisabled)
         }
 
         if item.canClose {
@@ -292,7 +267,6 @@ struct ContentView: View {
             Button("关闭") {
                 onClose(item.id)
             }
-            .disabled(isDisabled)
         }
     }
 
@@ -333,17 +307,16 @@ struct ContentView: View {
         }
     }
 
-    private func actionButton(label: String, isDisabled: Bool, action: @escaping () -> Void) -> some View {
+    private func actionButton(label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(isDisabled ? Color.white.opacity(0.05) : Color.white.opacity(0.12), in: Capsule())
+                .background(Color.white.opacity(0.12), in: Capsule())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isDisabled ? .white.opacity(0.34) : .white.opacity(0.82))
-        .disabled(isDisabled)
+        .foregroundStyle(.white.opacity(0.82))
     }
 
     private func feedbackText(_ feedback: IntentFeedbackState.Entry) -> String {

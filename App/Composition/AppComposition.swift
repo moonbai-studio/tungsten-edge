@@ -9,6 +9,9 @@ final class AppRuntime: ObservableObject {
     @Published private(set) var snapshot: DockSnapshot = .empty
     @Published private(set) var hasRequiredPermissions: Bool = false
     @Published private(set) var feedbackEntriesByWindowID: [String: IntentFeedbackState.Entry] = [:]
+    /// 乐观状态 overlay（见 OptimisticWindowState 注释）。UI 渲染与 toggle 规划
+    /// 优先读这里；快照兑现预测或超时（静默回弹）后清除。
+    @Published private(set) var optimisticStatesByWindowID: [String: OptimisticWindowState] = [:]
     @Published private(set) var observationStatusText: String = "正在启动"
 
     private let tracker = AppTracker()
@@ -70,8 +73,20 @@ final class AppRuntime: ObservableObject {
     // MARK: - Private
 
     private func trigger(_ intent: UserIntent) {
-        guard intentPipeline.canBegin(intent: intent) else { return }
-        let request = intentPipeline.plan(intent: intent, snapshot: snapshot)
+        // 可打断（2026-06-13）：显隐类动作不再锁 pending —— 执行本身是几十毫秒的
+        // 一次性 AX 调用，没有需要取消的并发；一致性靠乐观 overlay 驱动规划 +
+        // 真实快照最终对账。只有 close / quit（窗口会消失）保持锁到确认。
+        switch intent.action {
+        case .close, .quit:
+            guard intentPipeline.canBegin(intent: intent) else { return }
+        default:
+            break
+        }
+        let request = intentPipeline.plan(
+            intent: intent,
+            snapshot: snapshot,
+            optimisticStates: optimisticStatesByWindowID
+        )
 
         // ChipProbe: log chip state + planned action at tap time (main thread, no AX)
         if case .toggle(let wid) = intent, let record = snapshot.windows[wid] {
@@ -88,6 +103,7 @@ final class AppRuntime: ObservableObject {
             chipProbeLogger.info("toggle-planned app=\(runningApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(record.bundleIdentifier ?? "(none)", privacy: .public) activationPolicy=\(policyStr, privacy: .public) status=\(record.status.rawValue, privacy: .public) isOnDesktop=\(record.isOnDesktop, privacy: .public) appIsFrontmost=\(appIsFrontmost, privacy: .public) plannedAction=\(request.kind.rawValue, privacy: .public)")
         }
 
+        applyOptimisticState(for: request)
         intentPipeline.registerPending(intent: intent, request: request)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID
 
@@ -108,6 +124,7 @@ final class AppRuntime: ObservableObject {
         hasRequiredPermissions = permissionService.hasRequiredPermissions()
         intentPipeline.reconcile(with: newSnapshot)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID
+        reconcileOptimisticStates()
         if startedAt != nil {
             let ms = Int(Date().timeIntervalSince(startedAt!) * 1000)
             observationStatusText = hasRequiredPermissions ? "实时 \(ms)ms" : "仅窗口列表"
@@ -118,6 +135,52 @@ final class AppRuntime: ObservableObject {
     private func tickFeedback() {
         intentPipeline.reconcile(with: snapshot)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID
+        reconcileOptimisticStates()
+    }
+
+    // MARK: - Optimistic Overlay
+
+    /// 超时上限对齐 pending retention（IntentFeedbackState.FeedbackPhase.pending）。
+    private static let optimisticTimeout: TimeInterval = 4.0
+
+    /// 按计划出的动作写预测态。hideApp 只盖被点的那张 chip，同 app 其他窗口
+    /// 等快照（v1 接受）。close / quit / newWindow 不写（窗口要消失 / 是别的窗口）。
+    private func applyOptimisticState(for request: PlatformActionRequest) {
+        let state: OptimisticWindowState?
+        switch request.kind {
+        case .activateWindow:
+            state = OptimisticWindowState(status: .active, isAppFrontmost: true, createdAt: Date())
+        case .minimizeWindow:
+            state = OptimisticWindowState(status: .minimized, isAppFrontmost: false, createdAt: Date())
+        case .hideApp:
+            state = OptimisticWindowState(status: .hidden, isAppFrontmost: false, createdAt: Date())
+        case .closeWindow, .quitApp, .newWindow:
+            state = nil
+        }
+        guard let state, let windowID = request.windowID else { return }
+        optimisticStatesByWindowID[windowID.rawValue] = state
+    }
+
+    /// 兑现 / 回滚：真实快照达到预测态（或窗口消失）→ 清除；超时没兑现 → 静默
+    /// 回弹到真实态（不加额外提示，AX 动作失败本身罕见）。
+    private func reconcileOptimisticStates(now: Date = Date()) {
+        guard !optimisticStatesByWindowID.isEmpty else { return }
+        let next = optimisticStatesByWindowID.filter { windowID, state in
+            if now.timeIntervalSince(state.createdAt) > Self.optimisticTimeout { return false }
+            guard let record = snapshot.windows[WindowID(rawValue: windowID)] else { return false }
+            return !Self.optimisticConfirmed(predicted: state.status, actual: record.status)
+        }
+        if next != optimisticStatesByWindowID {
+            optimisticStatesByWindowID = next
+        }
+    }
+
+    /// 对齐 feedback reconcile 的口径：minimize / hide 可能短暂表现为 disappeared
+    ///（Finder 最小化反馈 bug 的教训），也算兑现。
+    private static func optimisticConfirmed(predicted: WindowStatus, actual: WindowStatus) -> Bool {
+        if predicted == actual { return true }
+        if (predicted == .minimized || predicted == .hidden) && actual == .disappeared { return true }
+        return false
     }
 }
 
