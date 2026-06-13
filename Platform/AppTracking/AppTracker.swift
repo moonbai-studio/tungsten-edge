@@ -31,9 +31,14 @@ final class AppTracker: ObservableObject {
     private var observers: [pid_t: AppWindowObserver] = [:]
     private var workspaceObservers: [NSObjectProtocol] = []
     private var reconcileTimer: Timer?
+    private var frontmostPollTimer: Timer?
     private var isScanningCandidates = false
     private var destroyedCGIDs: [CGWindowID: Date] = [:]
     private static let tombstoneTTL: TimeInterval = 3.0
+
+    /// 上次重建快照时的 CG on-screen 集合。前台轮询据此发现「切标签」——AX 可能完全不报，
+    /// 但 on-screen 集合会即时变化，变了就重建（标签组可见标签随之即时更新）。
+    private var lastOnScreenCGIDs: Set<CGWindowID> = []
 
     private let reader = AXWindowReader()
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
@@ -44,11 +49,14 @@ final class AppTracker: ObservableObject {
         seedRunningApps()
         subscribeWorkspaceNotifications()
         startReconcileTimer()
+        startFrontmostPollTimer()
     }
 
     func stop() {
         reconcileTimer?.invalidate()
         reconcileTimer = nil
+        frontmostPollTimer?.invalidate()
+        frontmostPollTimer = nil
         for obs in workspaceObservers {
             NSWorkspace.shared.notificationCenter.removeObserver(obs)
         }
@@ -88,6 +96,38 @@ final class AppTracker: ObservableObject {
             ids.insert(CGWindowID(num))
         }
         return ids
+    }
+
+    /// 「当前真正在屏」的窗口集合（含被遮挡的，但不含最小化 / 被 order-out 的后台标签 / 其它 Space）。
+    /// 用于标签组里判定哪个标签可见——这是即时可靠的合成层信号，不像 AX min 会滞后数秒。
+    private func onScreenCGWindowIDSet() -> Set<CGWindowID> {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return []
+        }
+        var ids = Set<CGWindowID>()
+        for info in list {
+            guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
+                  let num = info[kCGWindowNumber as String] as? Int else { continue }
+            ids.insert(CGWindowID(num))
+        }
+        return ids
+    }
+
+    /// 属于某个「同 pid + 逐像素相同 frame」≥2 成员标签组的窗口 cgID 集合（与 StripItem 合并判据一致）。
+    /// 只有这些窗口才改用 CG on-screen 判定可见性；普通单窗口仍走 AX。
+    private func tabGroupedWindowIDs() -> Set<CGWindowID> {
+        var groups: [String: [CGWindowID]] = [:]
+        for pid in appOrder {
+            guard let app = apps[pid] else { continue }
+            for cgID in app.windowOrder {
+                guard let b = app.windowsByID[cgID]?.bounds else { continue }
+                let key = "\(pid)|\(Int(b.origin.x.rounded())):\(Int(b.origin.y.rounded())):\(Int(b.size.width.rounded())):\(Int(b.size.height.rounded()))"
+                groups[key, default: []].append(cgID)
+            }
+        }
+        var result: Set<CGWindowID> = []
+        for (_, members) in groups where members.count > 1 { result.formUnion(members) }
+        return result
     }
 
     // MARK: - Seed
@@ -214,6 +254,7 @@ final class AppTracker: ObservableObject {
             obs.onWindowMinimized = { [weak self] pid, cgID in self?.handleWindowMinimized(pid: pid, cgWindowID: cgID) }
             obs.onWindowDeminiaturized = { [weak self] pid, cgID in self?.handleWindowDeminiaturized(pid: pid, cgWindowID: cgID) }
             obs.onFocusedWindowChanged = { [weak self] pid in self?.handleFocusedWindowChanged(pid: pid) }
+            obs.onTitleChanged = { [weak self] pid, cgID in self?.handleTitleChanged(pid: pid, cgWindowID: cgID) }
             obs.start()
             observers[pid] = obs
         }
@@ -378,12 +419,57 @@ final class AppTracker: ObservableObject {
         enumerateWindows(for: pid)
     }
 
+    private func handleTitleChanged(pid: pid_t, cgWindowID: CGWindowID) {
+        enumerateWindows(for: pid)
+    }
+
     // MARK: - Reconcile
 
     private func startReconcileTimer() {
         reconcileTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.reconcile() }
         }
+    }
+
+    // 前台快轮询：原生标签组（如 Ghostty）切标签时 AX 可能完全不报，且 min 误报滞后数秒。
+    // 真相在 CG on-screen 集合——切标签时它即时变化。对**前台且多窗口**的 app 以 0.5s 检测：
+    // on-screen 变了（切了标签）就重建，标签组可见标签随之即时更新。同时顺带补 AX 标题/焦点。
+    // 单窗口 app 无歧义，直接跳过，平时零开销。
+    private func startFrontmostPollTimer() {
+        frontmostPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.pollFrontmostApp() }
+        }
+    }
+
+    private func pollFrontmostApp() {
+        guard AXIsProcessTrusted() else { return }
+        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              var app = apps[pid], app.windowOrder.count > 1 else { return }
+
+        let snapshots = reader.windows(forPID: pid)
+        let eligible = snapshots.filter {
+            isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
+        }
+
+        var changed = false
+        for snap in eligible {
+            guard let cgID = snap.cgWindowID, var entry = app.windowsByID[cgID] else { continue }
+            let titleChanged = snap.title.map { !$0.isEmpty && $0 != entry.title } ?? false
+            let stateChanged = snap.isMinimized != entry.isMinimized || snap.isFocusedWindow != entry.isFocused
+            if titleChanged || stateChanged {
+                if let t = snap.title, !t.isEmpty { entry.title = t }
+                entry.isMinimized = snap.isMinimized
+                entry.isFocused = snap.isFocusedWindow
+                app.windowsByID[cgID] = entry
+                apps[pid] = app
+                changed = true
+            }
+        }
+
+        // 切标签的即时信号：哪个标签在屏变了 → 重建（rebuildSnapshot 会读最新 on-screen 并刷新）。
+        if onScreenCGWindowIDSet() != lastOnScreenCGIDs { changed = true }
+
+        if changed { rebuildSnapshot() }
     }
 
     private func reconcile() {
@@ -498,6 +584,12 @@ final class AppTracker: ObservableObject {
     private func rebuildSnapshot() {
         // Read frontmost PID once; passed to windowStatus to determine active highlight
         let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        // 原生标签组可见性的可靠真相源：CG on-screen 列表只含「当前真正在屏」的窗口。标签组里
+        // 后台标签是被 order-out 的独立 NSWindow，不在该列表；每组恰好留 1 个可见标签（实测）。
+        // 用它判定标签组成员的可见/最小化，压掉 AX min 那 ~4s 滞后误报（切标签延迟/变灰的根因）。
+        let onScreen = onScreenCGWindowIDSet()
+        lastOnScreenCGIDs = onScreen
+        let groupedIDs = tabGroupedWindowIDs()
 
         var windows: [WindowID: WindowRecord] = [:]
         var orderedWindowIDs: [WindowID] = []
@@ -523,6 +615,11 @@ final class AppTracker: ObservableObject {
                 for cgID in app.windowOrder {
                     guard let window = app.windowsByID[cgID] else { continue }
                     let id = WindowID(rawValue: "cgw-\(cgID)")
+                    // 标签组成员（同 frame ≥2）：可见性以 CG on-screen 为准——不在屏即视为最小化，
+                    // 且不可能聚焦。非标签组窗口（单窗口等）维持 AX 判定不变。
+                    let grouped = groupedIDs.contains(cgID)
+                    let effectiveMinimized = grouped ? !onScreen.contains(cgID) : window.isMinimized
+                    let effectiveFocused = grouped ? (window.isFocused && onScreen.contains(cgID)) : window.isFocused
                     windows[id] = WindowRecord(
                         id: id,
                         appID: AppID(rawValue: app.bundleIdentifier ?? app.appName),
@@ -530,9 +627,9 @@ final class AppTracker: ObservableObject {
                         bundleIdentifier: app.bundleIdentifier,
                         title: window.title,
                         bounds: window.bounds,
-                        status: windowStatus(entry: window, isHidden: app.isHidden, pid: pid, frontmostPID: frontmostPID),
+                        status: windowStatus(isHidden: app.isHidden, isMinimized: effectiveMinimized, isFocused: effectiveFocused, pid: pid, frontmostPID: frontmostPID),
                         cgWindowID: cgID,
-                        isOnDesktop: !window.isMinimized && !app.isHidden
+                        isOnDesktop: !effectiveMinimized && !app.isHidden
                     )
                     orderedWindowIDs.append(id)
                 }
@@ -542,10 +639,10 @@ final class AppTracker: ObservableObject {
         snapshot = DockSnapshot(windows: windows, orderedWindowIDs: orderedWindowIDs)
     }
 
-    private func windowStatus(entry: WindowEntry, isHidden: Bool, pid: pid_t, frontmostPID: pid_t?) -> WindowStatus {
+    private func windowStatus(isHidden: Bool, isMinimized: Bool, isFocused: Bool, pid: pid_t, frontmostPID: pid_t?) -> WindowStatus {
         if isHidden { return .hidden }
-        if entry.isMinimized { return .minimized }
-        if entry.isFocused && !entry.isMinimized && pid == frontmostPID { return .active }
+        if isMinimized { return .minimized }
+        if isFocused && pid == frontmostPID { return .active }
         return .inactive
     }
 

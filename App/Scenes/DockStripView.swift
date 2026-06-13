@@ -185,11 +185,11 @@ struct ChipView: View {
     /// 乐观态优先（交互打磨 2026-06-13）：点击瞬间 chip 立刻按预测态渲染
     ///（minimize → 变暗），不等快照 round-trip，也不再转圈。
     private var effectiveStatus: String {
-        runtime.optimisticStatesByWindowID[item.id]?.status.rawValue ?? item.status
+        runtime.optimisticStatesByWindowID[item.actionWindowID]?.status.rawValue ?? item.status
     }
 
     private var effectiveIsOnDesktop: Bool {
-        guard let optimistic = runtime.optimisticStatesByWindowID[item.id] else {
+        guard let optimistic = runtime.optimisticStatesByWindowID[item.actionWindowID] else {
             return item.isOnDesktop
         }
         return optimistic.status == .active
@@ -222,7 +222,7 @@ struct ChipView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
+                if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
             }
             .contextMenu { chipContextMenu }
             .help(displayTitle)
@@ -250,7 +250,7 @@ struct ChipView: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
         .onTapGesture {
-            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.id) }
+            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
         }
         .contextMenu { chipContextMenu }
         .help(displayTitle)
@@ -277,25 +277,29 @@ struct ChipView: View {
     private var chipContextMenu: some View {
         if item.isAppLevelFallback {
             if effectiveStatus == "hidden" {
-                Button("显示") { runtime.activate(windowID: item.id) }
+                Button("显示") { runtime.activate(windowID: item.actionWindowID) }
             } else {
-                Button("隐藏") { runtime.hide(windowID: item.id) }
+                Button("隐藏") { runtime.hide(windowID: item.actionWindowID) }
             }
             Divider()
-            Button("退出 App") { runtime.quit(windowID: item.id) }
+            Button("退出 App") { runtime.quit(windowID: item.actionWindowID) }
             membershipMenuItems
         } else {
-            Button("新建窗口") { runtime.newWindow(windowID: item.id) }
+            Button("新建窗口") { runtime.newWindow(windowID: item.actionWindowID) }
             if effectiveStatus == "minimized" {
-                Button("还原") { runtime.activate(windowID: item.id) }
+                Button("还原") { runtime.activate(windowID: item.actionWindowID) }
             } else {
-                Button("最小化") { runtime.minimize(windowID: item.id) }
+                Button("最小化") { runtime.minimize(windowID: item.actionWindowID) }
             }
-            Button("隐藏 App") { runtime.hide(windowID: item.id) }
+            Button("隐藏 App") { runtime.hide(windowID: item.actionWindowID) }
             membershipMenuItems
             Divider()
-            Button("关闭窗口") { runtime.close(windowID: item.id) }
-            Button("退出 App") { runtime.quit(windowID: item.id) }
+            // 整组关闭（2026-06-14）：标签组的「关闭窗口」关掉组内每个标签；
+            // 普通窗口 memberWindowIDs == [id]，行为不变。
+            Button("关闭窗口") {
+                for wid in item.memberWindowIDs { runtime.close(windowID: wid) }
+            }
+            Button("退出 App") { runtime.quit(windowID: item.actionWindowID) }
         }
     }
 

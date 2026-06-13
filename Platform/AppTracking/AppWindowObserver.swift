@@ -18,6 +18,7 @@ final class AppWindowObserver {
     var onWindowMinimized: ((pid_t, CGWindowID) -> Void)?
     var onWindowDeminiaturized: ((pid_t, CGWindowID) -> Void)?
     var onFocusedWindowChanged: ((pid_t) -> Void)?
+    var onTitleChanged: ((pid_t, CGWindowID) -> Void)?
 
     init(pid: pid_t) {
         self.pid = pid
@@ -63,6 +64,7 @@ final class AppWindowObserver {
         AXObserverAddNotification(obs, element, kAXUIElementDestroyedNotification as CFString, selfPtr)
         AXObserverAddNotification(obs, element, kAXWindowMiniaturizedNotification as CFString, selfPtr)
         AXObserverAddNotification(obs, element, kAXWindowDeminiaturizedNotification as CFString, selfPtr)
+        AXObserverAddNotification(obs, element, kAXTitleChangedNotification as CFString, selfPtr)
     }
 
     fileprivate func handleNotification(element: AXUIElement, notification: CFString) {
@@ -85,6 +87,11 @@ final class AppWindowObserver {
         } else if notifStr == (kAXWindowDeminiaturizedNotification as String) {
             if let cgID = AXWindowReader.cgWindowID(for: element) {
                 onWindowDeminiaturized?(pid, cgID)
+            }
+        } else if notifStr == (kAXTitleChangedNotification as String) {
+            let key = AXElementKey(e: element)
+            if let cgID = AXWindowReader.cgWindowID(for: element) ?? elementToCGID[key] {
+                onTitleChanged?(pid, cgID)
             }
         }
     }

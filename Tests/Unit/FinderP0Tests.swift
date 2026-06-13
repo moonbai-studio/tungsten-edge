@@ -1234,6 +1234,153 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(items.map(\.showsTitle), [false, false])
     }
 
+    // MARK: - 原生标签组合并（2026-06-14）
+
+    func testStripItemsMergeNativeTabGroupWithIdenticalFrame() {
+        // 真机探路数据（2026-06-13 Ghostty pid 30201，两标签同 frame）
+        let frame = CGRect(x: 172, y: 87, width: 1191, height: 831)
+        let tabA = WindowRecord(
+            id: WindowID(rawValue: "cgw-240522"),
+            appID: AppID(rawValue: "com.mitchellh.ghostty"),
+            pid: 30201,
+            bundleIdentifier: "com.mitchellh.ghostty",
+            title: "ob 协作",
+            bounds: frame,
+            status: .inactive,
+            cgWindowID: 240522
+        )
+        let tabB = WindowRecord(
+            id: WindowID(rawValue: "cgw-249469"),
+            appID: AppID(rawValue: "com.mitchellh.ghostty"),
+            pid: 30201,
+            bundleIdentifier: "com.mitchellh.ghostty",
+            title: "程序坞-规划",
+            bounds: frame,
+            status: .active,
+            cgWindowID: 249469
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(tabA, tabB))
+
+        XCTAssertEqual(items.count, 1)
+        let chip = items[0]
+        XCTAssertEqual(Set(chip.memberWindowIDs), ["cgw-240522", "cgw-249469"])
+        // 单个标签组 → 图标-only（与单窗口一致），sameAppCardCount 按合并后的卡计数
+        XCTAssertFalse(chip.showsTitle)
+        XCTAssertEqual(chip.sameAppCardCount, 1)
+        // SwiftUI 身份锚 = 最小 cgWindowID（稳定，不随聚焦切换 → 不抖）
+        XCTAssertEqual(chip.id, "cgw-240522")
+        // 动作落点 + 标题 = 聚焦（active）标签
+        XCTAssertEqual(chip.actionWindowID, "cgw-249469")
+        XCTAssertEqual(chip.title, "程序坞-规划")
+    }
+
+    func testStripItemsBackgroundedTabGroupRepresentsVisibleTab() {
+        // 真机数据（2026-06-14）：原生标签组里，非当前标签在 AX 报告为 .minimized；
+        // 后台窗口（app 非前台）没有任何 .active member。representative 必须选「可见标签」
+        // （唯一 min=0 的那个），而不是 fallback 到最小 cgID 的 anchor——anchor 这里恰好
+        // 落在一个被最小化的后台标签上，旧逻辑会显示错误标题。
+        let frame = CGRect(x: 82, y: 107, width: 1191, height: 809)
+        let bgLow = WindowRecord(   // 最小 cgID = anchor，但它是后台（最小化）标签
+            id: WindowID(rawValue: "cgw-249469"),
+            appID: AppID(rawValue: "com.mitchellh.ghostty"),
+            pid: 30201,
+            bundleIdentifier: "com.mitchellh.ghostty",
+            title: "程序坞-规划",
+            bounds: frame,
+            status: .minimized,
+            cgWindowID: 249469
+        )
+        let visible = WindowRecord(  // 唯一可见标签（min=0 → .inactive，因 app 非前台）
+            id: WindowID(rawValue: "cgw-254022"),
+            appID: AppID(rawValue: "com.mitchellh.ghostty"),
+            pid: 30201,
+            bundleIdentifier: "com.mitchellh.ghostty",
+            title: "发生的",
+            bounds: frame,
+            status: .inactive,
+            cgWindowID: 254022
+        )
+        let bgHigh = WindowRecord(
+            id: WindowID(rawValue: "cgw-253982"),
+            appID: AppID(rawValue: "com.mitchellh.ghostty"),
+            pid: 30201,
+            bundleIdentifier: "com.mitchellh.ghostty",
+            title: "阿方索的",
+            bounds: frame,
+            status: .minimized,
+            cgWindowID: 253982
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(bgLow, visible, bgHigh))
+
+        XCTAssertEqual(items.count, 1)
+        let chip = items[0]
+        // 身份锚仍是最小 cgID（稳定不抖）
+        XCTAssertEqual(chip.id, "cgw-249469")
+        // 但标题/动作落点 = 可见标签，不是 anchor
+        XCTAssertEqual(chip.title, "发生的")
+        XCTAssertEqual(chip.actionWindowID, "cgw-254022")
+    }
+
+    func testStripItemsDoNotMergeWhenFrameDiffers() {
+        // 同 app 两窗口、近似但不逐像素相同（Chrome 实测高度差 25px）→ 不合并
+        let a = WindowRecord(
+            id: WindowID(rawValue: "cgw-1"),
+            appID: AppID(rawValue: "com.google.Chrome"),
+            pid: 64774,
+            bundleIdentifier: "com.google.Chrome",
+            title: "A",
+            bounds: CGRect(x: 0, y: 33, width: 1512, height: 862),
+            status: .inactive,
+            cgWindowID: 1
+        )
+        let b = WindowRecord(
+            id: WindowID(rawValue: "cgw-2"),
+            appID: AppID(rawValue: "com.google.Chrome"),
+            pid: 64774,
+            bundleIdentifier: "com.google.Chrome",
+            title: "B",
+            bounds: CGRect(x: 0, y: 33, width: 1512, height: 887),
+            status: .inactive,
+            cgWindowID: 2
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(a, b))
+
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items.map(\.memberWindowIDs.count), [1, 1])
+    }
+
+    func testStripItemsDoNotMergeAcrossDifferentApps() {
+        // 同 frame 但不同 app（Illustrator/Photoshop 实测同 frame）→ pid+bundle 隔离
+        let frame = CGRect(x: 0, y: 32, width: 2560, height: 1410)
+        let ai = WindowRecord(
+            id: WindowID(rawValue: "cgw-10"),
+            appID: AppID(rawValue: "com.adobe.illustrator"),
+            pid: 65589,
+            bundleIdentifier: "com.adobe.illustrator",
+            title: "AI",
+            bounds: frame,
+            status: .inactive,
+            cgWindowID: 10
+        )
+        let ps = WindowRecord(
+            id: WindowID(rawValue: "cgw-11"),
+            appID: AppID(rawValue: "com.adobe.Photoshop"),
+            pid: 55311,
+            bundleIdentifier: "com.adobe.Photoshop",
+            title: "PS",
+            bounds: frame,
+            status: .inactive,
+            cgWindowID: 11
+        )
+
+        let items = StripItem.items(from: retainedSnapshot(ai, ps))
+
+        XCTAssertEqual(items.count, 2)
+    }
+
     private func snapshot(windowID: WindowID, status: WindowStatus) -> DockSnapshot {
         DockSnapshot(
             windows: [
