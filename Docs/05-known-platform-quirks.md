@@ -19,3 +19,14 @@
 - 长时间空闲 / 睡眠 / 过夜后，6 秒身份记忆会自然过期。不能依赖短记忆认回窗口；必须把当前任务条 `DockSnapshot` 当作长期座位图来对账。
 - 同一个真实窗口在恢复或跨屏状态变化后，frame 可能发生较大偏移；如果同进程同应用下标题唯一，可以用唯一标题认回旧座位。多个同名候选时不能猜。
 - 浏览器、Illustrator、Photoshop、Finder、WeChat、Terminal、Codex 等应用会暴露不同粒度的标题或位置变化；这些应作为通用身份规则的验收样本，不应变成应用白名单。
+
+## 原生标签组（NSWindow tabbing）与“哪个标签可见”的判定（2026-06-14 实测，Ghostty）
+
+> 这是“同 app 多标签合并”功能里反复踩坑后挖出来的平台事实。Obsidian 那份是产品/设计视角，这份是工程视角，写代码时按这条来。
+
+- **原生 NSWindow tabbing（Finder / Ghostty 类）= N 个真实 NSWindow**：同 `pid` + 逐像素相同 frame，各有独立 `cgWindowID`、各 `AXStandardWindow`。浏览器标签则是 1 个 NSWindow 自绘，天然就一个窗口。要合并的是前者。
+- **非当前标签在 AX 里报告为“最小化”（`min=1`）**：一个标签组里同一时刻只有当前可见标签 `min=0`，其余后台标签全报 `min=1`。这不是真的最小化，是 tabbing 的实现细节。
+- **切标签时 AX 的状态严重滞后/不可靠，不能用它判可见标签**：实测 ① 切走的老标签 `min` 会被 AX **持续误报为 0 长达 ~4 秒**（AX 自身就报错，不是轮询慢）；② 老标签的 `Miniaturized` 通知**根本不发**；③ 新标签的 `Deminiaturized` 通知**时有时无**（赌它做事件驱动会出 bug）。过渡期“两标签同时 `min=0` / `foc=1`”，**没有任何瞬时 AX 字段能区分谁可见**。
+- **可靠信号 = `CGWindowListCopyWindowInfo(.optionOnScreenOnly)`**：后台标签是被 order-out 的独立 NSWindow，**不在 on-screen 列表**；每个标签组恰好留 **1 个**在屏 = 当前可见标签。实测 Ghostty 38 窗 → on-screen 仅 2（两组各 1）。合成层真相，切标签即时更新，无 AX 滞后。判“标签组里谁可见”用它。
+- **CG bounds 与 AX bounds 可能不同**：实测同一 Ghostty 标签，CG 报宽 1005/874，AX 报 1191。所以**分组用 AX bounds**（与 `StripItem.tabGroupKey` 一致），**只用 CG 判 `cgWindowID` 是否在屏**——两者别混用。
+- 当前实现：`AppTracker.rebuildSnapshot` 对“同 frame ≥2 成员”的标签组改用 on-screen 判可见性（不在屏即视为最小化），普通单窗口仍走 AX；前台 0.5s 轮询比对 on-screen 集合发现切标签（AX 完全不报时的即时触发）。`CGWindowListCopyWindowInfo` 在无屏幕录制权限时拿不到标题，但 `pid` / `number` / `bounds` / `layer` / on-screen 都可用，足够本判定。

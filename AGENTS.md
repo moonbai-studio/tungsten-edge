@@ -1,5 +1,10 @@
 # AGENTS
 
+> **📍 New agent: read this first.**
+> The source of truth for current product state, roadmap, and design decisions is the owner's Obsidian vault — **not** this file or `Docs/`:
+> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — key notes: `02 当前进度`, `03 设计决策`, `05 待办与想法/Backlog`.
+> This `AGENTS.md` and most of `Docs/` are scoped to the **foundation engine** (window identity / placement / taskbar trust) and **dated historical findings**. They do **not** track the UX feature layer (message chips, badges, drawer, native-tab merge…), which lives only in Obsidian. Treat dated `Docs/*` as historical records, not live status — except `Docs/05-known-platform-quirks.md`, which is kept current as repo-local engineering reference.
+
 ## Purpose
 
 This repo is `v2` of a macOS window-oriented bottom taskbar experiment.

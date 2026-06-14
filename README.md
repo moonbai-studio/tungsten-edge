@@ -2,6 +2,12 @@
 
 v2 of the macOS window-oriented bottom taskbar experiment.
 
+> **📍 Source of truth = Obsidian, not this repo's prose.**
+> Current product state, roadmap, and design decisions live in the owner's Obsidian vault:
+> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — key notes: `02 当前进度`, `03 设计决策`, `05 待办与想法/Backlog`.
+> Files under `Docs/` are **dated historical findings, incident reports, and timeless macOS platform quirks** — accurate as of their dates, **not a live status board**; don't infer current features from them (`Docs/05-known-platform-quirks.md` is the exception worth keeping current — repo-local engineering reference).
+> The "Current State" list below covers only the **foundation engine** (identity / placement / trust) and intentionally lags the UX feature layer (message chips, badges, drawer, native-tab merge…), which is tracked only in Obsidian.
+
 ## Current State
 
 - Finder P0 window-level identity foundation was accepted on 2026-05-05.

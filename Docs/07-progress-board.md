@@ -1,5 +1,9 @@
 # v2 完成度看板
 
+> ⚠️ **已冻结于 2026-05-15，不再更新。** 这是历史快照。**当前进度以 Obsidian 为准**：
+> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/02 当前进度.md`（路线图见同目录 `05 待办与想法/Backlog.md`）。
+> 下面的内容只反映 2026-05-15 当时的状态，之后的功能（消息 chip、抽屉、标签合并等）都不在这里。
+
 > Last Updated: 2026-05-15
 
 ## 当前一句话
