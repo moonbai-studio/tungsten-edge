@@ -467,7 +467,7 @@ private struct DockVisualEffectView: NSViewRepresentable {
         let view = NSVisualEffectView()
         view.material = .sidebar
         view.blendingMode = .behindWindow
-        view.state = .active
+        view.state = .followsWindowActiveState
         view.wantsLayer = true
         view.layer?.cornerRadius = Style.cornerRadius
         view.layer?.cornerCurve = .continuous

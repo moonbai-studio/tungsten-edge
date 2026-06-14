@@ -698,6 +698,7 @@ func runPlacementReplayMode() {
     }
 }
 
+@MainActor
 func runTransitionReplayMode() {
     let scenarioName = modeArguments.first ?? "focused-active-replay"
     let root = loadScenarioURL(named: scenarioName)
@@ -781,5 +782,5 @@ case .replay:
 case .placementReplay:
     runPlacementReplayMode()
 case .transitionReplay:
-    runTransitionReplayMode()
+    MainActor.assumeIsolated { runTransitionReplayMode() }
 }

@@ -12,10 +12,7 @@ import ApplicationServices
 /// Requires Accessibility permission, which this app already needs. Apps only get a
 /// Dock icon while running (or pinned), and messaging chips only render while the
 /// app runs, so coverage is aligned by construction.
-final class DockBadgeReader: @unchecked Sendable {
-    /// .app path → bundleID. Bundle reads hit disk; paths are stable per launch.
-    private var bundleIDByPath: [String: String] = [:]
-
+struct DockBadgeReader: Sendable {
     /// Returns [bundleID: badge text] for every Dock item that currently shows a badge.
     /// Call off the main thread; AX messaging to the Dock can block briefly.
     func readBadges() -> [String: String] {
@@ -25,6 +22,7 @@ final class DockBadgeReader: @unchecked Sendable {
         let dockElement = AXUIElementCreateApplication(dock.processIdentifier)
         _ = AXUIElementSetMessagingTimeout(dockElement, 0.25)
 
+        var bundleIDByPath: [String: String] = [:]
         var result: [String: String] = [:]
         // Dock AX hierarchy: application element → AXList children → AXDockItem children.
         for list in children(of: dockElement) {
@@ -32,7 +30,7 @@ final class DockBadgeReader: @unchecked Sendable {
                 guard let badge = stringAttribute("AXStatusLabel", of: item),
                       !badge.isEmpty,
                       let url = urlAttribute(kAXURLAttribute as String, of: item),
-                      let bundleID = bundleID(forAppURL: url) else { continue }
+                      let bundleID = bundleID(forAppURL: url, cache: &bundleIDByPath) else { continue }
                 result[bundleID] = badge
             }
         }
@@ -63,11 +61,11 @@ final class DockBadgeReader: @unchecked Sendable {
         return url as URL
     }
 
-    private func bundleID(forAppURL url: URL) -> String? {
+    private func bundleID(forAppURL url: URL, cache: inout [String: String]) -> String? {
         let path = url.path
-        if let cached = bundleIDByPath[path] { return cached }
+        if let cached = cache[path] { return cached }
         guard let bundleID = Bundle(url: url)?.bundleIdentifier else { return nil }
-        bundleIDByPath[path] = bundleID
+        cache[path] = bundleID
         return bundleID
     }
 }

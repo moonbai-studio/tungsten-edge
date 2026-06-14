@@ -6,6 +6,7 @@ struct ProcessedObservation {
     let lifecycle: LifecycleDecision
 }
 
+@MainActor
 final class ObservationPipeline {
     private let state: DockState
     private let identity: WindowIdentityEngine

@@ -17,6 +17,7 @@ import Foundation
 ///
 /// `bundleIDs` stays an ordered array: pinned-zone order is muscle memory, and the
 /// future strip drag-reorder will reorder this array (same shape as `DrawerStore`).
+@MainActor
 final class MessagingAppStore: ObservableObject {
     @Published private(set) var bundleIDs: [String] = []
     private var optOutIDs: Set<String> = []

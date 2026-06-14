@@ -429,6 +429,7 @@ final class AppTracker: ObservableObject {
         reconcileTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.reconcile() }
         }
+        reconcileTimer?.tolerance = 0.5
     }
 
     // 前台快轮询：原生标签组（如 Ghostty）切标签时 AX 可能完全不报，且 min 误报滞后数秒。
@@ -439,6 +440,7 @@ final class AppTracker: ObservableObject {
         frontmostPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.pollFrontmostApp() }
         }
+        frontmostPollTimer?.tolerance = 0.05
     }
 
     private func pollFrontmostApp() {

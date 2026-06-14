@@ -1,6 +1,7 @@
 import Foundation
 import os
 
+@MainActor
 final class IntentPipeline {
     private let actionPlanning: LifecycleActionPlanner
     private(set) var feedbackState = IntentFeedbackState()

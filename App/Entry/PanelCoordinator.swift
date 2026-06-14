@@ -55,6 +55,13 @@ final class PanelCoordinator: NSObject {
         )
     }
 
+    deinit {
+        fullscreenReconcileTimer?.invalidate()
+        hoverPollTimer?.invalidate()
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
+    }
+
     func toggleDrawer() {
         guard let mainPanel = dockPanel else { return }
 
@@ -299,6 +306,11 @@ final class PanelCoordinator: NSObject {
         let panelWidth = max(min(contentWidth, maxWidth), 120)
         panel.setFrame(centeredPanelFrame(panelWidth: panelWidth, screen: screen), display: true, animate: false)
         syncCapsulePanel()
+        if NSScreen.screens.count > 1 {
+            startHoverPollTimer()
+        } else {
+            stopHoverPollTimer()
+        }
     }
 
     // MARK: - Fullscreen Monitor
@@ -310,6 +322,7 @@ final class PanelCoordinator: NSObject {
         fullscreenReconcileTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.fullscreenReconcileIfNeeded() }
         }
+        fullscreenReconcileTimer?.tolerance = 0.5
     }
 
     @objc private func handleSpaceChange() {
@@ -437,9 +450,21 @@ final class PanelCoordinator: NSObject {
 
     private func setupHoverDiagnostics() {
         if Self.hoverVerboseLogging { logScreenMap() }
+        guard NSScreen.screens.count > 1 else { return }
+        startHoverPollTimer()
+    }
+
+    private func startHoverPollTimer() {
+        guard hoverPollTimer == nil else { return }
         hoverPollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.pollMousePosition() }
         }
+        hoverPollTimer?.tolerance = 0.01
+    }
+
+    private func stopHoverPollTimer() {
+        hoverPollTimer?.invalidate()
+        hoverPollTimer = nil
     }
 
     private func logScreenMap() {

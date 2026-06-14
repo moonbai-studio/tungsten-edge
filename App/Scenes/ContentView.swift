@@ -434,10 +434,14 @@ struct DebugConsoleView: View {
 }
 
 enum AppIconResolver {
-    private static var cache: [String: NSImage] = [:]
+    private static let cache: NSCache<NSString, NSImage> = {
+        let c = NSCache<NSString, NSImage>()
+        c.countLimit = 100
+        return c
+    }()
 
     static func icon(for bundleIdentifier: String) -> NSImage {
-        if let cached = cache[bundleIdentifier] {
+        if let cached = cache.object(forKey: bundleIdentifier as NSString) {
             return cached
         }
 
@@ -449,7 +453,7 @@ enum AppIconResolver {
         }
 
         icon.size = NSSize(width: 32, height: 32)
-        cache[bundleIdentifier] = icon
+        cache.setObject(icon, forKey: bundleIdentifier as NSString)
         return icon
     }
 }

@@ -21,11 +21,16 @@ final class BadgeStore: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.readOnce() }
         }
+        timer?.tolerance = 0.05
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+    }
+
+    deinit {
+        timer?.invalidate()
     }
 
     private func readOnce() {

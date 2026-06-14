@@ -7,6 +7,7 @@ struct DockSnapshot: Sendable {
     static let empty = DockSnapshot(windows: [:], orderedWindowIDs: [])
 }
 
+@MainActor
 final class DockState {
     private(set) var snapshot: DockSnapshot = .empty
 

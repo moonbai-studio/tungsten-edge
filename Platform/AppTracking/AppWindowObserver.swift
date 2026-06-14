@@ -7,6 +7,7 @@ private struct AXElementKey: Hashable {
     func hash(into h: inout Hasher) { h.combine(CFHash(e)) }
 }
 
+@MainActor
 final class AppWindowObserver {
     let pid: pid_t
     private var observer: AXObserver?
@@ -25,7 +26,7 @@ final class AppWindowObserver {
     }
 
     deinit {
-        stop()
+        MainActor.assumeIsolated { stop() }
     }
 
     func start() {
@@ -102,7 +103,9 @@ private let appWindowObserverCallback: AXObserverCallback = { _, element, notifi
     let obs = Unmanaged<AppWindowObserver>.fromOpaque(refcon).takeUnretainedValue()
     let notif = notification
     let el = element
-    DispatchQueue.main.async {
-        obs.handleNotification(element: el, notification: notif)
+    DispatchQueue.main.async { [weak obs] in
+        MainActor.assumeIsolated {
+            obs?.handleNotification(element: el, notification: notif)
+        }
     }
 }

@@ -41,6 +41,7 @@ final class AppRuntime: ObservableObject {
         feedbackTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.tickFeedback() }
         }
+        feedbackTimer?.tolerance = 0.05
     }
 
     func stop() {
@@ -49,6 +50,11 @@ final class AppRuntime: ObservableObject {
         snapshotSubscription = nil
         feedbackTimer?.invalidate()
         feedbackTimer = nil
+    }
+
+    deinit {
+        feedbackTimer?.invalidate()
+        snapshotSubscription?.cancel()
     }
 
     func exportDebugSnapshot() {

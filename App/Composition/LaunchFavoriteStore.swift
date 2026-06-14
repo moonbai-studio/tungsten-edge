@@ -13,6 +13,7 @@ import Foundation
 ///
 /// `bundleIDs` stays an ordered array (same shape as `DrawerStore`): registration
 /// order is the zone's muscle-memory order, and future drag-reorder reorders it.
+@MainActor
 final class LaunchFavoriteStore: ObservableObject {
     @Published private(set) var bundleIDs: [String] = []
     private let key = "launchFavoriteBundleIDs"

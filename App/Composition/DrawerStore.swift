@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class DrawerStore: ObservableObject {
     @Published private(set) var bundleIDs: [String] = []
     private let key = "drawerBundleIDs"
