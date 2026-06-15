@@ -479,6 +479,25 @@ final class AppTracker: ObservableObject {
         purgeStaleTombstones()
         var changed = false
 
+        // Remove entries for processes that no longer exist. This handles multi-process apps where
+        // didTerminateApplicationNotification fires for the host pid while the window was tracked
+        // under a different pid — the workspace notification removes the wrong entry and the
+        // tracked pid's app entry stays indefinitely.
+        var deadPIDs: [pid_t] = []
+        for pid in appOrder {
+            if NSRunningApplication(processIdentifier: pid) == nil {
+                deadPIDs.append(pid)
+                logger.info("reconcile: pid=\(pid) no longer exists, removing stale entry")
+            }
+        }
+        for pid in deadPIDs {
+            observers[pid]?.stop()
+            observers.removeValue(forKey: pid)
+            apps.removeValue(forKey: pid)
+            appOrder.removeAll { $0 == pid }
+            changed = true
+        }
+
         // Snapshot CG window set once for the entire reconcile pass
         let cgIDs = cgWindowIDSet()
 
