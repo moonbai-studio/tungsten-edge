@@ -126,14 +126,14 @@ enum StripOrdering {
         return survivors + newcomers
     }
 
-    /// 应用一次拖动：把 `id` 移到目标下标。`targetIndex` 以「移除 `id` 之后」的数组下标为准，
-    /// 越界自动夹紧。`id` 不在序列中则原样返回。
-    static func move(_ order: [String], id: String, to targetIndex: Int) -> [String] {
-        guard let from = order.firstIndex(of: id) else { return order }
+    /// 应用一次拖动落位：把 `draggedID` 移到 `targetID` 的左边（`after == false`）或右边
+    /// （`after == true`）。任一 id 不在序列、或两者相同 → 原样返回。
+    static func reordering(_ order: [String], move draggedID: String, relativeTo targetID: String, after: Bool) -> [String] {
+        guard draggedID != targetID, order.contains(draggedID), order.contains(targetID) else { return order }
         var result = order
-        result.remove(at: from)
-        let clamped = max(0, min(targetIndex, result.count))
-        result.insert(id, at: clamped)
+        result.removeAll { $0 == draggedID }
+        guard let t = result.firstIndex(of: targetID) else { return order }
+        result.insert(draggedID, at: after ? t + 1 : t)
         return result
     }
 

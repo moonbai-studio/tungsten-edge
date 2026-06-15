@@ -1544,27 +1544,29 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(result, ["A", "B", "C"])
     }
 
-    /// 拖动：把末尾的 C 移到最前 → C A B。
-    func testMoveReordersToFront() {
-        let result = StripOrdering.move(["A", "B", "C"], id: "C", to: 0)
-        XCTAssertEqual(result, ["C", "A", "B"])
-    }
-
-    /// 拖动：中间项移到末尾（targetIndex 以移除后下标为准）。
-    func testMoveReordersToTail() {
-        let result = StripOrdering.move(["A", "B", "C"], id: "A", to: 2)
+    /// 拖动落右半边：A 拖到 C 右边 → B C A。
+    func testReorderingDropsAfterTarget() {
+        let result = StripOrdering.reordering(["A", "B", "C"], move: "A", relativeTo: "C", after: true)
         XCTAssertEqual(result, ["B", "C", "A"])
     }
 
-    /// 拖动越界自动夹紧，不崩。
-    func testMoveClampsOutOfRangeTarget() {
-        XCTAssertEqual(StripOrdering.move(["A", "B", "C"], id: "B", to: 99), ["A", "C", "B"])
-        XCTAssertEqual(StripOrdering.move(["A", "B", "C"], id: "B", to: -5), ["B", "A", "C"])
+    /// 拖动落左半边：A 拖到 C 左边 → B A C。
+    func testReorderingDropsBeforeTarget() {
+        let result = StripOrdering.reordering(["A", "B", "C"], move: "A", relativeTo: "C", after: false)
+        XCTAssertEqual(result, ["B", "A", "C"])
     }
 
-    /// 拖动不存在的 id → 原样返回。
-    func testMoveUnknownIDIsNoOp() {
-        XCTAssertEqual(StripOrdering.move(["A", "B"], id: "Z", to: 0), ["A", "B"])
+    /// 从右往左拖：C 拖到 A 左边 → C A B。
+    func testReorderingMovesLeftBeforeTarget() {
+        let result = StripOrdering.reordering(["A", "B", "C"], move: "C", relativeTo: "A", after: false)
+        XCTAssertEqual(result, ["C", "A", "B"])
+    }
+
+    /// 落到自己、或任一 id 不存在 → 原样返回。
+    func testReorderingGuardsSelfAndMissing() {
+        XCTAssertEqual(StripOrdering.reordering(["A", "B"], move: "A", relativeTo: "A", after: true), ["A", "B"])
+        XCTAssertEqual(StripOrdering.reordering(["A", "B"], move: "Z", relativeTo: "A", after: true), ["A", "B"])
+        XCTAssertEqual(StripOrdering.reordering(["A", "B"], move: "A", relativeTo: "Z", after: false), ["A", "B"])
     }
 
     /// app-* 升级成真窗口：新 id 顶替旧 id，继承原位置（rank）。

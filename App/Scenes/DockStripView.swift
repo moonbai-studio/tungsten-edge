@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// One slot in the strip: either a concrete window chip, or a pinned messaging
 /// app-level entry (Dock-icon-like, 方案 B 2026-06-12).
@@ -28,6 +29,14 @@ struct DockStripView: View {
     @EnvironmentObject var messagingStore: MessagingAppStore
     @EnvironmentObject var badgeStore: BadgeStore
     @EnvironmentObject var stripOrderStore: StripOrderStore
+
+    /// id of the live chip currently being dragged (nil = not dragging). Drives the
+    /// in-flight hide so its slot becomes the landing gap.
+    @State private var draggingID: String?
+
+    /// Live chip widths by id, collected via preference — feeds the drop delegate's
+    /// left/right-half split without an overlay (which would steal clicks).
+    @State private var chipWidths: [String: CGFloat] = [:]
 
     private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -109,7 +118,7 @@ struct DockStripView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .center, spacing: 8) {
                     ForEach(stripEntries) { entry in
-                        stripEntryView(entry)
+                        chipWithReorder(entry)
                             .transition(.scale(scale: 0.88).combined(with: .opacity))
                     }
                 }
@@ -145,8 +154,82 @@ struct DockStripView: View {
         .onChange(of: liveOrderIDs, initial: true) { _, current in
             stripOrderStore.sync(current: current)
         }
+        // Catch releases that land in the gaps / background (not onto a chip) so the
+        // in-flight chip's hidden state always clears. (Per-chip delegates clear on
+        // drop-onto-chip; this is the fallback for everything else inside the strip.)
+        .onDrop(of: [.text], delegate: ClearDragDropDelegate(draggingID: $draggingID))
+        .onPreferenceChange(ChipWidthPreferenceKey.self) { chipWidths = $0 }
         // No .frame(maxWidth: .infinity) here — lets NSHostingView.fittingSize reflect
         // the natural content width so AppDelegate can read it for panel sizing.
+    }
+
+    /// Wraps a chip with drag-reorder for the **live zone only** (任务条拖动重排 slice 3).
+    /// Pinned messaging chips don't participate — no drop delegate means a window chip can't
+    /// land in that zone (拖动分区内进行).
+    ///
+    /// Live-reorder feel (native-Dock style): while dragging, the in-flight chip is hidden so
+    /// its slot becomes the landing **gap**, and the others slide aside as the gap moves
+    /// through them — driven by the existing `stripLayoutKeys` spring. The drop side returns
+    /// `.move`, so the cursor shows a move (no copy「+」). Pointer over a target's left half →
+    /// land left, right half → land right. macOS click-drag is free here (scrolling uses
+    /// wheel/trackpad), so a plain tap still activates and right-click still opens the menu.
+    /// `.onDrag` has no "drag ended" callback, and a release that lands off every drop target
+    /// (dead space, or over the drawer before it has one) never fires `performDrop` — which
+    /// would otherwise leave the hidden chip stuck invisible. So poll the hardware button state
+    /// and clear `draggingID` the moment the mouse is released, wherever that happens. Runs only
+    /// during a drag (stops as soon as the button is up or the id is already cleared).
+    private func watchDragEnd() {
+        guard draggingID != nil else { return }
+        if NSEvent.pressedMouseButtons == 0 {
+            draggingID = nil
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { watchDragEnd() }
+    }
+
+    @ViewBuilder
+    private func chipWithReorder(_ entry: StripEntry) -> some View {
+        switch entry {
+        case let .window(item):
+            stripEntryView(entry)
+                // Hide the in-flight chip so its slot is the landing **gap** that follows the
+                // cursor (native-Dock feel); the floating **system** drag image is what you
+                // carry (and can cross panels, for the future drag-into-drawer). `draggingID`
+                // is cleared the instant the mouse is released (watchDragEnd), wherever the
+                // release lands — so the chip can never stay hidden after a drop in dead space
+                // / over the drawer, and the reappear coincides with the system image vanishing
+                // (which also cuts the release ghost).
+                .opacity(draggingID == item.id ? 0 : 1)
+                .onDrag {
+                    // Defer one tick so the drag image snapshots at full opacity, then start
+                    // watching for the mouse release that ends the drag.
+                    DispatchQueue.main.async {
+                        draggingID = item.id
+                        watchDragEnd()
+                    }
+                    return NSItemProvider(object: item.id as NSString)
+                }
+                // Width via a **background** GeometryReader — doesn't affect layout and,
+                // crucially, doesn't steal clicks. (An overlay with a hittable Color.clear
+                // sits on top and intercepts taps, breaking chip clicks — the slice-3 bug.)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: ChipWidthPreferenceKey.self, value: [item.id: geo.size.width])
+                    }
+                )
+                // onDrop directly on the chip: catches drops while leaving onTapGesture /
+                // contextMenu intact (a drop session doesn't block plain clicks).
+                .onDrop(of: [.text], delegate: ChipReorderDropDelegate(
+                    targetID: item.id,
+                    targetWidth: chipWidths[item.id] ?? 44,
+                    draggingID: $draggingID,
+                    reorder: { dragged, after in
+                        stripOrderStore.reorder(draggedID: dragged, relativeTo: item.id, after: after, current: liveOrderIDs)
+                    }
+                ))
+        case .messagingApp:
+            stripEntryView(entry)
+        }
     }
 
     @ViewBuilder
@@ -500,4 +583,51 @@ private struct DockVisualEffectView: NSViewRepresentable {
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+// MARK: - Drag-reorder drop delegates (任务条拖动重排 slice 3)
+
+/// Collects live chip widths by id (for the drop delegate's left/right-half split).
+private struct ChipWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+/// Per-chip drop target: while a live chip is dragged over this one, place it left/right of
+/// this chip by which half the pointer is in, live (so the others slide aside). Returns
+/// `.move` so the cursor shows a move, not a copy「+」.
+private struct ChipReorderDropDelegate: DropDelegate {
+    let targetID: String
+    let targetWidth: CGFloat
+    @Binding var draggingID: String?
+    let reorder: (_ draggedID: String, _ after: Bool) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool { draggingID != nil }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        if let dragging = draggingID, dragging != targetID {
+            reorder(dragging, info.location.x > targetWidth / 2)
+        }
+        return DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        return true
+    }
+}
+
+/// Strip-background fallback: clears the drag state when a release lands off any chip, so the
+/// in-flight chip never stays hidden. Doesn't reorder — the last `dropUpdated` already did.
+private struct ClearDragDropDelegate: DropDelegate {
+    @Binding var draggingID: String?
+
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        return true
+    }
 }

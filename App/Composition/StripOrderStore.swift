@@ -29,9 +29,11 @@ final class StripOrderStore: ObservableObject {
         if next != liveOrder { liveOrder = next }
     }
 
-    /// 拖动：先把当前显示序定下来（reconcile），再把 `id` 挪到目标下标。slice 3 接手势用。
-    func move(id: String, to targetIndex: Int, current: [String]) {
+    /// 拖动落位：把 `draggedID` 落到 `targetID` 的左/右边。先 reconcile 定下当前显示序，再插位；
+    /// 顺序没变就不发布（拖动中 `dropUpdated` 高频调用，挡掉无谓 churn）。
+    func reorder(draggedID: String, relativeTo targetID: String, after: Bool, current: [String]) {
         let base = StripOrdering.reconcile(remembered: liveOrder, current: current)
-        liveOrder = StripOrdering.move(base, id: id, to: targetIndex)
+        let next = StripOrdering.reordering(base, move: draggedID, relativeTo: targetID, after: after)
+        if next != liveOrder { liveOrder = next }
     }
 }
