@@ -27,6 +27,7 @@ struct DockStripView: View {
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var messagingStore: MessagingAppStore
     @EnvironmentObject var badgeStore: BadgeStore
+    @EnvironmentObject var stripOrderStore: StripOrderStore
 
     private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -43,16 +44,20 @@ struct DockStripView: View {
             .status == "hidden"
     }
 
-    /// Pinned messaging zone (leftmost, in store order) + live window zone.
-    /// Messaging apps show only while running (quit → chip gone; the future drawer
-    /// 待启动区 takes over the not-running role). Drawer membership hides a messaging
+    /// Pinned messaging zone (leftmost, in store order) + live window zone, in **natural**
+    /// snapshot order. Messaging apps show only while running (quit → chip gone; the future
+    /// drawer 待启动区 takes over the not-running role). Drawer membership hides a messaging
     /// app from the strip without clearing its messaging flag.
     ///
     /// 方案 B: each messaging app pins exactly ONE app-level chip. Its main window
     /// (title matches the app name) is absorbed into that chip; pop-out windows
     /// (chat windows etc.) flow through the live zone as normal window chips so the
     /// pinned zone keeps a stable width (muscle memory).
-    private var stripEntries: [StripEntry] {
+    ///
+    /// Split out so the live zone can be reordered by `stripOrderStore` (任务条拖动重排
+    /// A 路线) while the pinned messaging zone keeps its own `MessagingAppStore` order —
+    /// the two zones never cross (拖动分区内进行).
+    private func partitioned() -> (pinned: [StripEntry], liveNatural: [StripItem]) {
         let msg = messagingStore.bundleIDs            // ordered → drag-reorder friendly
             .filter { !drawerStore.contains($0) && snapshotBundleIDs.contains($0) }
         let msgSet = Set(msg)
@@ -67,15 +72,29 @@ struct DockStripView: View {
             pinned.append(.messagingApp(bundleID: bid, mainWindow: main))
         }
 
-        let live = items
-            .filter { item in
-                guard msgSet.contains(item.bundleIdentifier ?? "") else { return true }
-                if item.isAppLevelFallback { return false }     // app chip replaces the app-* fallback
-                return !absorbedWindowIDs.contains(item.id)     // pop-outs stay as normal chips
-            }
-            .map { StripEntry.window($0) }
+        let liveNatural = items.filter { item in
+            guard msgSet.contains(item.bundleIdentifier ?? "") else { return true }
+            if item.isAppLevelFallback { return false }     // app chip replaces the app-* fallback
+            return !absorbedWindowIDs.contains(item.id)     // pop-outs stay as normal chips
+        }
+        return (pinned, liveNatural)
+    }
 
-        return pinned + live
+    /// Live-zone chip ids in natural snapshot order — input to the order layer and the
+    /// value the sync side-effect watches (changes only when windows open/close).
+    private var liveOrderIDs: [String] {
+        partitioned().liveNatural.map(\.id)
+    }
+
+    /// 单一显示顺序漏斗：pinned 区按 `MessagingAppStore` 序，live 区由 `stripOrderStore`
+    /// 重排（已有保序 / 新窗口进末尾 / 真关闭丢弃，见 `StripOrdering`）。渲染**绝不**直接读
+    /// `snapshot.orderedWindowIDs` 出 live 序。slice 2 用当前序播种 → 视觉上无变化。
+    private var stripEntries: [StripEntry] {
+        let (pinned, liveNatural) = partitioned()
+        let order = stripOrderStore.reconciled(current: liveNatural.map(\.id))
+        let byID = Dictionary(liveNatural.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let orderedLive = order.compactMap { byID[$0] }.map(StripEntry.window)
+        return pinned + orderedLive
     }
 
     private var stripLayoutKeys: [StripLayoutKey] {
@@ -119,6 +138,12 @@ struct DockStripView: View {
                     ),
                     lineWidth: 1
                 )
+        }
+        // Converge the remembered live order with the current snapshot (drop closed, append
+        // new) as a side-effect — never during body eval. `initial: true` seeds on first
+        // appearance so the very first render's reconcile (empty → current) is a visual no-op.
+        .onChange(of: liveOrderIDs, initial: true) { _, current in
+            stripOrderStore.sync(current: current)
         }
         // No .frame(maxWidth: .infinity) here — lets NSHostingView.fittingSize reflect
         // the natural content width so AppDelegate can read it for panel sizing.

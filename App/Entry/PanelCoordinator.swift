@@ -13,6 +13,7 @@ final class PanelCoordinator: NSObject {
     private let messagingStore: MessagingAppStore
     private let launchFavoriteStore: LaunchFavoriteStore
     private let badgeStore: BadgeStore
+    private let stripOrderStore: StripOrderStore
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
@@ -29,12 +30,13 @@ final class PanelCoordinator: NSObject {
     private var isHiddenForFullscreen = false
     private var fullscreenReconcileTimer: Timer?
 
-    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore) {
+    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore, stripOrderStore: StripOrderStore) {
         self.runtime = runtime
         self.drawerStore = drawerStore
         self.messagingStore = messagingStore
         self.launchFavoriteStore = launchFavoriteStore
         self.badgeStore = badgeStore
+        self.stripOrderStore = stripOrderStore
         super.init()
     }
 
@@ -170,7 +172,7 @@ final class PanelCoordinator: NSObject {
         panel.backgroundColor = .clear
         panel.hasShadow = true
 
-        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore))
+        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore).environmentObject(stripOrderStore))
         hosting.autoresizingMask = [.width, .height]
         // Prevent NSHostingView from adding its own opaque background over the blur
         hosting.wantsLayer = true
