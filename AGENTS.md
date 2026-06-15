@@ -122,6 +122,7 @@ Finder P0 sample:
 - Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
 - Current identity now also uses the existing taskbar snapshot as a long-term seat map, so long-idle windows can be recognized after the short 6-second memory expires.
 - The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
+- Swift 6 concurrency compliance: all major `ObservableObject` stores (`DrawerStore`, `LaunchFavoriteStore`, `MessagingAppStore`) and pipeline/state classes (`IntentPipeline`, `DockState`, `ObservationPipeline`, `AppWindowObserver`) are `@MainActor`-isolated. `DockBadgeReader` is a pure `Sendable` struct. AX C callbacks use `[weak obs]` + `MainActor.assumeIsolated`. `@unchecked Sendable` has been removed. (2026-06-14, `6233111`)
 
 ## Collaboration Rule
 

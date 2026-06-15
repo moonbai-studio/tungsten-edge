@@ -16,6 +16,7 @@ v2 of the macOS window-oriented bottom taskbar experiment.
 - Strip actions now include activate / hide / minimize / close, with user-facing feedback.
 - Main strip labels now toggle: click an inactive/minimized concrete window to activate it, and click the active concrete window to minimize it.
 - Strip actions are interruptible (2026-06-13): no pending spinner, no click lock for show/hide-class actions; an optimistic per-window state overlay keeps rapid re-clicks strictly alternating. Only close / quit stay locked until confirmed.
+- Technical quality fixes landed (2026-06-14, `6233111`): all major ObservableObject stores and pipeline classes are `@MainActor`; `DockBadgeReader` is a pure `Sendable` struct; `AppWindowObserver` AX callback uses `[weak obs]` + `MainActor.assumeIsolated`; all 6 timers have `.tolerance`; `hoverPollTimer` skipped on single-display machines; `AppIconResolver` uses `NSCache`; `NSVisualEffectView.state` is `.followsWindowActiveState`.
 - Placement mainline is:
   - minimize / hide / temporary disappearance keep the slot
   - only true close releases the slot
