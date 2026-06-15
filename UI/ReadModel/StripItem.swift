@@ -143,4 +143,10 @@ enum StripOrdering {
         guard order.contains(oldID), !order.contains(newID) else { return order }
         return order.map { $0 == oldID ? newID : $0 }
     }
+
+    /// 落盘子集：只保留代表真实窗口的 chip id（`cgw-*`，内嵌开机周期内稳定的 cgWindowID）。
+    /// app-\* 占位是临时键，只活在内存，不写盘——防它沉淀成应用级永久布局（见 03 设计决策）。
+    static func persistableLiveOrder(_ order: [String]) -> [String] {
+        order.filter { $0.hasPrefix("cgw-") }
+    }
 }

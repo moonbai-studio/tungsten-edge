@@ -1569,6 +1569,12 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(StripOrdering.reordering(["A", "B"], move: "A", relativeTo: "Z", after: false), ["A", "B"])
     }
 
+    /// 落盘只留真实窗口键（cgw-*），app-* 临时键不写盘，且保持相对顺序。
+    func testPersistableLiveOrderKeepsOnlyWindowChips() {
+        let order = ["cgw-1", "app-com.x", "cgw-2", "app-com.y"]
+        XCTAssertEqual(StripOrdering.persistableLiveOrder(order), ["cgw-1", "cgw-2"])
+    }
+
     /// app-* 升级成真窗口：新 id 顶替旧 id，继承原位置（rank）。
     func testSubstitutingInheritsRankOnUpgrade() {
         let result = StripOrdering.substituting(["C", "app-com.x", "B"], oldID: "app-com.x", newID: "cgw-42")
