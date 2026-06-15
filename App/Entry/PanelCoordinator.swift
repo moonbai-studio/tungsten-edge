@@ -171,6 +171,7 @@ final class PanelCoordinator: NSObject {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
+        panel.hidesOnDeactivate = false
 
         let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore).environmentObject(stripOrderStore))
         hosting.autoresizingMask = [.width, .height]
@@ -196,6 +197,7 @@ final class PanelCoordinator: NSObject {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
+        panel.hidesOnDeactivate = false
         let hosting = NSHostingView(rootView:
             DrawerCapsuleButton { [weak self] in self?.toggleDrawer() }
                 .environmentObject(runtime)

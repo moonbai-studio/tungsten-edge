@@ -39,7 +39,8 @@ struct DrawerView: View {
     }
 
     private var notRunningFavoriteIDs: [String] {
-        launchFavoriteStore.bundleIDs.filter { !snapshotBundleIDs.contains($0) }
+        // Exclude apps already shown via notRunningStashedIDs (收纳+固定共存时去重).
+        launchFavoriteStore.bundleIDs.filter { !snapshotBundleIDs.contains($0) && !drawerStore.contains($0) }
     }
 
     private var snapshotBundleIDs: Set<String> {
@@ -83,11 +84,14 @@ struct DrawerView: View {
                                          scale: 0.7,
                                          removeMenuLabel: "移回任务栏",
                                          onRemove: { drawerStore.remove(bundleID) },
-                                         pinMenuLabel: "固定到启动台",
+                                         pinMenuLabel: launchFavoriteStore.contains(bundleID) ? "取消固定" : "固定到启动台",
                                          onPin: {
-                                             launchFavoriteStore.add(bundleID)
-                                             drawerStore.remove(bundleID)
-                                             if messagingStore.contains(bundleID) { messagingStore.unmark(bundleID) }
+                                             if launchFavoriteStore.contains(bundleID) {
+                                                 launchFavoriteStore.remove(bundleID)
+                                             } else {
+                                                 launchFavoriteStore.add(bundleID)
+                                                 if messagingStore.contains(bundleID) { messagingStore.unmark(bundleID) }
+                                             }
                                          })
                         }
                     }

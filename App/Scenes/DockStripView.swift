@@ -430,9 +430,9 @@ struct ChipView: View {
             } else {
                 Button("固定到启动台") {
                     launchFavoriteStore.add(bid)
-                    drawerStore.remove(bid)
-                    // unmark also records the auto-registration opt-out, so the
-                    // whitelist won't silently pull the app back to the pinned zone.
+                    // 不从 drawerStore 移除：收纳和固定可以共存。
+                    // 抽屉里的 app 固定后仍留在抽屉（关闭后落待启动区）；
+                    // 主任务条上的 app 本就不在抽屉，remove 是 no-op。
                     if messagingStore.contains(bid) { messagingStore.unmark(bid) }
                 }
             }
