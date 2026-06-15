@@ -17,6 +17,7 @@ struct DrawerView: View {
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var launchFavoriteStore: LaunchFavoriteStore
+    @EnvironmentObject var messagingStore: MessagingAppStore
 
     private var drawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -81,7 +82,13 @@ struct DrawerView: View {
                                          isHidden: isHiddenInSnapshot(bundleID: bundleID),
                                          scale: 0.7,
                                          removeMenuLabel: "移回任务栏",
-                                         onRemove: { drawerStore.remove(bundleID) })
+                                         onRemove: { drawerStore.remove(bundleID) },
+                                         pinMenuLabel: "固定到启动台",
+                                         onPin: {
+                                             launchFavoriteStore.add(bundleID)
+                                             drawerStore.remove(bundleID)
+                                             if messagingStore.contains(bundleID) { messagingStore.unmark(bundleID) }
+                                         })
                         }
                     }
                 }

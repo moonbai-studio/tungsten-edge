@@ -22,6 +22,10 @@ struct LauncherChip: View {
     /// chip's context menu only (沉淀原则 2026-06-11, no menu on launch buttons).
     var removeMenuLabel: String? = nil
     var onRemove: () -> Void = {}
+    /// When set, shows a "固定到启动台" menu item (injected by DrawerView for
+    /// app-* running chips that lack a full membershipMenuItems context menu).
+    var pinMenuLabel: String? = nil
+    var onPin: () -> Void = {}
     /// When set, replaces the default tap behavior (drawer show/hide toggle). Used by
     /// the strip's messaging app chip, whose tap must always reopen the main window.
     var onTap: (() -> Void)? = nil
@@ -79,6 +83,9 @@ struct LauncherChip: View {
         }
         if let removeMenuLabel {
             Button(removeMenuLabel) { onRemove() }
+        }
+        if let pinMenuLabel {
+            Button(pinMenuLabel) { onPin() }
         }
     }
 
