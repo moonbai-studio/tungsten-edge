@@ -102,3 +102,45 @@ struct StripItem: Hashable {
         return "\(record.pid)|\(bundle)|\(x):\(y):\(w):\(h)"
     }
 }
+
+/// 任务条拖动重排 · A 路线（会话内防打乱）的纯排序原语。
+///
+/// 设计见 `03 设计决策#任务条拖动重排`。本层只对一串 chip id 做无状态变换：
+/// 不接 UI、不落盘、不碰窗口身份模型。有状态的排序层（`StripOrderStore`）与拖动手势
+/// 在后续切片接入，复用这里的原语。
+///
+/// 关键前提：**座位生命周期在上游 `DockSnapshot` 已保证**——最小化 / 隐藏 / CG 临时消失
+/// 的窗口都保留在 snapshot 里（座位不释放），只有「真关闭」才从 snapshot 消失。所以本层
+/// 「当前列表里不在」即等于「座位真结束」，无需也不应在此重新判断窗口在不在。
+enum StripOrdering {
+    /// 把「记住的显示顺序」和「当前还活着的 chip」对账，产出新的显示顺序。
+    ///
+    /// - 已记住且仍在 → 保持记住的相对顺序（**防打乱核心**：邻居增删不动既有排好的卡）。
+    /// - 新出现（当前有、没记过）→ 追加到末尾，按 `current` 的自然顺序。
+    /// - 记住的但当前已不在 → 丢弃（座位真结束，见类型注释）。
+    static func reconcile(remembered: [String], current: [String]) -> [String] {
+        let currentSet = Set(current)
+        let rememberedSet = Set(remembered)
+        let survivors = remembered.filter { currentSet.contains($0) }
+        let newcomers = current.filter { !rememberedSet.contains($0) }
+        return survivors + newcomers
+    }
+
+    /// 应用一次拖动：把 `id` 移到目标下标。`targetIndex` 以「移除 `id` 之后」的数组下标为准，
+    /// 越界自动夹紧。`id` 不在序列中则原样返回。
+    static func move(_ order: [String], id: String, to targetIndex: Int) -> [String] {
+        guard let from = order.firstIndex(of: id) else { return order }
+        var result = order
+        result.remove(at: from)
+        let clamped = max(0, min(targetIndex, result.count))
+        result.insert(id, at: clamped)
+        return result
+    }
+
+    /// 用 `newID` 顶替 `oldID`，**继承其位置（rank）**。用于：app-\* 占位升级成真窗口、
+    /// 标签组 anchor 因成员关闭而迁移。`oldID` 不在序列、或 `newID` 已在序列中（防重复）→ 原样返回。
+    static func substituting(_ order: [String], oldID: String, newID: String) -> [String] {
+        guard order.contains(oldID), !order.contains(newID) else { return order }
+        return order.map { $0 == oldID ? newID : $0 }
+    }
+}

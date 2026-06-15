@@ -1497,4 +1497,85 @@ final class FinderP0Tests: XCTestCase {
             executablePath: executablePath
         )
     }
+
+    // MARK: - 任务条拖动重排 · A 路线排序原语（slice 1，纯逻辑）
+
+    /// 防打乱核心：手动排成 C A B 后，快照刷新（顺序不变的另一次对账）仍是 C A B。
+    func testReconcileKeepsManualOrderOnUnchangedRefresh() {
+        let manual = ["C", "A", "B"]
+        let result = StripOrdering.reconcile(remembered: manual, current: ["A", "B", "C"])
+        XCTAssertEqual(result, ["C", "A", "B"])
+    }
+
+    /// 新窗口进末尾：C A B 状态下新开 D → C A B D（按 current 自然序追加）。
+    func testReconcileAppendsNewcomersAtTail() {
+        let result = StripOrdering.reconcile(remembered: ["C", "A", "B"], current: ["A", "B", "C", "D"])
+        XCTAssertEqual(result, ["C", "A", "B", "D"])
+    }
+
+    /// 多个新窗口同时出现：按 current 里的相对顺序追加到末尾。
+    func testReconcileAppendsMultipleNewcomersInCurrentOrder() {
+        let result = StripOrdering.reconcile(remembered: ["B", "A"], current: ["A", "B", "D", "C"])
+        XCTAssertEqual(result, ["B", "A", "D", "C"])
+    }
+
+    /// 关闭（座位真结束 → 从 snapshot 消失）：C A B D 中 A 关闭 → C B D，其余顺序不动。
+    func testReconcileDropsClosedAndPreservesRest() {
+        let result = StripOrdering.reconcile(remembered: ["C", "A", "B", "D"], current: ["B", "C", "D"])
+        XCTAssertEqual(result, ["C", "B", "D"])
+    }
+
+    /// 打散后不自动聚回：同 app 两窗（A1 A2）被手动拆到两端，刷新后仍保持打散，不重新相邻。
+    func testReconcileDoesNotRegroupScatteredSameAppChips() {
+        let scattered = ["A1", "B", "A2"]
+        let result = StripOrdering.reconcile(remembered: scattered, current: ["A1", "A2", "B"])
+        XCTAssertEqual(result, ["A1", "B", "A2"])
+    }
+
+    /// 关闭 + 新开复合：旧序里掉一个、又来一个新的，存活项保序、新项进末尾。
+    func testReconcileHandlesSimultaneousCloseAndOpen() {
+        let result = StripOrdering.reconcile(remembered: ["C", "A", "B"], current: ["C", "B", "E"])
+        XCTAssertEqual(result, ["C", "B", "E"])
+    }
+
+    /// 空记忆（首次）→ 直接采用 current 的自然顺序。
+    func testReconcileWithEmptyMemoryAdoptsCurrentOrder() {
+        let result = StripOrdering.reconcile(remembered: [], current: ["A", "B", "C"])
+        XCTAssertEqual(result, ["A", "B", "C"])
+    }
+
+    /// 拖动：把末尾的 C 移到最前 → C A B。
+    func testMoveReordersToFront() {
+        let result = StripOrdering.move(["A", "B", "C"], id: "C", to: 0)
+        XCTAssertEqual(result, ["C", "A", "B"])
+    }
+
+    /// 拖动：中间项移到末尾（targetIndex 以移除后下标为准）。
+    func testMoveReordersToTail() {
+        let result = StripOrdering.move(["A", "B", "C"], id: "A", to: 2)
+        XCTAssertEqual(result, ["B", "C", "A"])
+    }
+
+    /// 拖动越界自动夹紧，不崩。
+    func testMoveClampsOutOfRangeTarget() {
+        XCTAssertEqual(StripOrdering.move(["A", "B", "C"], id: "B", to: 99), ["A", "C", "B"])
+        XCTAssertEqual(StripOrdering.move(["A", "B", "C"], id: "B", to: -5), ["B", "A", "C"])
+    }
+
+    /// 拖动不存在的 id → 原样返回。
+    func testMoveUnknownIDIsNoOp() {
+        XCTAssertEqual(StripOrdering.move(["A", "B"], id: "Z", to: 0), ["A", "B"])
+    }
+
+    /// app-* 升级成真窗口：新 id 顶替旧 id，继承原位置（rank）。
+    func testSubstitutingInheritsRankOnUpgrade() {
+        let result = StripOrdering.substituting(["C", "app-com.x", "B"], oldID: "app-com.x", newID: "cgw-42")
+        XCTAssertEqual(result, ["C", "cgw-42", "B"])
+    }
+
+    /// 顶替的防御：旧 id 不在序列、或新 id 已在序列（防重复）→ 原样返回。
+    func testSubstitutingIsGuardedAgainstMissingOrDuplicate() {
+        XCTAssertEqual(StripOrdering.substituting(["A", "B"], oldID: "Z", newID: "cgw-42"), ["A", "B"])
+        XCTAssertEqual(StripOrdering.substituting(["A", "B"], oldID: "A", newID: "B"), ["A", "B"])
+    }
 }
