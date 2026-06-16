@@ -135,6 +135,11 @@ final class AppTracker: ObservableObject {
     private func seedRunningApps() {
         for app in NSWorkspace.shared.runningApplications {
             guard isRegularNonSelf(app) else { continue }
+            // Finder always gets a slot so its chip persists even when all windows are closed.
+            if FinderWindowRules.isFinder(bundleIdentifier: app.bundleIdentifier) {
+                addApp(app, enumerateImmediately: true)
+                continue
+            }
             let windows = reader.windows(forPID: app.processIdentifier)
             let hasEligible = windows.contains {
                 isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
@@ -199,6 +204,11 @@ final class AppTracker: ObservableObject {
 
     private func handleAppLaunched(_ app: NSRunningApplication) {
         guard isRegularNonSelf(app) else { return }
+        if FinderWindowRules.isFinder(bundleIdentifier: app.bundleIdentifier) {
+            addApp(app, enumerateImmediately: true)
+            rebuildSnapshot()
+            return
+        }
         scheduleRetryAdmission(app: app, delays: [0.2, 0.5, 1.0, 2.0])
     }
 

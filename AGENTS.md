@@ -44,8 +44,9 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 
 ### Finder
 
-- Finder is **not** an app-level fallback target for this phase.
-- Finder process existence does not mean there is a Finder window.
+- Finder always has a persistent slot in the taskbar: `seedRunningApps` adds Finder unconditionally so its chip survives even when all windows are closed.
+- When all Finder windows are closed the slot shows as an `app-com.apple.finder` chip. Clicking it opens the home directory in a new Finder window (mirrors system Dock behavior). This is intentional app-level persistence, not an AX fallback.
+- Finder process existence alone does **not** mean there is a Finder window.
 - Concrete Finder folder windows should remain window-level items when titles / frames are available.
 - Do not fall back to activating the whole Finder app when a specific Finder window target cannot be captured; that can bring forward the wrong Finder window or multiple windows.
 - Finder P0 implementation details are documented in `Docs/17-finder-p0-implementation.md`.

@@ -498,6 +498,13 @@ struct PlatformActionExecutor {
 
         switch request.kind {
         case .activateWindow:
+            // Finder persistent chip (no open windows): open home directory to create a new Finder
+            // window, matching system Dock behavior when clicking Finder with no windows open.
+            if record.id.rawValue.hasPrefix("app-"),
+               FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier) {
+                NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser)
+                return true
+            }
             return windowExecutor.activateAppWithWindowRecovery(pid: record.pid, runningApp: runningApp)
         case .minimizeWindow, .hideApp:
             return runningApp?.hide() ?? false
