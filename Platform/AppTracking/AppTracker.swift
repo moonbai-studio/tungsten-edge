@@ -205,6 +205,16 @@ final class AppTracker: ObservableObject {
     private func handleAppLaunched(_ app: NSRunningApplication) {
         guard isRegularNonSelf(app) else { return }
         if FinderWindowRules.isFinder(bundleIdentifier: app.bundleIdentifier) {
+            // Remove any stale Finder entry left over from a quit/relaunch cycle,
+            // then add the fresh entry with the new pid.
+            if let stalePID = appOrder.first(where: {
+                FinderWindowRules.isFinder(bundleIdentifier: apps[$0]?.bundleIdentifier)
+            }), stalePID != app.processIdentifier {
+                observers[stalePID]?.stop()
+                observers.removeValue(forKey: stalePID)
+                apps.removeValue(forKey: stalePID)
+                appOrder.removeAll { $0 == stalePID }
+            }
             addApp(app, enumerateImmediately: true)
             rebuildSnapshot()
             return
@@ -225,6 +235,17 @@ final class AppTracker: ObservableObject {
     private func handleAppTerminated(pid: pid_t) {
         observers[pid]?.stop()
         observers.removeValue(forKey: pid)
+
+        // Finder relaunches immediately via launchd. Keep the entry (no windows) so the chip
+        // stays visible during the gap. handleAppLaunched will replace this stale entry with
+        // the new pid when Finder comes back up.
+        if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier) {
+            apps[pid]?.windowsByID = [:]
+            apps[pid]?.windowOrder = []
+            rebuildSnapshot()
+            return
+        }
+
         apps.removeValue(forKey: pid)
         appOrder.removeAll { $0 == pid }
         rebuildSnapshot()
@@ -496,6 +517,9 @@ final class AppTracker: ObservableObject {
         var deadPIDs: [pid_t] = []
         for pid in appOrder {
             if NSRunningApplication(processIdentifier: pid) == nil {
+                // Finder's entry is intentionally kept alive across quit/relaunch cycles
+                // (handleAppTerminated clears windows but preserves the slot).
+                if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier) { continue }
                 deadPIDs.append(pid)
                 logger.info("reconcile: pid=\(pid) no longer exists, removing stale entry")
             }

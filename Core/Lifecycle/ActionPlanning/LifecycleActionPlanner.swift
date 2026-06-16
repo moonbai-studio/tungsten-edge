@@ -65,6 +65,10 @@ final class LifecycleActionPlanner {
             let appIsFrontmost = optimistic?.isAppFrontmost
                 ?? (NSWorkspace.shared.frontmostApplication?.processIdentifier == record.pid)
             if record.id.rawValue.hasPrefix("app-") {
+                // Finder persistent chip: never hide — always open/focus to match system Dock behavior.
+                if record.bundleIdentifier == "com.apple.finder" {
+                    return PlatformActionRequest(kind: .activateWindow, windowID: id)
+                }
                 return PlatformActionRequest(kind: appIsFrontmost ? .hideApp : .activateWindow, windowID: id)
             }
             if status == .active && appIsFrontmost {
