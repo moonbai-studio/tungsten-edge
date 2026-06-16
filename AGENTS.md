@@ -2,7 +2,7 @@
 
 > **📍 New agent: read this first.**
 > The source of truth for current product state, roadmap, and design decisions is the owner's Obsidian vault — **not** this file or `Docs/`:
-> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — key notes: `02 当前进度`, `03 设计决策`, `05 待办与想法/Backlog`.
+> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — entry note: `00 macos-dock-cc-v2 总览.md`. Follow its own links for what's current; don't hardcode a sub-note list here, it drifts as the vault grows.
 > This `AGENTS.md` and most of `Docs/` are scoped to the **foundation engine** (window identity / placement / taskbar trust) and **dated historical findings**. They do **not** track the UX feature layer (message chips, badges, drawer, native-tab merge…), which lives only in Obsidian. Treat dated `Docs/*` as historical records, not live status — except `Docs/05-known-platform-quirks.md`, which is kept current as repo-local engineering reference.
 
 ## Purpose
@@ -21,8 +21,9 @@ Current checkpoints:
 - Finder P0 window-level identity foundation was accepted on 2026-05-05.
 - Taskbar trust hardening moved to inventory-first discovery on 2026-05-08.
 - Long-gap duplicate card root cause was captured and fixed on 2026-05-13.
+- Real desktop validation (normal App windows admitted, fake/system surfaces rejected, Finder/Feishu exceptions stable, no duplicate cards after long idle/sleep/overnight gaps) is complete as of 2026-06-16.
 
-Next-thread focus should start from the post-Finder-P0, post-inventory-first, and post-long-gap-duplicate-fix state. Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery. The next most important task is continued real desktop validation: confirm the strip admits normal user App windows, rejects fake/system/helper surfaces, keeps Finder / Feishu exceptions stable, and does not recreate duplicate cards after long idle/sleep/overnight gaps.
+The foundation-engine phase above is done; current work is in the UX feature layer tracked in Obsidian (see top of file). Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery — these were deliberately replaced by the inventory-first model in Taskbar Trust below and should not be reintroduced.
 
 ## Product Rules
 
@@ -46,6 +47,10 @@ Do not reintroduce held-slot TTL or "expire then return to tail" as the default 
 
 - Finder always has a persistent slot in the taskbar: `seedRunningApps` adds Finder unconditionally so its chip survives even when all windows are closed.
 - When all Finder windows are closed the slot shows as an `app-com.apple.finder` chip. Clicking it opens the home directory in a new Finder window (mirrors system Dock behavior). This is intentional app-level persistence, not an AX fallback.
+- Do not plan a `hideApp`/minimize action for the Finder persistent (`app-*`) chip on toggle — always plan activate/open, even when Finder is still frontmost right after its last window closes.
+- Do not let the dead-process reconcile sweep remove Finder's app entry — `handleAppTerminated` clears its windows but keeps the slot, and reconcile must skip Finder when sweeping dead pids.
+
+Both fixed 2026-06-16; full rationale documented in Obsidian `03 设计决策` ("Finder 持久图标").
 - Finder process existence alone does **not** mean there is a Finder window.
 - Concrete Finder folder windows should remain window-level items when titles / frames are available.
 - Do not fall back to activating the whole Finder app when a specific Finder window target cannot be captured; that can bring forward the wrong Finder window or multiple windows.
@@ -118,23 +123,21 @@ Finder P0 sample:
 - The app already renders a minimal bottom task strip.
 - Strip items can activate / hide / minimize / close.
 - Strip item labels can toggle: inactive/minimized concrete windows activate, active concrete windows minimize.
-- Strip actions are interruptible (2026-06-13): show/hide-class actions (toggle / activate / minimize / hide) never lock clicks. At tap time the runtime writes an optimistic per-window state (`OptimisticWindowState` overlay in `AppRuntime`); chip rendering and the next toggle plan read the overlay first, so rapid re-clicks strictly alternate (minimize → restore → …) without waiting for the snapshot round-trip. The overlay clears when the real snapshot confirms the prediction, or silently rolls back after a 4s timeout. The pending spinner UI was removed entirely. Only close / quit (windows that disappear) still lock until confirmed, guarded inside `AppRuntime.trigger`, not in the UI.
+- Strip actions are interruptible: show/hide-class actions (toggle / activate / minimize / hide) never lock clicks; only close/quit locks until confirmed. Implementation detail (optimistic overlay, timeout/rollback) is UX-layer and tracked in Obsidian `02 当前进度`, not duplicated here.
 - The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
 - Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
 - Current identity now also uses the existing taskbar snapshot as a long-term seat map, so long-idle windows can be recognized after the short 6-second memory expires.
 - The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
-- Swift 6 concurrency compliance: all major `ObservableObject` stores (`DrawerStore`, `LaunchFavoriteStore`, `MessagingAppStore`) and pipeline/state classes (`IntentPipeline`, `DockState`, `ObservationPipeline`, `AppWindowObserver`) are `@MainActor`-isolated. `DockBadgeReader` is a pure `Sendable` struct. AX C callbacks use `[weak obs]` + `MainActor.assumeIsolated`. `@unchecked Sendable` has been removed. (2026-06-14, `6233111`)
+- Swift 6 concurrency compliance landed 2026-06-14 (`6233111`): AX C callbacks use `[weak obs]` + `MainActor.assumeIsolated`, `@unchecked Sendable` is gone from the observation path. Store-level `@MainActor` isolation (Drawer/Launch/Messaging stores) is UX-layer hygiene tracked in Obsidian `02 当前进度`, not detailed here.
 
 ## Collaboration Rule
 
 - Every status update or result summary must start with a plain-language explanation first.
 - In that plain-language explanation, say what changed, what it means for the product, and what happens next.
-- When reporting progress, plans, risks, or results to the project owner, always explain it once in plain non-technical language.
-- Assume the project owner is non-technical unless they explicitly ask for the engineering version.
+- When reporting progress, plans, risks, or results to the project owner, always explain it once in plain language before (or alongside) the engineering detail.
 - Do not only describe architecture, APIs, state machines, or pipelines; also explain the user-visible meaning, current impact, and next step in human terms.
 
 ## Important Non-Goals For This Phase
 
-- No drawer strategy is final yet.
 - Feishu real frontmost AX samples are useful but not blocking.
 - Finder P0 acceptance does not mean the full taskbar is production-ready.

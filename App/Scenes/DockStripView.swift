@@ -411,11 +411,12 @@ struct ChipView: View {
         }
     }
 
-    /// Drawer + launch-favorite + messaging membership toggles, mutually exclusive
-    /// (2026-06-12 拍板「四者互斥」): choosing one membership clears the others.
-    /// Exception kept from the earlier bug fix: the messaging flag is permanent across
-    /// drawer moves — moving to the drawer only changes where the app shows (drawer
-    /// wins display) and must NOT clear the flag.
+    /// Drawer + launch-favorite toggles are independent since 2026-06-16 (reversed
+    /// from the original 「四者互斥」), except 收进抽屉 below still clears the favorite
+    /// flag — coexistence only survives pin-then-stash order, not stash-then-pin.
+    /// Messaging stays mutually exclusive with both. The messaging flag itself is
+    /// permanent across drawer moves — moving to the drawer only changes where the
+    /// app shows (drawer wins display) and must NOT clear the flag.
     @ViewBuilder
     private var membershipMenuItems: some View {
         if let bid = item.bundleIdentifier {
