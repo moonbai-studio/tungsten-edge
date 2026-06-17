@@ -20,6 +20,11 @@ struct WindowEntry {
     var bounds: CGRect?
     var isMinimized: Bool
     var isFocused: Bool
+    /// 这个窗口从 AX 枚举里消失、却只有 CG 还留着的「起始时刻」(nil = 当前 AX 能看到)。
+    /// 真·最小化 / 跨桌面(Space) / 被遮挡的窗口都【仍在 AX 里】，所以它们永远是 nil；
+    /// 只有 AX 已经放弃暴露的「幽灵标签座位」(如 Ghostty 只把当前可见标签当 AX 窗口)
+    /// 才会被打上时间戳。持续缺席超过 `absentReapGrace` 即回收，避免空壳永久赖在任务条上。
+    var absentSince: Date? = nil
 }
 
 @MainActor
@@ -35,6 +40,10 @@ final class AppTracker: ObservableObject {
     private var isScanningCandidates = false
     private var destroyedCGIDs: [CGWindowID: Date] = [:]
     private static let tombstoneTTL: TimeInterval = 3.0
+    /// 一个「CG 还在、AX 已消失」的座位，持续缺席多久即回收。留一点 grace 是为了扛住
+    /// AX 偶发漏读(不因一次抖动误删真窗口)。前台 app 由 0.5s 快轮询驱动 → 切标签后约 1.5s
+    /// 内清掉空壳；非前台 app 由 5s 慢对账兜底。1.5s 既够快又给足漏读容错。
+    private static let absentReapGrace: TimeInterval = 1.5
 
     /// 上次重建快照时的 CG on-screen 集合。前台轮询据此发现「切标签」——AX 可能完全不报，
     /// 但 on-screen 集合会即时变化，变了就重建（标签组可见标签随之即时更新）。
@@ -484,18 +493,41 @@ final class AppTracker: ObservableObject {
             isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
         }
 
+        let now = Date()
         var changed = false
         for snap in eligible {
             guard let cgID = snap.cgWindowID, var entry = app.windowsByID[cgID] else { continue }
             let titleChanged = snap.title.map { !$0.isEmpty && $0 != entry.title } ?? false
             let stateChanged = snap.isMinimized != entry.isMinimized || snap.isFocusedWindow != entry.isFocused
-            if titleChanged || stateChanged {
+            let wasAbsent = entry.absentSince != nil   // 标签切回前台 → 清缺席时间戳
+            if titleChanged || stateChanged || wasAbsent {
                 if let t = snap.title, !t.isEmpty { entry.title = t }
                 entry.isMinimized = snap.isMinimized
                 entry.isFocused = snap.isFocusedWindow
+                entry.absentSince = nil
                 app.windowsByID[cgID] = entry
                 apps[pid] = app
-                changed = true
+                if titleChanged || stateChanged { changed = true }
+            }
+        }
+
+        // 幽灵标签即时回收：前台多窗口 app 里，AX 已彻底看不到的旧标签(切到后台)就是幽灵——
+        // 真窗口/最小化/跨桌面都留在 AX 里，不会到这里。首次缺席打时间戳并暂当最小化，持续缺席
+        // 超过 grace 即回收。0.5s 快轮询 + 1.5s grace 让切标签后的残留卡片很快消失，又不因一次漏读误删。
+        let axVisibleIDs = Set(eligible.compactMap(\.cgWindowID))
+        for cgID in Set(app.windowOrder).subtracting(axVisibleIDs) {
+            if let since = app.windowsByID[cgID]?.absentSince {
+                if now.timeIntervalSince(since) >= Self.absentReapGrace {
+                    app.windowsByID.removeValue(forKey: cgID)
+                    app.windowOrder.removeAll { $0 == cgID }
+                    apps[pid] = app
+                    changed = true
+                }
+            } else {
+                app.windowsByID[cgID]?.absentSince = now
+                app.windowsByID[cgID]?.isMinimized = true
+                app.windowsByID[cgID]?.isFocused = false
+                apps[pid] = app
             }
         }
 
@@ -508,6 +540,7 @@ final class AppTracker: ObservableObject {
     private func reconcile() {
         guard AXIsProcessTrusted() else { return }
         purgeStaleTombstones()
+        let now = Date()
         var changed = false
 
         // Remove entries for processes that no longer exist. This handles multi-process apps where
@@ -547,9 +580,21 @@ final class AppTracker: ObservableObject {
             // Remove or CG-veto windows that AX no longer enumerates
             for cgID in trackedIDs.subtracting(liveIDs) {
                 if cgIDs.contains(cgID) && !isTombstoned(cgID) {
-                    // Still in CG → minimized; AX just can't enumerate it
-                    app.windowsByID[cgID]?.isMinimized = true
-                    app.windowsByID[cgID]?.isFocused = false
+                    // Still in CG but gone from AX. 真·最小化窗口仍留在 AX 里，不会走到这里；
+                    // 走到这里的只有两种：① AX 偶发漏读(短暂)，② AX 已彻底放弃暴露的幽灵标签
+                    // 座位(Ghostty 只暴露当前可见标签)。首次缺席打时间戳、给一小段 grace 扛住①，
+                    // 持续缺席超过 grace 即判定为②回收，否则空壳会被「CG 还在→当最小化」永久留住(本次 bug 根因)。
+                    if let since = app.windowsByID[cgID]?.absentSince,
+                       now.timeIntervalSince(since) >= Self.absentReapGrace {
+                        app.windowsByID.removeValue(forKey: cgID)
+                        app.windowOrder.removeAll { $0 == cgID }
+                    } else {
+                        if app.windowsByID[cgID]?.absentSince == nil {
+                            app.windowsByID[cgID]?.absentSince = now
+                        }
+                        app.windowsByID[cgID]?.isMinimized = true
+                        app.windowsByID[cgID]?.isFocused = false
+                    }
                     apps[pid] = app
                     changed = true
                 } else {
@@ -582,13 +627,16 @@ final class AppTracker: ObservableObject {
                 guard let cgID = snap.cgWindowID, var entry = app.windowsByID[cgID] else { continue }
                 let titleChanged = snap.title.map { !$0.isEmpty && $0 != entry.title } ?? false
                 let stateChanged = snap.isMinimized != entry.isMinimized || snap.isFocusedWindow != entry.isFocused
-                if titleChanged || stateChanged {
+                // AX 又看到它了 → 清掉缺席时间戳(扛住偶发漏读：曾经漏掉一两次不该累积成回收)。
+                let wasAbsent = entry.absentSince != nil
+                if titleChanged || stateChanged || wasAbsent {
                     if let t = snap.title, !t.isEmpty { entry.title = t }
                     entry.isMinimized = snap.isMinimized
                     entry.isFocused = snap.isFocusedWindow
+                    entry.absentSince = nil
                     app.windowsByID[cgID] = entry
                     apps[pid] = app
-                    changed = true
+                    if titleChanged || stateChanged { changed = true }
                 }
             }
         }

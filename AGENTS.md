@@ -87,6 +87,13 @@ Both fixed 2026-06-16; full rationale documented in Obsidian `03 设计决策` (
   - `closedPending` records are never revived
 - Chrome, Illustrator, WeChat, Finder, Terminal, Codex, Photoshop, and Wanlian SD-WAN are validation samples only, not app-specific rule targets.
 
+### Ghost Tab Seats (AX-absent window reaping)
+
+- Some apps stop exposing background tabs as AX windows once tabs collapse into one window. Observed 2026-06-17: Ghostty exposes only the **active** tab as an AX window, and that window's `CGWindowID` changes as you switch tabs. The abandoned tabs vanish from AX but their real NSWindows linger off-screen in the full CG list — so the "still in CG → keep as minimized" veto retained them forever as phantom chips (one Ghostty window showed 5–6 chips).
+- Reliable "is it really gone" signal is **AX-absence, not CG**: genuinely minimized / hidden / cross-Space / occluded windows all STAY in AX enumeration (minimized ones report `isMinimized=true`). Only permanently-gone seats vanish from AX entirely. Verified 2026-06-17: a window dragged to another Space stays in AX → never reaped.
+- Rule: a tracked window absent from AX but still in CG is reaped after a short grace (`AppTracker.absentReapGrace`, ~1.5s), timestamped via `WindowEntry.absentSince` and reset the instant AX sees it again. The 0.5s frontmost poll reaps fast for the app in use; the 5s reconcile is the backstop.
+- This is **not** the forbidden held-slot TTL (see Placement): that warned against expiring *real* minimized/hidden/CG-disappeared windows. This only reaps seats AX has permanently dropped — real windows never reach it because they stay in AX. Do not widen it to reap on CG-absence, and do not expire AX-present windows.
+
 ## Validation Entrypoints
 
 ### Identity / real samples
