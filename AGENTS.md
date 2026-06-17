@@ -139,10 +139,11 @@ Finder P0 sample:
 
 ## Collaboration Rule
 
-- Every status update or result summary must start with a plain-language explanation first.
-- In that plain-language explanation, say what changed, what it means for the product, and what happens next.
-- When reporting progress, plans, risks, or results to the project owner, always explain it once in plain language before (or alongside) the engineering detail.
-- Do not only describe architecture, APIs, state machines, or pipelines; also explain the user-visible meaning, current impact, and next step in human terms.
+The project owner directs the product but does not read code, and does not read English comfortably — reply in Chinese.
+
+- Write every status update, plan, and result so it's fully understandable with no engineering background: lead with what changed, what it means for how the app behaves, and what's next, in everyday language.
+- Technical detail (file names, APIs, mechanisms) is a supplement that comes after the plain explanation, never the only way to follow the message. Don't make the owner decode jargon to understand what you did or why.
+- When a choice needs the owner's input, frame it as product behavior and trade-offs they can weigh, not as implementation details.
 
 ## Important Non-Goals For This Phase
 
