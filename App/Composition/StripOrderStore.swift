@@ -31,14 +31,16 @@ final class StripOrderStore: ObservableObject {
     }
 
     /// 显示顺序 = 记住的顺序与当前活着的 chip id 对账后的结果（不改自身状态，可在 body 里读）。
-    func reconciled(current: [String]) -> [String] {
-        StripOrdering.reconcile(remembered: liveOrder, current: current)
+    /// `appKeyOf`（chip id → 所属 app 键）让新窗口插到同 app 同伴旁，而非任务条最右。
+    func reconciled(current: [String], appKeyOf: [String: String] = [:]) -> [String] {
+        StripOrdering.reconcile(remembered: liveOrder, current: current, appKeyOf: appKeyOf)
     }
 
-    /// 把记住的顺序与当前 live 集合收敛（丢掉真关闭的、追加新出现的），保留手动排好的相对序。
-    /// **作为快照变化的副作用调用，绝不在 body 求值期间调**。
-    func sync(current: [String]) {
-        let next = StripOrdering.reconcile(remembered: liveOrder, current: current)
+    /// 把记住的顺序与当前 live 集合收敛（丢掉真关闭的、新窗口插到同 app 同伴旁），保留手动排好的相对序。
+    /// **作为快照变化的副作用调用，绝不在 body 求值期间调**。`appKeyOf` 必须与 `reconciled` 同源，
+    /// 否则落盘的记忆序与显示序不一致，下一帧新窗口会从同伴旁跳回末尾。
+    func sync(current: [String], appKeyOf: [String: String] = [:]) {
+        let next = StripOrdering.reconcile(remembered: liveOrder, current: current, appKeyOf: appKeyOf)
         if next != liveOrder { liveOrder = next; persist() }
     }
 

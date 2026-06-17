@@ -1519,6 +1519,29 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(result, ["B", "A", "D", "C"])
     }
 
+    /// 贴同伴：G 是 ghostty 窗口，拖标签出来成独立窗口 G2(同 app)。即便 ghostty chip 被手动拖到
+    /// 中间，新窗口 G2 也插在 G 右边，而非任务条最右。app 键映射驱动。
+    func testReconcileInsertsNewWindowNextToSameAppSibling() {
+        let appKeyOf = ["A": "a", "G": "ghostty", "B": "b", "G2": "ghostty"]
+        let result = StripOrdering.reconcile(
+            remembered: ["A", "G", "B"],
+            current: ["A", "G", "G2", "B"],
+            appKeyOf: appKeyOf
+        )
+        XCTAssertEqual(result, ["A", "G", "G2", "B"])
+    }
+
+    /// 全新 app 的窗口（没有同 app 同伴）仍追加到末尾，不乱插。
+    func testReconcileAppendsBrandNewAppAtTail() {
+        let appKeyOf = ["A": "a", "G": "ghostty", "B": "b", "X": "x"]
+        let result = StripOrdering.reconcile(
+            remembered: ["G", "A", "B"],
+            current: ["A", "G", "B", "X"],
+            appKeyOf: appKeyOf
+        )
+        XCTAssertEqual(result, ["G", "A", "B", "X"])
+    }
+
     /// 关闭（座位真结束 → 从 snapshot 消失）：C A B D 中 A 关闭 → C B D，其余顺序不动。
     func testReconcileDropsClosedAndPreservesRest() {
         let result = StripOrdering.reconcile(remembered: ["C", "A", "B", "D"], current: ["B", "C", "D"])

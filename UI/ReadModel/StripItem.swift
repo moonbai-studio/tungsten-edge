@@ -116,14 +116,25 @@ enum StripOrdering {
     /// 把「记住的显示顺序」和「当前还活着的 chip」对账，产出新的显示顺序。
     ///
     /// - 已记住且仍在 → 保持记住的相对顺序（**防打乱核心**：邻居增删不动既有排好的卡）。
-    /// - 新出现（当前有、没记过）→ 追加到末尾，按 `current` 的自然顺序。
+    /// - 新出现（当前有、没记过）→ 插到「同 app 已有 chip」的最后一个之后（贴同伴：拖标签出来
+    ///   成独立窗口 / Cmd+N 都紧跟本 app 现有 chip，不再甩到任务条最右）；该 app 一个都没有
+    ///   （= 全新 app）才追加末尾。`appKeyOf` 给空（默认）→ 退化为「一律追加末尾」的旧行为。
     /// - 记住的但当前已不在 → 丢弃（座位真结束，见类型注释）。
-    static func reconcile(remembered: [String], current: [String]) -> [String] {
+    static func reconcile(remembered: [String], current: [String], appKeyOf: [String: String] = [:]) -> [String] {
         let currentSet = Set(current)
         let rememberedSet = Set(remembered)
-        let survivors = remembered.filter { currentSet.contains($0) }
-        let newcomers = current.filter { !rememberedSet.contains($0) }
-        return survivors + newcomers
+        // 已记住且仍在：保持记住的相对顺序
+        var result = remembered.filter { currentSet.contains($0) }
+        // 新出现：按 current 顺序逐个插到同 app 同伴之后；无同伴（全新 app）则末尾。
+        // 按 current 顺序处理 → 同一 app 的多个新窗口彼此也保持相对序。
+        for id in current where !rememberedSet.contains(id) {
+            if let app = appKeyOf[id], let pos = result.lastIndex(where: { appKeyOf[$0] == app }) {
+                result.insert(id, at: pos + 1)
+            } else {
+                result.append(id)
+            }
+        }
+        return result
     }
 
     /// 应用一次拖动落位：把 `draggedID` 移到 `targetID` 的左边（`after == false`）或右边

@@ -95,12 +95,21 @@ struct DockStripView: View {
         partitioned().liveNatural.map(\.id)
     }
 
+    /// chip id → 所属 app 键（bundleId 优先，缺则 appID）。喂给顺序层，让新窗口插到同 app 同伴旁
+    /// 而非任务条最右（拖标签出来成独立窗口 / Cmd+N）。
+    private var liveAppKeys: [String: String] {
+        Dictionary(partitioned().liveNatural.map { ($0.id, $0.bundleIdentifier ?? $0.appID) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
     /// 单一显示顺序漏斗：pinned 区按 `MessagingAppStore` 序，live 区由 `stripOrderStore`
     /// 重排（已有保序 / 新窗口进末尾 / 真关闭丢弃，见 `StripOrdering`）。渲染**绝不**直接读
     /// `snapshot.orderedWindowIDs` 出 live 序。slice 2 用当前序播种 → 视觉上无变化。
     private var stripEntries: [StripEntry] {
         let (pinned, liveNatural) = partitioned()
-        let order = stripOrderStore.reconciled(current: liveNatural.map(\.id))
+        let appKeyOf = Dictionary(liveNatural.map { ($0.id, $0.bundleIdentifier ?? $0.appID) },
+                                  uniquingKeysWith: { first, _ in first })
+        let order = stripOrderStore.reconciled(current: liveNatural.map(\.id), appKeyOf: appKeyOf)
         let byID = Dictionary(liveNatural.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let orderedLive = order.compactMap { byID[$0] }.map(StripEntry.window)
         return pinned + orderedLive
@@ -152,7 +161,7 @@ struct DockStripView: View {
         // new) as a side-effect — never during body eval. `initial: true` seeds on first
         // appearance so the very first render's reconcile (empty → current) is a visual no-op.
         .onChange(of: liveOrderIDs, initial: true) { _, current in
-            stripOrderStore.sync(current: current)
+            stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
         }
         // Catch releases that land in the gaps / background (not onto a chip) so the
         // in-flight chip's hidden state always clears. (Per-chip delegates clear on
