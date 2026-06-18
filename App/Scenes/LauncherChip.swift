@@ -33,7 +33,17 @@ struct LauncherChip: View {
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
 
     @State private var isLaunching = false
-    @State private var bounceOffset: CGFloat = 0
+
+    /// 弹跳动画：偏移量由 isLaunching 声明式推导，动画类型也跟着 isLaunching 切换。
+    /// 关键——绝不能用「withAnimation(.repeatForever) 起跳 + withAnimation 把值设回 0」
+    /// 这种命令式写法：另一个动画停不掉已在运行的 .repeatForever，会留下永远跳动的
+    /// 僵尸动画（2026-06-18 实测：弹跳不止的真凶）。声明式 .animation(value:) 在
+    /// isLaunching 变 false 时自动换成有限动画，循环动画从根上消失。
+    private var bounceAnimation: Animation {
+        isLaunching
+            ? .easeInOut(duration: 0.25).repeatForever(autoreverses: true)
+            : .easeOut(duration: 0.15)
+    }
 
     var body: some View {
         ZStack {
@@ -44,7 +54,8 @@ struct LauncherChip: View {
                 .clipShape(RoundedRectangle(cornerRadius: 36 * scale / 4, style: .continuous))
                 .opacity(dimsWhenInactive ? (!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0)) : 1.0)
                 .shadow(color: .black.opacity(0.22), radius: 3, y: 1)
-                .offset(y: bounceOffset)
+                .offset(y: isLaunching ? -6 : 0)
+                .animation(bounceAnimation, value: isLaunching)
         }
         .frame(width: 44 * scale, height: 52 * scale)
         .overlay(alignment: .bottom) {
@@ -61,9 +72,9 @@ struct LauncherChip: View {
         }
         .contextMenu { contextMenu }
         .help(displayName)
-        .onDisappear { stopBounce(reason: "流入snapshot") }
+        .onDisappear { stopBounce() }
         .onChange(of: isRunning) { _, newValue in
-            if newValue { stopBounce(reason: "进程已启动") }
+            if newValue { stopBounce() }
         }
     }
 
@@ -111,12 +122,10 @@ struct LauncherChip: View {
         AppDisplayNameResolver.displayName(for: bundleID)
     }
 
-    private func stopBounce(reason: String) {
-        guard isLaunching else { return }
+    /// 停跳：只翻 isLaunching。偏移量与动画类型都声明式绑定它，置 false 即换成
+    /// 有限动画收敛到 0，循环动画随之消失（见 bounceAnimation 注释）。
+    private func stopBounce() {
         isLaunching = false
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            bounceOffset = 0
-        }
     }
 
     private func launch() {
@@ -127,14 +136,11 @@ struct LauncherChip: View {
         }
 
         isLaunching = true
-        withAnimation(.easeInOut(duration: 0.25).repeatForever(autoreverses: true)) {
-            bounceOffset = -6
-        }
 
         // 8s timeout backstop（对 menubar-only app 无窗口回调的情况兜底）
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(8))
-            stopBounce(reason: "超时")
+            stopBounce()
         }
 
         NSWorkspace.shared.openApplication(at: appURL, configuration: .init()) { _, error in
@@ -143,7 +149,7 @@ struct LauncherChip: View {
             }
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.5))
-                stopBounce(reason: "回调返回")
+                stopBounce()
             }
         }
     }

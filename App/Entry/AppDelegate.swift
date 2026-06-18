@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var messagingAutoRegisterSubscription: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 行缓冲 stdout：从命令行/后台启动时，print() 输出到文件默认是块缓冲，
+        // 日志要攒满缓冲区才落盘。改成行缓冲后每条 print 立即写出，便于实时读日志。
+        setvbuf(stdout, nil, _IOLBF, 0)
         NSApp.setActivationPolicy(.accessory)
         runtime.start()
 
