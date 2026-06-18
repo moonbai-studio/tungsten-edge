@@ -151,11 +151,11 @@ struct DockStripView: View {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [.white.opacity(Style.borderTopOpacity), .white.opacity(Style.borderBottomOpacity)],
+                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: 0.6
+                    lineWidth: 0.5
                 )
         }
         // Converge the remembered live order with the current snapshot (drop closed, append
@@ -364,7 +364,18 @@ struct ChipView: View {
         .frame(height: 34 * scale)
         .background(
             RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
-                .fill(Color.white.opacity(0.07))
+                .fill(Color.white.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.15), .white.opacity(0.02)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 0.5
+                        )
+                )
         )
         .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
         .onTapGesture {
@@ -507,11 +518,11 @@ struct DrawerCapsuleButton: View {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [.white.opacity(Style.borderTopOpacity), .white.opacity(Style.borderBottomOpacity)],
+                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: 0.6
+                    lineWidth: 0.5
                 )
         }
         .contentShape(Rectangle())
@@ -586,13 +597,14 @@ private enum Style {
 
 // MARK: - Visual Effect Background
 
-private struct DockVisualEffectView: NSViewRepresentable {
+struct DockVisualEffectView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .fullScreenUI
+        view.material = .popover
+        view.appearance = NSAppearance(named: .vibrantDark)
         view.blendingMode = .behindWindow
         view.state = .active
-        view.alphaValue = 0.75
+        // Full opacity is crucial for preserving the system's high-quality glass blur
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}

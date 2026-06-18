@@ -72,8 +72,9 @@ struct DrawerView: View {
         let hasRunningZone = !drawerItems.isEmpty || !runningStashedIDs.isEmpty
 
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(NSColor.windowBackgroundColor))
+            DockVisualEffectView()
+                .ignoresSafeArea()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             VStack(alignment: .leading, spacing: 0) {
                 if hasRunningZone {
@@ -126,8 +127,15 @@ struct DrawerView: View {
             .padding(12)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
         }
     }
 }
