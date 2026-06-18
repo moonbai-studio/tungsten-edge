@@ -433,7 +433,9 @@ struct ChipView: View {
             if drawerStore.contains(bid) {
                 Button("移回任务栏") { drawerStore.remove(bid) }
             } else {
-                Button("收进抽屉") { drawerStore.add(bid); launchFavoriteStore.remove(bid) }
+                // 不清固定标志：收纳与固定可共存（2026-06-16）。旧代码在此 remove 固定，
+                // 导致「固定→收进抽屉→移回任务栏」后固定丢失（2026-06-18 owner 报告）。
+                Button("收进抽屉") { drawerStore.add(bid) }
             }
             // 「固定到启动台」只对**不在抽屉**的 app 有意义（给它在任务条留常驻启动位）。
             // 已收进抽屉的 app 本就常驻抽屉，这个开关对它没有可见效果、只会造成「我已经

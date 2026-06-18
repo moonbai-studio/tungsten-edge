@@ -8,11 +8,12 @@ import Foundation
 ///
 /// Coexists with DrawerStore (收纳) since 2026-06-16 — no longer forced mutually
 /// exclusive (reversed from the original 「四者互斥」: pinning a drawer app used to
-/// bounce it back onto the main strip, fighting the point of stashing it). Note:
-/// 收进抽屉 still clears this store on that path (see `DockStripView`), so the two
-/// only coexist via pin-then-stash, not stash-then-pin. Still mutually exclusive
-/// with MessagingAppStore (消息类) — `AppDelegate` excludes favorites from messaging
-/// auto-registration, and `ChipView`'s menu actions clear the messaging flag on pin.
+/// bounce it back onto the main strip, fighting the point of stashing it). 收进抽屉
+/// no longer clears this store either (2026-06-18: doing so broke 固定→收进抽屉→移回
+/// 任务栏, silently dropping the pin) — the pin survives a stash round-trip. Still
+/// mutually exclusive with MessagingAppStore (消息类) — `AppDelegate` excludes
+/// favorites from messaging auto-registration, and marking an app as 消息 clears both
+/// the drawer and favorite flags.
 ///
 /// `bundleIDs` stays an ordered array (same shape as `DrawerStore`): registration
 /// order is the zone's muscle-memory order, and future drag-reorder reorders it.
