@@ -360,7 +360,7 @@ struct ChipView: View {
                 .frame(maxWidth: 140, alignment: .leading)
         }
         .padding(.horizontal, 10 * scale)
-        .frame(height: 40 * scale)
+        .frame(height: 34 * scale)
         .background(
             RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
                 .fill(Color.white.opacity(0.09))

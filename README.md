@@ -1,6 +1,10 @@
-# macos-dock-cc-v2
+# Neo 坞
 
-v2 of the macOS window-oriented bottom taskbar experiment.
+> 一个替代 macOS 系统 Dock 的任务条 App，以窗口为单位显示，多窗口 app 拆成多张卡片。
+
+---
+
+*以下为内部开发文档。*
 
 > **📍 Source of truth = Obsidian, not this repo's prose.**
 > Current product state, roadmap, and design decisions live in the owner's Obsidian vault:

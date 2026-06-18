@@ -15,12 +15,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
+    private var permissionPollTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 行缓冲 stdout：从命令行/后台启动时，print() 输出到文件默认是块缓冲，
         // 日志要攒满缓冲区才落盘。改成行缓冲后每条 print 立即写出，便于实时读日志。
         setvbuf(stdout, nil, _IOLBF, 0)
         NSApp.setActivationPolicy(.accessory)
+        setupStatusBarItem()
+
+        if AXIsProcessTrusted() {
+            startApp()
+        } else {
+            requestAccessibilityPermission()
+        }
+    }
+
+    private func requestAccessibilityPermission() {
+        AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            if AXIsProcessTrusted() {
+                DispatchQueue.main.async { self?.handlePermissionGranted() }
+            }
+        }
+    }
+
+    private func handlePermissionGranted() {
+        permissionPollTimer?.invalidate()
+        permissionPollTimer = nil
+        startApp()
+    }
+
+    private func startApp() {
         runtime.start()
 
         // Auto tier of the messaging list: whenever the snapshot updates, register any
@@ -42,8 +68,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runtime.onToggleDrawer = { [weak coordinator] in coordinator?.toggleDrawer() }
         coordinator.start()
         badgeStore.start()
-
-        setupStatusBarItem()
     }
 
     func exportDebugSnapshot() {

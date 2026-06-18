@@ -7,23 +7,7 @@
 
 ## Purpose
 
-This repo is `v2` of a macOS window-oriented bottom taskbar experiment.
-
-The current phase prioritizes:
-
-1. stable window identity
-2. stable placement behavior
-3. a minimal usable bottom strip in the app shell
-4. taskbar trust hardening so only real user-operable windows enter the strip
-
-Current checkpoints:
-
-- Finder P0 window-level identity foundation was accepted on 2026-05-05.
-- Taskbar trust hardening moved to inventory-first discovery on 2026-05-08.
-- Long-gap duplicate card root cause was captured and fixed on 2026-05-13.
-- Real desktop validation (normal App windows admitted, fake/system surfaces rejected, Finder/Feishu exceptions stable, no duplicate cards after long idle/sleep/overnight gaps) is complete as of 2026-06-16.
-
-The foundation-engine phase above is done; current work is in the UX feature layer tracked in Obsidian (see top of file). Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery — these were deliberately replaced by the inventory-first model in Taskbar Trust below and should not be reintroduced.
+This repo is `v2` of a macOS window-oriented bottom taskbar experiment. The foundation-engine phase is done; current work is in the UX feature layer tracked in Obsidian (see top of file). Do not rebuild the Finder foundation or return to bottom-up "every CG/AX window-like surface" discovery — these were deliberately replaced by the inventory-first model in Taskbar Trust and should not be reintroduced.
 
 ## Product Rules
 
@@ -73,19 +57,7 @@ Both fixed 2026-06-16; full rationale documented in Obsidian `03 设计决策` (
 
 ### Long-Gap Duplicate Cards
 
-- The 2026-05-13 duplicate-card incident is documented in `Docs/21-long-gap-duplicate-card-fix.md`.
-- A running app snapshot showed real internal duplication: `trackedCount = 35`, `duplicateGroups = 8`.
-- This was not a SwiftUI accessibility-tree illusion.
-- Root cause: after long observation gaps, short identity memory expired while old taskbar cards still existed; identity matching only reused minimized/hidden/disappeared retained seats, not active/inactive existing seats.
-- Current fix: before creating a new identity, match against the current `DockSnapshot` seats when the candidate is same process and same app.
-- Matching is conservative:
-  - title + nearby frame is preferred
-  - unique nearby frame can survive title drift
-  - unique title can survive frame movement
-  - ambiguous candidates do not merge
-  - app-level fallback IDs (`app-*`) are not treated as concrete window seats
-  - `closedPending` records are never revived
-- Chrome, Illustrator, WeChat, Finder, Terminal, Codex, Photoshop, and Wanlian SD-WAN are validation samples only, not app-specific rule targets.
+Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. Current fix: before creating a new identity, match against the current `DockSnapshot` seats when the candidate is same process and same app. Matching is conservative — title + nearby frame preferred; ambiguous candidates do not merge; `app-*` IDs and `closedPending` records are never revived.
 
 ### Ghost Tab Seats (AX-absent window reaping)
 
@@ -93,49 +65,6 @@ Both fixed 2026-06-16; full rationale documented in Obsidian `03 设计决策` (
 - Reliable "is it really gone" signal is **AX-absence, not CG**: genuinely minimized / hidden / cross-Space / occluded windows all STAY in AX enumeration (minimized ones report `isMinimized=true`). Only permanently-gone seats vanish from AX entirely. Verified 2026-06-17: a window dragged to another Space stays in AX → never reaped.
 - Rule: a tracked window absent from AX but still in CG is reaped after a short grace (`AppTracker.absentReapGrace`, ~1.5s), timestamped via `WindowEntry.absentSince` and reset the instant AX sees it again. The 0.5s frontmost poll reaps fast for the app in use; the 5s reconcile is the backstop.
 - This is **not** the forbidden held-slot TTL (see Placement): that warned against expiring *real* minimized/hidden/CG-disappeared windows. This only reaps seats AX has permanently dropped — real windows never reach it because they stay in AX. Do not widen it to reap on CG-absence, and do not expire AX-present windows.
-
-## Validation Entrypoints
-
-### Identity / real samples
-
-- `./Scripts/build_and_run.sh --lab-minimize "<keyword>"`
-- `./Scripts/build_and_run.sh --lab-close "<keyword>"`
-- `./Scripts/build_and_run.sh --lab-replay <scenario-name>`
-
-Finder P0 sample:
-
-- Create two Finder folders with unique names and run `./Scripts/build_and_run.sh --lab-minimize "<unique Finder folder title>"`
-- Formal app UI path has been user-accepted for the Finder P0 stage.
-
-### Placement
-
-- `./Scripts/build_and_run.sh --lab-placement placement-permanent-hold-replay`
-- `./Scripts/build_and_run.sh --lab-placement placement-close-release-replay`
-
-### Transition / feedback
-
-- `./Scripts/build_and_run.sh --lab-transition focused-active-replay`
-- `./Scripts/build_and_run.sh --lab-transition close-timeout-replay`
-
-### Runtime debug snapshot
-
-- Trigger: status bar menu → `导出任务条快照` (the only trigger).
-- A global `Cmd+Shift+D` shortcut and a `SIGUSR2` signal path were attempted on 2026-06-12 but reverted: the global key monitor / signal handler introduced an intermittent main-thread hang, and the menu already covers the need. Do not re-add without a clear plan that keeps the export off the main thread.
-- Latest file usually lives at:
-  - `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
-- The snapshot is read-only: it lists cards and live AX/CG samples but does not activate, hide, minimize, close, or clear windows.
-
-## Current App State
-
-- The app already renders a minimal bottom task strip.
-- Strip items can activate / hide / minimize / close.
-- Strip item labels can toggle: inactive/minimized concrete windows activate, active concrete windows minimize.
-- Strip actions are interruptible: show/hide-class actions (toggle / activate / minimize / hide) never lock clicks; only close/quit locks until confirmed. Implementation detail (optimistic overlay, timeout/rollback) is UX-layer and tracked in Obsidian `02 当前进度`, not duplicated here.
-- The action path is `UI -> IntentPipeline -> PlatformActionExecutor`.
-- Current discovery is inventory-first when AX permission is available: normal App windows are the entry point, `CG` enriches them with visible-window evidence, Finder remains window-level, and Feishu may remain app-level fallback.
-- Current identity now also uses the existing taskbar snapshot as a long-term seat map, so long-idle windows can be recognized after the short 6-second memory expires.
-- The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
-- Swift 6 concurrency compliance landed 2026-06-14 (`6233111`): AX C callbacks use `[weak obs]` + `MainActor.assumeIsolated`, `@unchecked Sendable` is gone from the observation path. Store-level `@MainActor` isolation (Drawer/Launch/Messaging stores) is UX-layer hygiene tracked in Obsidian `02 当前进度`, not detailed here.
 
 ## Collaboration Rule
 
@@ -145,7 +74,3 @@ The project owner directs the product but does not read code, and does not read 
 - Technical detail (file names, APIs, mechanisms) is a supplement that comes after the plain explanation, never the only way to follow the message. Don't make the owner decode jargon to understand what you did or why.
 - When a choice needs the owner's input, frame it as product behavior and trade-offs they can weigh, not as implementation details.
 
-## Important Non-Goals For This Phase
-
-- Feishu real frontmost AX samples are useful but not blocking.
-- Finder P0 acceptance does not mean the full taskbar is production-ready.
