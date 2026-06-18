@@ -73,8 +73,9 @@ struct DrawerView: View {
 
         ZStack(alignment: .topLeading) {
             DockVisualEffectView()
-                .ignoresSafeArea()
+                .padding(-2)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 if hasRunningZone {
@@ -124,19 +125,15 @@ struct DrawerView: View {
                     }
                 }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .padding(12)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.5
-                )
+                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
+        .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
+        .padding(PanelCoordinator.shadowPadding)
     }
 }
 

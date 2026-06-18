@@ -7,6 +7,8 @@ import os
 @MainActor
 final class PanelCoordinator: NSObject {
     static let panelHeight: CGFloat = 52
+    static let shadowPadding: CGFloat = 20
+    static let windowHeight: CGFloat = 92 // 52 + 20*2
 
     private let runtime: AppRuntime
     private let drawerStore: DrawerStore
@@ -84,12 +86,12 @@ final class PanelCoordinator: NSObject {
             panel.isFloatingPanel = true
             panel.isMovable = false
             panel.isOpaque = false
-            panel.backgroundColor = .clear
-            panel.hasShadow = true
+            panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
+            panel.hasShadow = false
             panel.hidesOnDeactivate = false
             let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore))
             hosting.wantsLayer = true
-            hosting.layer?.backgroundColor = CGColor.clear
+            hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
             panel.contentView = hosting
             drawerPanel = panel
         }
@@ -100,7 +102,7 @@ final class PanelCoordinator: NSObject {
         let capsuleFrame = capsule.frame
         let s = lastDrawerSize
         let rawX = capsuleFrame.maxX - s.width
-        let rawY = capsuleFrame.maxY + 8
+        let rawY = capsuleFrame.maxY - 2 * Self.shadowPadding + 8
         let clampedX = min(max(rawX, vf.minX), vf.maxX - s.width)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - s.height)
         drawerPanel?.setFrame(NSRect(x: clampedX, y: clampedY, width: s.width, height: s.height), display: false)
@@ -132,7 +134,7 @@ final class PanelCoordinator: NSObject {
         let vf = screen.visibleFrame
         let capsuleFrame = capsule.frame
         let rawX = capsuleFrame.maxX - drawerSize.width
-        let rawY = capsuleFrame.maxY + 8
+        let rawY = capsuleFrame.maxY - 2 * Self.shadowPadding + 8
         let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
         drawer.setFrame(NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height), display: true)
@@ -159,7 +161,7 @@ final class PanelCoordinator: NSObject {
         let s = screen.frame
 
         let panel = NSPanel(
-            contentRect: NSRect(x: s.minX, y: s.minY + Self.bottomGap, width: s.width, height: Self.panelHeight),
+            contentRect: NSRect(x: s.minX, y: s.minY + Self.bottomGap - Self.shadowPadding, width: s.width, height: Self.windowHeight),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -169,15 +171,15 @@ final class PanelCoordinator: NSObject {
         panel.isFloatingPanel = true
         panel.isMovable = false
         panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
 
         let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore).environmentObject(stripOrderStore))
         hosting.autoresizingMask = [.width, .height]
         // Prevent NSHostingView from adding its own opaque background over the blur
         hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = CGColor.clear
+        hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
         panel.contentView = hosting
         panel.orderFrontRegardless()
         dockPanel = panel
@@ -185,7 +187,7 @@ final class PanelCoordinator: NSObject {
 
     private func setupCapsulePanel() {
         let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: CGSize(width: Self.capsuleWidth, height: Self.capsuleWidth)),
+            contentRect: NSRect(origin: .zero, size: CGSize(width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -195,8 +197,8 @@ final class PanelCoordinator: NSObject {
         panel.isFloatingPanel = true
         panel.isMovable = false
         panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
+        panel.hasShadow = false
         panel.hidesOnDeactivate = false
         let hosting = NSHostingView(rootView:
             DrawerCapsuleButton { [weak self] in self?.toggleDrawer() }
@@ -204,7 +206,7 @@ final class PanelCoordinator: NSObject {
                 .environmentObject(drawerStore)
         )
         hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = CGColor.clear
+        hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
         panel.contentView = hosting
         panel.orderFrontRegardless()
         capsulePanel = panel
@@ -219,7 +221,7 @@ final class PanelCoordinator: NSObject {
         let rawY = dockFrame.minY + (Self.panelHeight - Self.capsuleWidth) / 2
         let clampedX = min(max(rawX, vf.minX), vf.maxX - Self.capsuleWidth)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - Self.capsuleWidth)
-        let targetFrame = NSRect(x: clampedX, y: clampedY, width: Self.capsuleWidth, height: Self.capsuleWidth)
+        let targetFrame = NSRect(x: clampedX - Self.shadowPadding, y: clampedY - Self.shadowPadding, width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)
         capsule.setFrame(targetFrame, display: true)
         Logger(subsystem: "com.caye.macosdockcc.v2", category: "Drawer")
             .info("syncCapsule dockFrame=(\(dockFrame.minX, privacy: .public),\(dockFrame.minY, privacy: .public),\(dockFrame.width, privacy: .public),\(dockFrame.height, privacy: .public)) capsuleFrame=(\(targetFrame.minX, privacy: .public),\(targetFrame.minY, privacy: .public),\(targetFrame.width, privacy: .public),\(targetFrame.height, privacy: .public)) vf=(\(vf.minX, privacy: .public),\(vf.minY, privacy: .public),\(vf.width, privacy: .public),\(vf.height, privacy: .public))")
@@ -541,6 +543,6 @@ final class PanelCoordinator: NSObject {
     private func centeredPanelFrame(panelWidth: CGFloat, screen: NSScreen) -> NSRect {
         let vf = screen.visibleFrame
         let x = vf.minX + (vf.width - panelWidth) / 2
-        return NSRect(x: x, y: screen.frame.minY + Self.bottomGap, width: panelWidth, height: Self.panelHeight)
+        return NSRect(x: x - Self.shadowPadding, y: screen.frame.minY + Self.bottomGap - Self.shadowPadding, width: panelWidth + Self.shadowPadding * 2, height: Self.windowHeight)
     }
 }

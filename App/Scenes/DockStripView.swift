@@ -122,6 +122,8 @@ struct DockStripView: View {
     var body: some View {
         ZStack {
             DockVisualEffectView()
+                .padding(-2)
+                .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
                 .ignoresSafeArea()
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -135,6 +137,7 @@ struct DockStripView: View {
                 .frame(height: PanelCoordinator.panelHeight)
                 .animation(.spring(response: 0.28, dampingFraction: 0.82), value: stripLayoutKeys)
             }
+            .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
             .defaultScrollAnchor(.leading)
             .mask(alignment: .center) {
                 HStack(spacing: 0) {
@@ -146,18 +149,12 @@ struct DockStripView: View {
                 }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.5
-                )
+                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
+        .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
+        .padding(PanelCoordinator.shadowPadding)
         // Converge the remembered live order with the current snapshot (drop closed, append
         // new) as a side-effect — never during body eval. `initial: true` seeds on first
         // appearance so the very first render's reconcile (empty → current) is a visual no-op.
@@ -491,6 +488,8 @@ struct DrawerCapsuleButton: View {
     var body: some View {
         ZStack {
             DockVisualEffectView()
+                .padding(-2)
+                .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
                 .ignoresSafeArea()
 
             if folderIDs.isEmpty {
@@ -513,18 +512,12 @@ struct DrawerCapsuleButton: View {
                 .padding(6)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.5), .white.opacity(0.15)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.5
-                )
+                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
+        .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
+        .padding(PanelCoordinator.shadowPadding)
         .contentShape(Rectangle())
         .onTapGesture { action() }
     }
@@ -601,10 +594,8 @@ struct DockVisualEffectView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = .popover
-        view.appearance = NSAppearance(named: .vibrantDark)
         view.blendingMode = .behindWindow
         view.state = .active
-        // Full opacity is crucial for preserving the system's high-quality glass blur
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
