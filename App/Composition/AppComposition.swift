@@ -13,6 +13,12 @@ final class AppRuntime: ObservableObject {
     /// 优先读这里；快照兑现预测或超时（静默回弹）后清除。
     @Published private(set) var optimisticStatesByWindowID: [String: OptimisticWindowState] = [:]
     @Published private(set) var observationStatusText: String = "正在启动"
+    /// 「窗口出现门控」（2026-06-18）：用户从抽屉点击启动的 app，在它拿到真窗口
+    /// 之前先记在这里。抽屉据此把它**留在启动区继续弹跳**，不在「进程一出现」就提前
+    /// 停跳 / 提前跳进运行区（GUI app 进程就绪 ≠ UI 就绪）。仅对 .regular（有窗口）
+    /// app 生效：.accessory 菜单栏 app（Tailscale 类）本就无窗口，进程一出现即清除，
+    /// 不被卡住——守住「在跑 = 进程在不在跑」的命门。窗口出现或 8s 超时即清除。
+    @Published private(set) var launchingBundleIDs: Set<String> = []
 
     private let tracker = AppTracker()
     private let intentPipeline = IntentPipeline(actionPlanning: LifecycleActionPlanner())
@@ -125,8 +131,39 @@ final class AppRuntime: ObservableObject {
         }
     }
 
+    /// 登记一次用户发起的启动。窗口出现或 8s 超时（与 LauncherChip 弹跳兜底对齐）即清除。
+    func beginLaunch(_ bundleID: String) {
+        guard !bundleID.isEmpty else { return }
+        launchingBundleIDs.insert(bundleID)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            self?.launchingBundleIDs.remove(bundleID)
+        }
+    }
+
+    /// 清除已"放行"的启动会话：①已拿到真窗口（非 app-* 占位）→ 进程 UI 就绪；
+    /// ②进程已起但属 .accessory（菜单栏 app，本就没窗口）→ 立即放行，不卡门控。
+    private func reconcileLaunchingStates(with newSnapshot: DockSnapshot) {
+        guard !launchingBundleIDs.isEmpty else { return }
+        let realWindowIDs = Set(
+            StripItem.items(from: newSnapshot)
+                .filter { !$0.isAppLevelFallback }
+                .compactMap(\.bundleIdentifier)
+        )
+        let next = launchingBundleIDs.filter { id in
+            if realWindowIDs.contains(id) { return false }
+            if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == id }),
+               app.activationPolicy != .regular {
+                return false
+            }
+            return true
+        }
+        if next != launchingBundleIDs { launchingBundleIDs = next }
+    }
+
     private func handleSnapshotUpdate(_ newSnapshot: DockSnapshot) {
         snapshot = newSnapshot
+        reconcileLaunchingStates(with: newSnapshot)
         hasRequiredPermissions = permissionService.hasRequiredPermissions()
         intentPipeline.reconcile(with: newSnapshot)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID

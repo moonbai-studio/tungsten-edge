@@ -22,13 +22,13 @@ struct LauncherChip: View {
     /// chip's context menu only (沉淀原则 2026-06-11, no menu on launch buttons).
     var removeMenuLabel: String? = nil
     var onRemove: () -> Void = {}
-    /// When set, shows a "固定到启动台" menu item (injected by DrawerView for
-    /// app-* running chips that lack a full membershipMenuItems context menu).
-    var pinMenuLabel: String? = nil
-    var onPin: () -> Void = {}
     /// When set, replaces the default tap behavior (drawer show/hide toggle). Used by
     /// the strip's messaging app chip, whose tap must always reopen the main window.
     var onTap: (() -> Void)? = nil
+    /// Fired when this chip actually kicks off a launch (tap on a not-running app).
+    /// The drawer wires it to `runtime.beginLaunch` for the 窗口出现门控 (keeps the
+    /// app bouncing in the launch zone until its window shows, not just its process).
+    var onLaunch: () -> Void = {}
 
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
 
@@ -95,9 +95,6 @@ struct LauncherChip: View {
         if let removeMenuLabel {
             Button(removeMenuLabel) { onRemove() }
         }
-        if let pinMenuLabel {
-            Button(pinMenuLabel) { onPin() }
-        }
     }
 
     private func handleTap() {
@@ -136,6 +133,7 @@ struct LauncherChip: View {
         }
 
         isLaunching = true
+        onLaunch()
 
         // 8s timeout backstop（对 menubar-only app 无窗口回调的情况兜底）
         Task { @MainActor in
