@@ -146,6 +146,7 @@ struct DockStripView: View {
                 }
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(
@@ -154,7 +155,7 @@ struct DockStripView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: 1
+                    lineWidth: 0.6
                 )
         }
         // Converge the remembered live order with the current snapshot (drop closed, append
@@ -349,7 +350,7 @@ struct ChipView: View {
 
     private var multiWindowChip: some View {
         let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
-        let textOpacity: Double = effectiveIsOnDesktop ? 0.9 : 0.42
+        let textOpacity: Double = effectiveIsOnDesktop ? 0.9 : 0.60
         return HStack(spacing: 6 * scale) {
             appIcon(size: 22 * scale, opacity: iconOpacity)
 
@@ -363,7 +364,7 @@ struct ChipView: View {
         .frame(height: 34 * scale)
         .background(
             RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
-                .fill(Color.white.opacity(0.09))
+                .fill(Color.white.opacity(0.07))
         )
         .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
         .onTapGesture {
@@ -501,6 +502,7 @@ struct DrawerCapsuleButton: View {
                 .padding(6)
             }
         }
+        .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(
@@ -509,7 +511,7 @@ struct DrawerCapsuleButton: View {
                         startPoint: .top,
                         endPoint: .bottom
                     ),
-                    lineWidth: 1
+                    lineWidth: 0.6
                 )
         }
         .contentShape(Rectangle())
@@ -578,8 +580,8 @@ private enum Style {
     static let edgeFadeWidth: CGFloat    = 16  // scroll edge fade-out width (pt)
 
     // Border
-    static let borderTopOpacity: Double    = 0.12  // top-edge highlight (simulates light from above)
-    static let borderBottomOpacity: Double = 0.06  // side/bottom edges (nearly invisible)
+    static let borderTopOpacity: Double    = 0.55  // top-edge highlight (simulates light from above)
+    static let borderBottomOpacity: Double = 0.02  // side/bottom edges (nearly invisible)
 }
 
 // MARK: - Visual Effect Background
@@ -587,13 +589,10 @@ private enum Style {
 private struct DockVisualEffectView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .sidebar
+        view.material = .fullScreenUI
         view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-        view.wantsLayer = true
-        view.layer?.cornerRadius = Style.cornerRadius
-        view.layer?.cornerCurve = .continuous
-        view.layer?.masksToBounds = true
+        view.state = .active
+        view.alphaValue = 0.75
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
