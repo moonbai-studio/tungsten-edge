@@ -14,14 +14,18 @@ struct AppEntry {
     var isHidden: Bool
 }
 
+/// 一个**物理窗口座位**（单座位模型）。`cgWindowID` 是它**当前**的可见标签（= 动作落点），会随
+/// 切标签而变；`token` 是座位的稳定身份，一旦分配**永不变**（即使 activeCgID 被顶替）——这就是
+/// 切标签/最小化时卡片不跳不裂的根。后台标签【不】单独占座位。
 struct WindowEntry {
-    let cgWindowID: CGWindowID
+    var cgWindowID: CGWindowID   // 当前可见标签的 cgID（动作落点），切标签时被顶替
+    let token: String            // 物理座位稳定身份（tabgrp-<pid>-<种子cgID>），永不变
     var title: String
     var bounds: CGRect?
     var isMinimized: Bool
     var isFocused: Bool
-    /// 这个窗口从 AX 枚举里消失、却只有 CG 还留着的「起始时刻」(nil = 当前 AX 能看到)。
-    /// 仅作「曾经 AX 缺席」的标记，用来在 AX 重新看到它时清零；【不再据此回收座位】——实测
+    /// 这个座位从 AX 枚举里消失、却只有 CG 还留着的「起始时刻」(nil = 当前 AX 能看到)。
+    /// 仅作「曾经 AX 缺席」的标记，用来在 AX 重新看到它时清零；【不据此回收座位】——实测
     /// Safari 等正常窗口一最小化就整个离开 AX，按缺席回收会误删。座位回收只看 CG 全列表是否消失。
     var absentSince: Date? = nil
 }
@@ -39,16 +43,16 @@ final class AppTracker: ObservableObject {
     private var isScanningCandidates = false
     private var destroyedCGIDs: [CGWindowID: Date] = [:]
     private static let tombstoneTTL: TimeInterval = 3.0
+    /// 一个「本来正常、却离开了 AX、但还赖在 CG 全列表」的座位，持续多久判定为关窗后残留并删。
+    /// 给一点 grace 扛 AX 偶发漏读（真窗口短暂漏一两次不该被删）。最小化/隐藏的座位不走这条（豁免）。
+    private static let closedReapGrace: TimeInterval = 1.5
 
     /// 上次重建快照时的 CG on-screen 集合。前台轮询据此发现「切标签」——AX 可能完全不报，
     /// 但 on-screen 集合会即时变化，变了就重建（标签组可见标签随之即时更新）。
     private var lastOnScreenCGIDs: Set<CGWindowID> = []
 
-    /// 稳定分组 token 记忆（标签组根治）。cgWindowID → 一旦分配就不变的 token。同一物理窗口的
-    /// 各原生标签座位共享同一 token；普通单窗口自成一组。任务条据此合并 + 取稳定卡片 id，免疫
-    /// 「激活标签 cgID 随切标签变」「后台标签 frame 变陈旧」两种漂移。窗口/标签真关闭(从 CG 全
-    /// 列表消失 → 座位被删) 时，对应记录在 `rebuildSnapshot` 末尾清理。
-    private var groupIDByCGID: [CGWindowID: String] = [:]
+    /// 物理座位 token 的全局自增序号。保证每个新座位拿到唯一 token（绝不从会复用的 cgID 派生）。
+    private var nextSeatSerial: Int = 0
 
     private let reader = AXWindowReader()
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
@@ -123,31 +127,115 @@ final class AppTracker: ObservableObject {
         return ids
     }
 
-    /// 「同 pid + 逐像素相同 frame」分组键。同一物理窗口的标签 frame 完全一致，token 首次分配时
-    /// 据此聚类；一旦分配进 `groupIDByCGID` 就认 token 不再认实时 frame（免疫后台标签 frame 陈旧）。
+    /// 「同 pid + 逐像素相同 frame」键。物理座位据此认领"切标签顶替"的新当前标签：同一物理窗口的
+    /// 各标签 frame 完全一致，新当前标签会出现在座位当前的 frame 上。
     private func frameKey(_ pid: pid_t, _ bounds: CGRect?) -> String? {
         guard let b = bounds else { return nil }
         return "\(pid)|\(Int(b.origin.x.rounded())):\(Int(b.origin.y.rounded())):\(Int(b.size.width.rounded())):\(Int(b.size.height.rounded()))"
     }
 
-    /// 给一个被跟踪窗口算稳定分组 token。已分配过 → 直接复用（一旦分配不变，这是不跳不裂的根）。
-    /// 否则尝试继承：同 app、逐像素同 frame、且那个同 frame 旧座位此刻【不在屏】(=后台标签，
-    /// 标签组证据) → 判定为同一物理窗口的标签，继承其 token；找不到证据才发新 token
-    /// `tabgrp-<pid>-<cgID>`。「不在屏」证据避免把两个只是同尺寸同坐标、却都在屏的独立窗口误并。
-    private func stableGroupID(forCGID cgID: CGWindowID, pid: pid_t, bounds: CGRect?, onScreen: Set<CGWindowID>) -> String {
-        if let g = groupIDByCGID[cgID] { return g }
-        if let key = frameKey(pid, bounds), let app = apps[pid] {
-            for other in app.windowOrder where other != cgID {
-                guard let og = groupIDByCGID[other],
-                      frameKey(pid, app.windowsByID[other]?.bounds) == key,
-                      !onScreen.contains(other) else { continue }
-                groupIDByCGID[cgID] = og
-                return og
+    /// 物理座位对账（单座位模型 · 拽标签根治 step 1）。把一个 app 当前的 AX 合格窗口收敛成
+    /// 「一个物理窗口 = 一个座位」。座位锚在 frame、token 一旦分配不随当前标签 cgID 变：
+    /// - **切标签**：旧 activeCgID 离开 AX、新 cgID 在同 frame 顶上 → 座位原地换 activeCgID，token 不变（卡不跳）。
+    /// - **拖当前标签出去**：旧 activeCgID 移到新 frame、另一标签在旧 frame 顶上 → 座位留旧 frame 换新标签，
+    ///   旧 activeCgID 被「赶出」成新座位（拽出分卡）。
+    /// - **最小化/后台无人顶替**：CG 还在就保座位标最小化，CG 没了才删（Safari 最小化不丢卡）。
+    /// - 后台标签【不】单独留座位。同 frame 有多个老座位（窗口重叠）时不顶替、宁可新建，避免误并。
+    /// 返回 true 表示座位集合或关键属性变了（调用方据此决定是否重建快照）。
+    @discardableResult
+    private func reconcileSeats(pid: pid_t, cgIDs: Set<CGWindowID>, now: Date) -> Bool {
+        guard var app = apps[pid] else { return false }
+        let eligible = reader.windows(forPID: pid).filter {
+            isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
+        }
+        func fk(_ b: CGRect?) -> String? { frameKey(pid, b) }
+
+        var eligibleByCgID: [CGWindowID: AXWindowSnapshot] = [:]
+        for s in eligible { if let c = s.cgWindowID { eligibleByCgID[c] = s } }
+
+        let before = seatSignature(app)
+        var usedEligible: Set<CGWindowID> = []
+        var newOrder: [CGWindowID] = []
+        var newByID: [CGWindowID: WindowEntry] = [:]
+        func place(_ e: WindowEntry) { newOrder.append(e.cgWindowID); newByID[e.cgWindowID] = e }
+        func make(token: String, _ s: AXWindowSnapshot) -> WindowEntry {
+            WindowEntry(cgWindowID: s.cgWindowID!, token: token, title: s.title ?? "",
+                        bounds: s.bounds, isMinimized: s.isMinimized, isFocused: s.isFocusedWindow)
+        }
+        // 某 frame 当前有几个老座位认领（>1 = 窗口重叠歧义，切标签顶替时跳过，保守不误并）
+        func seatsAtFrame(_ key: String) -> Int {
+            app.windowOrder.filter { fk(app.windowsByID[$0]?.bounds) == key }.count
+        }
+
+        // Pass A：每个老座位尝试延续
+        for cgID in app.windowOrder {
+            guard var seat = app.windowsByID[cgID] else { continue }
+            let X = seat.cgWindowID
+            let seatKey = fk(seat.bounds)
+            if let snapX = eligibleByCgID[X], !usedEligible.contains(X) {
+                // X 仍可见。检查「拖当前标签出去」：X 移到了新 frame，旧 frame 上来了别的合格窗口 Y
+                if let seatKey, fk(snapX.bounds) != seatKey,
+                   let Y = eligible.first(where: { s in
+                       guard let c = s.cgWindowID, c != X, !usedEligible.contains(c) else { return false }
+                       return fk(s.bounds) == seatKey
+                   }), let yc = Y.cgWindowID {
+                    place(make(token: seat.token, Y))    // 座位留旧 frame、顶替成 Y，token 不变
+                    usedEligible.insert(yc)
+                    // X 不标 used → 落到 Pass B 成新座位（被赶出去的当前标签）
+                } else {
+                    place(make(token: seat.token, snapX))  // 普通：跟着 X（frame 可移动）
+                    usedEligible.insert(X)
+                }
+            } else {
+                // X 离开 AX：旧 frame 有没有新当前标签顶上 → 切标签
+                if let seatKey, seatsAtFrame(seatKey) == 1,
+                   let Y = eligible.first(where: { s in
+                       guard let c = s.cgWindowID, !usedEligible.contains(c), app.windowsByID[c] == nil else { return false }
+                       return fk(s.bounds) == seatKey
+                   }), let yc = Y.cgWindowID {
+                    place(make(token: seat.token, Y))    // 顶替，token 不变 → 卡不跳
+                    usedEligible.insert(yc)
+                } else if cgIDs.contains(X) && !isTombstoned(X) {
+                    // X 离开 AX 但仍在 CG。区分「最小化/隐藏(保座位)」vs「关窗后窗口赖在 CG(该删)」:
+                    // 信号 = 离开 AX 前最后一次是不是 min(最小化会先经 Miniaturized 通知标 min；关窗不会)。
+                    if seat.isMinimized || app.isHidden {
+                        seat.isFocused = false
+                        seat.absentSince = nil
+                        place(seat)                       // 真最小化(Safari 离开 AX)/ 应用隐藏 → 保座位
+                    } else if let since = seat.absentSince, now.timeIntervalSince(since) >= Self.closedReapGrace {
+                        // 正常窗口却离开 AX 且持续超过 grace → 判定关窗后赖在 CG,删座位（不 place）
+                    } else {
+                        if seat.absentSince == nil { seat.absentSince = now }
+                        seat.isFocused = false
+                        place(seat)                       // grace 内暂留(扛 AX 偶发漏读),【不强制标 min】
+                    }
+                }
+                // else：连 CG 都没了 → 真关闭，丢弃
             }
         }
-        let g = "tabgrp-\(pid)-\(cgID)"
-        groupIDByCGID[cgID] = g
-        return g
+
+        // Pass B：没被认领的合格窗口 → 新座位（新窗口 / 被赶出去的当前标签）。
+        // token 用全局自增序号,【绝不从 cgID 派生】——cgID 会被复用,从它派生会撞车（实测:旧座位
+        // 种子=68、activeCgID 已换成 60,后来 68 独立成窗又生成同名 token → 两座位撞一张卡）。
+        for s in eligible {
+            guard let c = s.cgWindowID, !usedEligible.contains(c), newByID[c] == nil else { continue }
+            nextSeatSerial += 1
+            place(make(token: "tabgrp-\(pid)-s\(nextSeatSerial)", s))
+            observers[pid]?.registerWindow(s.element, cgWindowID: c)
+        }
+
+        app.windowOrder = newOrder
+        app.windowsByID = newByID
+        apps[pid] = app
+        return seatSignature(app) != before
+    }
+
+    /// 座位集合的轻量指纹（顺序 + token + 标题 + 最小化/焦点），用来判断这次对账有没有实际变化。
+    private func seatSignature(_ app: AppEntry) -> String {
+        app.windowOrder.map { id -> String in
+            let e = app.windowsByID[id]
+            return "\(id):\(e?.token ?? ""):\(e?.title ?? ""):\(e?.isMinimized == true ? 1 : 0):\(e?.isFocused == true ? 1 : 0)"
+        }.joined(separator: "|")
     }
 
     // MARK: - Seed
@@ -343,68 +431,10 @@ final class AppTracker: ObservableObject {
     // MARK: - Window Enumeration
 
     private func enumerateWindows(for pid: pid_t) {
-        guard var app = apps[pid] else { return }
-        let snapshots = reader.windows(forPID: pid)
-        let eligible = snapshots.filter {
-            isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
+        guard apps[pid] != nil else { return }
+        if reconcileSeats(pid: pid, cgIDs: cgWindowIDSet(), now: Date()) {
+            rebuildSnapshot()
         }
-
-        // Build index for O(1) lookup
-        var eligibleByID: [CGWindowID: AXWindowSnapshot] = [:]
-        for snap in eligible {
-            if let cgID = snap.cgWindowID { eligibleByID[cgID] = snap }
-        }
-
-        // CG set: used to veto removal of windows AX can't enumerate (minimized)
-        let cgIDs = cgWindowIDSet()
-
-        var newWindowsByID: [CGWindowID: WindowEntry] = [:]
-        var newOrder: [CGWindowID] = []
-
-        // Pass 1: existing tracked windows in their current order
-        for cgID in app.windowOrder {
-            if let snap = eligibleByID[cgID] {
-                // AX can see it
-                let existing = app.windowsByID[cgID]
-                newWindowsByID[cgID] = WindowEntry(
-                    cgWindowID: cgID,
-                    title: snap.title ?? existing?.title ?? "",
-                    bounds: snap.bounds ?? existing?.bounds,
-                    isMinimized: snap.isMinimized,
-                    isFocused: snap.isFocusedWindow
-                )
-                newOrder.append(cgID)
-            } else if cgIDs.contains(cgID) && !isTombstoned(cgID) {
-                // AX can't enumerate it but CG confirms it exists → minimized
-                var entry = app.windowsByID[cgID] ?? WindowEntry(
-                    cgWindowID: cgID, title: "", bounds: nil, isMinimized: true, isFocused: false
-                )
-                entry.isMinimized = true
-                entry.isFocused = false
-                newWindowsByID[cgID] = entry
-                newOrder.append(cgID)
-            }
-            // else: not in AX, not in CG (or tombstoned) → truly closed; drop it
-        }
-
-        // Pass 2: new AX-visible windows not previously tracked
-        for snap in eligible {
-            guard let cgID = snap.cgWindowID, newWindowsByID[cgID] == nil else { continue }
-            newWindowsByID[cgID] = WindowEntry(
-                cgWindowID: cgID,
-                title: snap.title ?? "",
-                bounds: snap.bounds,
-                isMinimized: snap.isMinimized,
-                isFocused: snap.isFocusedWindow
-            )
-            newOrder.append(cgID)
-            observers[pid]?.registerWindow(snap.element, cgWindowID: cgID)
-        }
-
-        app.windowsByID = newWindowsByID
-        app.windowOrder = newOrder
-        apps[pid] = app
-        rebuildSnapshot()
     }
 
     private func isEligible(
@@ -447,12 +477,11 @@ final class AppTracker: ObservableObject {
     }
 
     private func handleWindowDestroyed(pid: pid_t, cgWindowID: CGWindowID) {
-        guard var app = apps[pid] else { return }
+        guard apps[pid] != nil else { return }
         destroyedCGIDs[cgWindowID] = Date()
-        app.windowsByID.removeValue(forKey: cgWindowID)
-        app.windowOrder.removeAll { $0 == cgWindowID }
-        apps[pid] = app
-        rebuildSnapshot()
+        // 不直接删座位：若这是某标签窗口的当前标签被关、而同一物理窗口还有别的标签顶上，
+        // reconcileSeats 会让座位原地换 activeCgID、保住 token（卡不闪不换身份）。整窗关掉则真删。
+        if reconcileSeats(pid: pid, cgIDs: cgWindowIDSet(), now: Date()) { rebuildSnapshot() }
     }
 
     private func handleWindowMinimized(pid: pid_t, cgWindowID: CGWindowID) {
@@ -497,50 +526,14 @@ final class AppTracker: ObservableObject {
     private func pollFrontmostApp() {
         guard AXIsProcessTrusted() else { return }
         guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-              var app = apps[pid], app.windowOrder.count > 1 else { return }
+              apps[pid] != nil else { return }
 
-        let snapshots = reader.windows(forPID: pid)
-        let eligible = snapshots.filter {
-            isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
-        }
-
-        let now = Date()
-        var changed = false
-        for snap in eligible {
-            guard let cgID = snap.cgWindowID, var entry = app.windowsByID[cgID] else { continue }
-            let titleChanged = snap.title.map { !$0.isEmpty && $0 != entry.title } ?? false
-            let stateChanged = snap.isMinimized != entry.isMinimized || snap.isFocusedWindow != entry.isFocused
-            let wasAbsent = entry.absentSince != nil   // 标签切回前台 → 清缺席时间戳
-            if titleChanged || stateChanged || wasAbsent {
-                if let t = snap.title, !t.isEmpty { entry.title = t }
-                entry.isMinimized = snap.isMinimized
-                entry.isFocused = snap.isFocusedWindow
-                entry.absentSince = nil
-                app.windowsByID[cgID] = entry
-                apps[pid] = app
-                if titleChanged || stateChanged { changed = true }
-            }
-        }
-
-        // AX 看不到的窗口：当「最小化/后台」标记，保住座位，【不删】。删座位的判定只在 5s 慢对账里
-        // 按 CG 全列表做（连 CG 都没了才算真关闭）。Ghostty 后台标签靠稳定 token 合并成一张卡，
-        // 不需要在这里回收消肿。
-        let axVisibleIDs = Set(eligible.compactMap(\.cgWindowID))
-        for cgID in Set(app.windowOrder).subtracting(axVisibleIDs) {
-            let e = app.windowsByID[cgID]
-            if e?.isMinimized != true || e?.isFocused != false || e?.absentSince == nil {
-                if app.windowsByID[cgID]?.absentSince == nil {
-                    app.windowsByID[cgID]?.absentSince = now
-                }
-                app.windowsByID[cgID]?.isMinimized = true
-                app.windowsByID[cgID]?.isFocused = false
-                apps[pid] = app
-            }
-        }
-
-        // 切标签的即时信号：哪个标签在屏变了 → 重建（rebuildSnapshot 会读最新 on-screen 并刷新）。
-        if onScreenCGWindowIDSet() != lastOnScreenCGIDs { changed = true }
-
+        // 单座位模型下：标签窗口切标签 = 座位 activeCgID 被顶替，reconcileSeats 即时收敛。
+        // 前台 app 每 0.5s 跑一次,切标签/最小化/拽出都能秒级反映(不再依赖 AX 事件可靠性)。
+        var changed = reconcileSeats(pid: pid, cgIDs: cgWindowIDSet(), now: Date())
+        // on-screen 变了(切了标签)也强制刷新一次,兜住座位指纹没变但可见标签换了的边角。
+        let onScreen = onScreenCGWindowIDSet()
+        if onScreen != lastOnScreenCGIDs { changed = true }
         if changed { rebuildSnapshot() }
     }
 
@@ -576,73 +569,7 @@ final class AppTracker: ObservableObject {
         let cgIDs = cgWindowIDSet()
 
         for pid in appOrder {
-            guard var app = apps[pid] else { continue }
-            let snapshots = reader.windows(forPID: pid)
-            let eligible = snapshots.filter {
-                isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
-            }
-            let liveIDs = Set(eligible.compactMap(\.cgWindowID))
-            let trackedIDs = Set(app.windowOrder)
-
-            // AX 不再枚举的窗口：仍在 CG → 当「最小化/后台」保住座位，【绝不因 AX 缺席删座位】。
-            // 实测：Safari 等正常窗口一最小化就整个离开 AX 枚举；Ghostty 后台标签也只是离开 AX。
-            // 旧的「缺席超 grace 即回收」会把这些合法窗口误删 → 最小化丢卡、退化成 app 兜底卡跳到最右。
-            // Ghostty 多张幽灵标签不再靠回收消肿，而是靠稳定 token 合并成一张卡（见 rebuildSnapshot）。
-            // 只有连 CG 全列表都没有(或刚被 destroyed) 才判定真关闭、删座位。
-            for cgID in trackedIDs.subtracting(liveIDs) {
-                if cgIDs.contains(cgID) && !isTombstoned(cgID) {
-                    let e = app.windowsByID[cgID]
-                    if e?.isMinimized != true || e?.isFocused != false || e?.absentSince == nil {
-                        if app.windowsByID[cgID]?.absentSince == nil {
-                            app.windowsByID[cgID]?.absentSince = now
-                        }
-                        app.windowsByID[cgID]?.isMinimized = true
-                        app.windowsByID[cgID]?.isFocused = false
-                        apps[pid] = app
-                        changed = true
-                    }
-                } else {
-                    // Not in CG, or recently destroyed → truly closed
-                    app.windowsByID.removeValue(forKey: cgID)
-                    app.windowOrder.removeAll { $0 == cgID }
-                    apps[pid] = app
-                    changed = true
-                }
-            }
-
-            // Add newly discovered windows
-            for snap in eligible {
-                guard let cgID = snap.cgWindowID, !trackedIDs.contains(cgID) else { continue }
-                app.windowsByID[cgID] = WindowEntry(
-                    cgWindowID: cgID,
-                    title: snap.title ?? "",
-                    bounds: snap.bounds,
-                    isMinimized: snap.isMinimized,
-                    isFocused: snap.isFocusedWindow
-                )
-                app.windowOrder.append(cgID)
-                observers[pid]?.registerWindow(snap.element, cgWindowID: cgID)
-                apps[pid] = app
-                changed = true
-            }
-
-            // Update attributes of AX-visible windows
-            for snap in eligible {
-                guard let cgID = snap.cgWindowID, var entry = app.windowsByID[cgID] else { continue }
-                let titleChanged = snap.title.map { !$0.isEmpty && $0 != entry.title } ?? false
-                let stateChanged = snap.isMinimized != entry.isMinimized || snap.isFocusedWindow != entry.isFocused
-                // AX 又看到它了 → 清掉缺席时间戳(扛住偶发漏读：曾经漏掉一两次不该累积成回收)。
-                let wasAbsent = entry.absentSince != nil
-                if titleChanged || stateChanged || wasAbsent {
-                    if let t = snap.title, !t.isEmpty { entry.title = t }
-                    entry.isMinimized = snap.isMinimized
-                    entry.isFocused = snap.isFocusedWindow
-                    entry.absentSince = nil
-                    app.windowsByID[cgID] = entry
-                    apps[pid] = app
-                    if titleChanged || stateChanged { changed = true }
-                }
-            }
+            if reconcileSeats(pid: pid, cgIDs: cgIDs, now: now) { changed = true }
         }
 
         if changed { rebuildSnapshot() }
@@ -691,27 +618,7 @@ final class AppTracker: ObservableObject {
     private func rebuildSnapshot() {
         // Read frontmost PID once; passed to windowStatus to determine active highlight
         let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        // 原生标签组可见性的可靠真相源：CG on-screen 列表只含「当前真正在屏」的窗口。标签组里
-        // 后台标签是被 order-out 的独立 NSWindow，不在该列表；每组恰好留 1 个可见标签（实测）。
-        // 用它判定标签组成员的可见/最小化，压掉 AX min 那 ~4s 滞后误报（切标签延迟/变灰的根因）。
-        let onScreen = onScreenCGWindowIDSet()
-        lastOnScreenCGIDs = onScreen
-
-        // 先给所有被跟踪窗口算稳定 token，并按 token 统计成员数（≥2 = 原生标签组）。
-        var tokenOf: [CGWindowID: String] = [:]
-        var tokenCount: [String: Int] = [:]
-        var liveCGIDs: Set<CGWindowID> = []
-        for pid in appOrder {
-            guard let app = apps[pid] else { continue }
-            for cgID in app.windowOrder {
-                liveCGIDs.insert(cgID)
-                let token = stableGroupID(forCGID: cgID, pid: pid, bounds: app.windowsByID[cgID]?.bounds, onScreen: onScreen)
-                tokenOf[cgID] = token
-                tokenCount[token, default: 0] += 1
-            }
-        }
-        // 窗口/标签真关闭(座位已被删) → 清掉其 token 记忆，避免 map 无限增长。
-        groupIDByCGID = groupIDByCGID.filter { liveCGIDs.contains($0.key) }
+        lastOnScreenCGIDs = onScreenCGWindowIDSet()
 
         var windows: [WindowID: WindowRecord] = [:]
         var orderedWindowIDs: [WindowID] = []
@@ -735,26 +642,23 @@ final class AppTracker: ObservableObject {
                 )
                 orderedWindowIDs.append(id)
             } else {
+                // 单座位模型：一个座位 = 一个物理窗口 = 一张卡。卡片稳定身份 = 座位 token（不随
+                // 当前标签 cgID 变）；动作落点 = 当前 activeCgID。可见性直接用座位状态（当前标签
+                // 离开 AX 即被新标签顶替，不会留陈旧 min；真最小化座位标 isMinimized）。
                 for cgID in app.windowOrder {
-                    guard let window = app.windowsByID[cgID] else { continue }
+                    guard let seat = app.windowsByID[cgID] else { continue }
                     let id = WindowID(rawValue: "cgw-\(cgID)")
-                    let token = tokenOf[cgID] ?? "cgw-\(cgID)"
-                    // 标签组成员（同 token ≥2）：可见性以 CG on-screen 为准——不在屏即视为最小化，
-                    // 且不可能聚焦。非标签组窗口（单窗口等）维持 AX 判定不变。
-                    let grouped = (tokenCount[token] ?? 0) > 1
-                    let effectiveMinimized = grouped ? !onScreen.contains(cgID) : window.isMinimized
-                    let effectiveFocused = grouped ? (window.isFocused && onScreen.contains(cgID)) : window.isFocused
                     windows[id] = WindowRecord(
                         id: id,
                         appID: AppID(rawValue: app.bundleIdentifier ?? app.appName),
                         pid: pid,
                         bundleIdentifier: app.bundleIdentifier,
-                        title: window.title,
-                        bounds: window.bounds,
-                        status: windowStatus(isHidden: app.isHidden, isMinimized: effectiveMinimized, isFocused: effectiveFocused, pid: pid, frontmostPID: frontmostPID),
+                        title: seat.title,
+                        bounds: seat.bounds,
+                        status: windowStatus(isHidden: app.isHidden, isMinimized: seat.isMinimized, isFocused: seat.isFocused, pid: pid, frontmostPID: frontmostPID),
                         cgWindowID: cgID,
-                        isOnDesktop: !effectiveMinimized && !app.isHidden,
-                        groupID: token
+                        isOnDesktop: !seat.isMinimized && !app.isHidden,
+                        groupID: seat.token
                     )
                     orderedWindowIDs.append(id)
                 }
