@@ -22,6 +22,13 @@ final class StripOrderStore: ObservableObject {
     /// 本次开机时间（秒）。开机周期内不变，缓存一次即可。
     private let bootTime = StripOrderStore.bootTimeSeconds()
 
+    /// 位置记忆粘性（slice ①）。一个 chip id 从当前快照里**短暂消失**时（Safari 偶发 AX 漏读、
+    /// 标签组锚点迁移等），不立刻把它从记忆顺序里删掉——记下消失时刻，grace 内仍当它「在场」
+    /// 保住 rank，只是显示层不渲染它（`reconciled` 用真实 current 过滤）。超过 grace 仍没返场
+    /// 才真丢弃。这样闪断回来的卡接回原位，而不是被当新卡甩到同 app 同伴右边。
+    private var absentSince: [String: Date] = [:]
+    private static let rankRetentionGrace: TimeInterval = 5.0
+
     init() {
         // 仅当存档来自**同一开机周期**才信任（cgWindowID 跨重启会重排/复用）。
         guard UserDefaults.standard.object(forKey: bootKey) != nil,
@@ -40,7 +47,23 @@ final class StripOrderStore: ObservableObject {
     /// **作为快照变化的副作用调用，绝不在 body 求值期间调**。`appKeyOf` 必须与 `reconciled` 同源，
     /// 否则落盘的记忆序与显示序不一致，下一帧新窗口会从同伴旁跳回末尾。
     func sync(current: [String], appKeyOf: [String: String] = [:]) {
-        let next = StripOrdering.reconcile(remembered: liveOrder, current: current, appKeyOf: appKeyOf)
+        let now = Date()
+        let currentSet = Set(current)
+
+        // 返场的 id：清掉缺席戳。
+        for id in current { absentSince.removeValue(forKey: id) }
+        // 刚从记忆顺序里消失的 id：打上缺席戳（已在册的才记）。
+        for id in liveOrder where !currentSet.contains(id) && absentSince[id] == nil {
+            absentSince[id] = now
+        }
+        // grace 内的缺席 id 视作「仍在场」→ 保住 rank；过期的不再保留 → 交给 reconcile 丢弃。
+        let retainedAbsent = liveOrder.filter { id in
+            guard !currentSet.contains(id), let t = absentSince[id] else { return false }
+            return now.timeIntervalSince(t) <= Self.rankRetentionGrace
+        }
+        let effectiveCurrent = current + retainedAbsent
+        let next = StripOrdering.reconcile(remembered: liveOrder, current: effectiveCurrent, appKeyOf: appKeyOf)
+        absentSince = absentSince.filter { now.timeIntervalSince($0.value) <= Self.rankRetentionGrace }
         if next != liveOrder { liveOrder = next; persist() }
     }
 

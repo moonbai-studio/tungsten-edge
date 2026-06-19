@@ -24,9 +24,11 @@ struct StripItem: Hashable {
     /// Builds a chip from one or more window records. ≥2 records means a 原生标签组
     /// (same app + identical frame) collapsed into a single chip.
     init(members: [WindowRecord], sameAppCardCount: Int = 1) {
-        // Stable SwiftUI identity: the smallest CGWindowID in the group. It does NOT change
-        // when the focused tab switches, so the merged chip never churns / re-animates.
+        // Stable SwiftUI identity = 该组的稳定 token（`groupID`）。它【不随激活标签的 CGWindowID
+        // 变化】，也不随成员增删（后台标签来去、最小化离开 AX）而变 → 合并卡永不换身份证、不跳不裂。
+        // 同组所有成员的 groupID 相同，取首个即可；app-* 兜底卡的 groupID = 自身 id（自成一组）。
         let anchor = members.min { ($0.cgWindowID ?? .max) < ($1.cgWindowID ?? .max) } ?? members[0]
+        let token = members[0].groupID
         // Display + action representative = the **visible** tab of the group. In a 原生标签组 the
         // non-current tabs report to AX as `.minimized`; exactly one tab is on-screen. Prefer the
         // truly-focused tab (`.active`, only set while the app is frontmost), else the lone visible
@@ -39,7 +41,7 @@ struct StripItem: Hashable {
             ?? members.first { $0.status != .minimized && $0.status != .hidden }
             ?? anchor
 
-        self.id = anchor.id.rawValue
+        self.id = token
         self.actionWindowID = representative.id.rawValue
         self.memberWindowIDs = members.map(\.id.rawValue)
         self.title = representative.title
@@ -48,7 +50,7 @@ struct StripItem: Hashable {
         self.bundleIdentifier = representative.bundleIdentifier
         self.sameAppCardCount = sameAppCardCount
         self.showsTitle = sameAppCardCount >= 2
-        self.isAppLevelFallback = anchor.id.rawValue.hasPrefix("app-")
+        self.isAppLevelFallback = token.hasPrefix("app-")
         self.canMinimize = self.isAppLevelFallback == false
         self.canHide = true
         self.canClose = self.isAppLevelFallback == false
@@ -88,18 +90,13 @@ struct StripItem: Hashable {
         record.bundleIdentifier ?? record.appID.rawValue
     }
 
-    /// Identity of the 原生标签组 a record belongs to: `pid | bundle | exact frame`. Returns
-    /// nil for records that must never merge (app-* fallback, no CGWindowID, or no frame).
-    /// Frame match is **exact** (rounded to int) — near-equal windows (e.g. two browser
-    /// windows differing by a few px) must stay separate (验证 2026-06-13).
+    /// Identity of the 原生标签组 a record belongs to = 跟踪层算好的稳定 `groupID` token。
+    /// 同一物理窗口的各标签共享同一 token（一旦分配不随激活标签 cgID / 后台标签 frame 漂移而变），
+    /// 据此合并；app-* 兜底卡的 groupID = 自身唯一 id，永不与别人撞键 → 自然独立、不误并。
+    /// 返回 nil 表示该记录不参与合并（无 cgWindowID 的兜底卡）。
     private static func tabGroupKey(for record: WindowRecord) -> String? {
-        guard record.cgWindowID != nil, let bounds = record.bounds else { return nil }
-        let bundle = record.bundleIdentifier ?? record.appID.rawValue
-        let x = Int(bounds.origin.x.rounded())
-        let y = Int(bounds.origin.y.rounded())
-        let w = Int(bounds.size.width.rounded())
-        let h = Int(bounds.size.height.rounded())
-        return "\(record.pid)|\(bundle)|\(x):\(y):\(w):\(h)"
+        guard record.cgWindowID != nil else { return nil }
+        return record.groupID
     }
 }
 
@@ -155,9 +152,10 @@ enum StripOrdering {
         return order.map { $0 == oldID ? newID : $0 }
     }
 
-    /// 落盘子集：只保留代表真实窗口的 chip id（`cgw-*`，内嵌开机周期内稳定的 cgWindowID）。
-    /// app-\* 占位是临时键，只活在内存，不写盘——防它沉淀成应用级永久布局（见 03 设计决策）。
+    /// 落盘子集：只保留代表真实窗口/标签组的 chip id（`tabgrp-*` token，内嵌开机周期内稳定的
+    /// 种子 cgWindowID）。app-\* 占位是临时键，只活在内存，不写盘——防它沉淀成应用级永久布局
+    /// （见 03 设计决策）。跨重启由 `StripOrderStore` 的 `kern.boottime` 守卫整份丢弃。
     static func persistableLiveOrder(_ order: [String]) -> [String] {
-        order.filter { $0.hasPrefix("cgw-") }
+        order.filter { $0.hasPrefix("tabgrp-") }
     }
 }

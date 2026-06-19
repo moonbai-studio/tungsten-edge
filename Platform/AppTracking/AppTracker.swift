@@ -21,9 +21,8 @@ struct WindowEntry {
     var isMinimized: Bool
     var isFocused: Bool
     /// 这个窗口从 AX 枚举里消失、却只有 CG 还留着的「起始时刻」(nil = 当前 AX 能看到)。
-    /// 真·最小化 / 跨桌面(Space) / 被遮挡的窗口都【仍在 AX 里】，所以它们永远是 nil；
-    /// 只有 AX 已经放弃暴露的「幽灵标签座位」(如 Ghostty 只把当前可见标签当 AX 窗口)
-    /// 才会被打上时间戳。持续缺席超过 `absentReapGrace` 即回收，避免空壳永久赖在任务条上。
+    /// 仅作「曾经 AX 缺席」的标记，用来在 AX 重新看到它时清零；【不再据此回收座位】——实测
+    /// Safari 等正常窗口一最小化就整个离开 AX，按缺席回收会误删。座位回收只看 CG 全列表是否消失。
     var absentSince: Date? = nil
 }
 
@@ -40,14 +39,16 @@ final class AppTracker: ObservableObject {
     private var isScanningCandidates = false
     private var destroyedCGIDs: [CGWindowID: Date] = [:]
     private static let tombstoneTTL: TimeInterval = 3.0
-    /// 一个「CG 还在、AX 已消失」的座位，持续缺席多久即回收。留一点 grace 是为了扛住
-    /// AX 偶发漏读(不因一次抖动误删真窗口)。前台 app 由 0.5s 快轮询驱动 → 切标签后约 1.5s
-    /// 内清掉空壳；非前台 app 由 5s 慢对账兜底。1.5s 既够快又给足漏读容错。
-    private static let absentReapGrace: TimeInterval = 1.5
 
     /// 上次重建快照时的 CG on-screen 集合。前台轮询据此发现「切标签」——AX 可能完全不报，
     /// 但 on-screen 集合会即时变化，变了就重建（标签组可见标签随之即时更新）。
     private var lastOnScreenCGIDs: Set<CGWindowID> = []
+
+    /// 稳定分组 token 记忆（标签组根治）。cgWindowID → 一旦分配就不变的 token。同一物理窗口的
+    /// 各原生标签座位共享同一 token；普通单窗口自成一组。任务条据此合并 + 取稳定卡片 id，免疫
+    /// 「激活标签 cgID 随切标签变」「后台标签 frame 变陈旧」两种漂移。窗口/标签真关闭(从 CG 全
+    /// 列表消失 → 座位被删) 时，对应记录在 `rebuildSnapshot` 末尾清理。
+    private var groupIDByCGID: [CGWindowID: String] = [:]
 
     private let reader = AXWindowReader()
     private let eligibilityPolicy = DockWindowEligibilityPolicy()
@@ -122,21 +123,31 @@ final class AppTracker: ObservableObject {
         return ids
     }
 
-    /// 属于某个「同 pid + 逐像素相同 frame」≥2 成员标签组的窗口 cgID 集合（与 StripItem 合并判据一致）。
-    /// 只有这些窗口才改用 CG on-screen 判定可见性；普通单窗口仍走 AX。
-    private func tabGroupedWindowIDs() -> Set<CGWindowID> {
-        var groups: [String: [CGWindowID]] = [:]
-        for pid in appOrder {
-            guard let app = apps[pid] else { continue }
-            for cgID in app.windowOrder {
-                guard let b = app.windowsByID[cgID]?.bounds else { continue }
-                let key = "\(pid)|\(Int(b.origin.x.rounded())):\(Int(b.origin.y.rounded())):\(Int(b.size.width.rounded())):\(Int(b.size.height.rounded()))"
-                groups[key, default: []].append(cgID)
+    /// 「同 pid + 逐像素相同 frame」分组键。同一物理窗口的标签 frame 完全一致，token 首次分配时
+    /// 据此聚类；一旦分配进 `groupIDByCGID` 就认 token 不再认实时 frame（免疫后台标签 frame 陈旧）。
+    private func frameKey(_ pid: pid_t, _ bounds: CGRect?) -> String? {
+        guard let b = bounds else { return nil }
+        return "\(pid)|\(Int(b.origin.x.rounded())):\(Int(b.origin.y.rounded())):\(Int(b.size.width.rounded())):\(Int(b.size.height.rounded()))"
+    }
+
+    /// 给一个被跟踪窗口算稳定分组 token。已分配过 → 直接复用（一旦分配不变，这是不跳不裂的根）。
+    /// 否则尝试继承：同 app、逐像素同 frame、且那个同 frame 旧座位此刻【不在屏】(=后台标签，
+    /// 标签组证据) → 判定为同一物理窗口的标签，继承其 token；找不到证据才发新 token
+    /// `tabgrp-<pid>-<cgID>`。「不在屏」证据避免把两个只是同尺寸同坐标、却都在屏的独立窗口误并。
+    private func stableGroupID(forCGID cgID: CGWindowID, pid: pid_t, bounds: CGRect?, onScreen: Set<CGWindowID>) -> String {
+        if let g = groupIDByCGID[cgID] { return g }
+        if let key = frameKey(pid, bounds), let app = apps[pid] {
+            for other in app.windowOrder where other != cgID {
+                guard let og = groupIDByCGID[other],
+                      frameKey(pid, app.windowsByID[other]?.bounds) == key,
+                      !onScreen.contains(other) else { continue }
+                groupIDByCGID[cgID] = og
+                return og
             }
         }
-        var result: Set<CGWindowID> = []
-        for (_, members) in groups where members.count > 1 { result.formUnion(members) }
-        return result
+        let g = "tabgrp-\(pid)-\(cgID)"
+        groupIDByCGID[cgID] = g
+        return g
     }
 
     // MARK: - Seed
@@ -511,20 +522,16 @@ final class AppTracker: ObservableObject {
             }
         }
 
-        // 幽灵标签即时回收：前台多窗口 app 里，AX 已彻底看不到的旧标签(切到后台)就是幽灵——
-        // 真窗口/最小化/跨桌面都留在 AX 里，不会到这里。首次缺席打时间戳并暂当最小化，持续缺席
-        // 超过 grace 即回收。0.5s 快轮询 + 1.5s grace 让切标签后的残留卡片很快消失，又不因一次漏读误删。
+        // AX 看不到的窗口：当「最小化/后台」标记，保住座位，【不删】。删座位的判定只在 5s 慢对账里
+        // 按 CG 全列表做（连 CG 都没了才算真关闭）。Ghostty 后台标签靠稳定 token 合并成一张卡，
+        // 不需要在这里回收消肿。
         let axVisibleIDs = Set(eligible.compactMap(\.cgWindowID))
         for cgID in Set(app.windowOrder).subtracting(axVisibleIDs) {
-            if let since = app.windowsByID[cgID]?.absentSince {
-                if now.timeIntervalSince(since) >= Self.absentReapGrace {
-                    app.windowsByID.removeValue(forKey: cgID)
-                    app.windowOrder.removeAll { $0 == cgID }
-                    apps[pid] = app
-                    changed = true
+            let e = app.windowsByID[cgID]
+            if e?.isMinimized != true || e?.isFocused != false || e?.absentSince == nil {
+                if app.windowsByID[cgID]?.absentSince == nil {
+                    app.windowsByID[cgID]?.absentSince = now
                 }
-            } else {
-                app.windowsByID[cgID]?.absentSince = now
                 app.windowsByID[cgID]?.isMinimized = true
                 app.windowsByID[cgID]?.isFocused = false
                 apps[pid] = app
@@ -577,26 +584,23 @@ final class AppTracker: ObservableObject {
             let liveIDs = Set(eligible.compactMap(\.cgWindowID))
             let trackedIDs = Set(app.windowOrder)
 
-            // Remove or CG-veto windows that AX no longer enumerates
+            // AX 不再枚举的窗口：仍在 CG → 当「最小化/后台」保住座位，【绝不因 AX 缺席删座位】。
+            // 实测：Safari 等正常窗口一最小化就整个离开 AX 枚举；Ghostty 后台标签也只是离开 AX。
+            // 旧的「缺席超 grace 即回收」会把这些合法窗口误删 → 最小化丢卡、退化成 app 兜底卡跳到最右。
+            // Ghostty 多张幽灵标签不再靠回收消肿，而是靠稳定 token 合并成一张卡（见 rebuildSnapshot）。
+            // 只有连 CG 全列表都没有(或刚被 destroyed) 才判定真关闭、删座位。
             for cgID in trackedIDs.subtracting(liveIDs) {
                 if cgIDs.contains(cgID) && !isTombstoned(cgID) {
-                    // Still in CG but gone from AX. 真·最小化窗口仍留在 AX 里，不会走到这里；
-                    // 走到这里的只有两种：① AX 偶发漏读(短暂)，② AX 已彻底放弃暴露的幽灵标签
-                    // 座位(Ghostty 只暴露当前可见标签)。首次缺席打时间戳、给一小段 grace 扛住①，
-                    // 持续缺席超过 grace 即判定为②回收，否则空壳会被「CG 还在→当最小化」永久留住(本次 bug 根因)。
-                    if let since = app.windowsByID[cgID]?.absentSince,
-                       now.timeIntervalSince(since) >= Self.absentReapGrace {
-                        app.windowsByID.removeValue(forKey: cgID)
-                        app.windowOrder.removeAll { $0 == cgID }
-                    } else {
+                    let e = app.windowsByID[cgID]
+                    if e?.isMinimized != true || e?.isFocused != false || e?.absentSince == nil {
                         if app.windowsByID[cgID]?.absentSince == nil {
                             app.windowsByID[cgID]?.absentSince = now
                         }
                         app.windowsByID[cgID]?.isMinimized = true
                         app.windowsByID[cgID]?.isFocused = false
+                        apps[pid] = app
+                        changed = true
                     }
-                    apps[pid] = app
-                    changed = true
                 } else {
                     // Not in CG, or recently destroyed → truly closed
                     app.windowsByID.removeValue(forKey: cgID)
@@ -692,7 +696,22 @@ final class AppTracker: ObservableObject {
         // 用它判定标签组成员的可见/最小化，压掉 AX min 那 ~4s 滞后误报（切标签延迟/变灰的根因）。
         let onScreen = onScreenCGWindowIDSet()
         lastOnScreenCGIDs = onScreen
-        let groupedIDs = tabGroupedWindowIDs()
+
+        // 先给所有被跟踪窗口算稳定 token，并按 token 统计成员数（≥2 = 原生标签组）。
+        var tokenOf: [CGWindowID: String] = [:]
+        var tokenCount: [String: Int] = [:]
+        var liveCGIDs: Set<CGWindowID> = []
+        for pid in appOrder {
+            guard let app = apps[pid] else { continue }
+            for cgID in app.windowOrder {
+                liveCGIDs.insert(cgID)
+                let token = stableGroupID(forCGID: cgID, pid: pid, bounds: app.windowsByID[cgID]?.bounds, onScreen: onScreen)
+                tokenOf[cgID] = token
+                tokenCount[token, default: 0] += 1
+            }
+        }
+        // 窗口/标签真关闭(座位已被删) → 清掉其 token 记忆，避免 map 无限增长。
+        groupIDByCGID = groupIDByCGID.filter { liveCGIDs.contains($0.key) }
 
         var windows: [WindowID: WindowRecord] = [:]
         var orderedWindowIDs: [WindowID] = []
@@ -711,16 +730,18 @@ final class AppTracker: ObservableObject {
                     title: app.appName,
                     bounds: nil,
                     status: app.isHidden ? .hidden : .inactive,
-                    isOnDesktop: pid == frontmostPID
+                    isOnDesktop: pid == frontmostPID,
+                    groupID: id.rawValue   // 兜底卡自成一组，永不并入别人
                 )
                 orderedWindowIDs.append(id)
             } else {
                 for cgID in app.windowOrder {
                     guard let window = app.windowsByID[cgID] else { continue }
                     let id = WindowID(rawValue: "cgw-\(cgID)")
-                    // 标签组成员（同 frame ≥2）：可见性以 CG on-screen 为准——不在屏即视为最小化，
+                    let token = tokenOf[cgID] ?? "cgw-\(cgID)"
+                    // 标签组成员（同 token ≥2）：可见性以 CG on-screen 为准——不在屏即视为最小化，
                     // 且不可能聚焦。非标签组窗口（单窗口等）维持 AX 判定不变。
-                    let grouped = groupedIDs.contains(cgID)
+                    let grouped = (tokenCount[token] ?? 0) > 1
                     let effectiveMinimized = grouped ? !onScreen.contains(cgID) : window.isMinimized
                     let effectiveFocused = grouped ? (window.isFocused && onScreen.contains(cgID)) : window.isFocused
                     windows[id] = WindowRecord(
@@ -732,7 +753,8 @@ final class AppTracker: ObservableObject {
                         bounds: window.bounds,
                         status: windowStatus(isHidden: app.isHidden, isMinimized: effectiveMinimized, isFocused: effectiveFocused, pid: pid, frontmostPID: frontmostPID),
                         cgWindowID: cgID,
-                        isOnDesktop: !effectiveMinimized && !app.isHidden
+                        isOnDesktop: !effectiveMinimized && !app.isHidden,
+                        groupID: token
                     )
                     orderedWindowIDs.append(id)
                 }

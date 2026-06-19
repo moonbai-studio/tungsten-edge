@@ -11,6 +11,11 @@ struct WindowRecord: Hashable, Sendable {
     var status: WindowStatus
     var cgWindowID: CGWindowID?
     var isOnDesktop: Bool
+    /// 稳定分组身份（标签组根治）。同一物理窗口的所有原生标签座位共享同一个 token，一旦分配就
+    /// **不随当前激活标签的 CGWindowID 变化**；普通单窗口是自成一组的 token。任务条据此合并、
+    /// 并以它作为卡片的稳定 id（切标签 / 后台标签来去都不换身份证 → 卡片不跳不裂）。
+    /// 默认空串 = 退化为按 `id` 各自独立（兼容未赋值路径）。
+    var groupID: String
 
     init(
         id: WindowID,
@@ -21,7 +26,8 @@ struct WindowRecord: Hashable, Sendable {
         bounds: CGRect?,
         status: WindowStatus,
         cgWindowID: CGWindowID? = nil,
-        isOnDesktop: Bool = false
+        isOnDesktop: Bool = false,
+        groupID: String = ""
     ) {
         self.id = id
         self.appID = appID
@@ -32,6 +38,7 @@ struct WindowRecord: Hashable, Sendable {
         self.status = status
         self.cgWindowID = cgWindowID
         self.isOnDesktop = isOnDesktop
+        self.groupID = groupID.isEmpty ? id.rawValue : groupID
     }
 }
 
