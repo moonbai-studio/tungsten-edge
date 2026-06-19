@@ -102,7 +102,7 @@ final class PanelCoordinator: NSObject {
         let capsuleFrame = capsule.frame
         let s = lastDrawerSize
         let rawX = capsuleFrame.maxX - s.width
-        let rawY = capsuleFrame.maxY - 2 * Self.shadowPadding + 8
+        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
         let clampedX = min(max(rawX, vf.minX), vf.maxX - s.width)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - s.height)
         drawerPanel?.setFrame(NSRect(x: clampedX, y: clampedY, width: s.width, height: s.height), display: false)
@@ -134,7 +134,7 @@ final class PanelCoordinator: NSObject {
         let vf = screen.visibleFrame
         let capsuleFrame = capsule.frame
         let rawX = capsuleFrame.maxX - drawerSize.width
-        let rawY = capsuleFrame.maxY - 2 * Self.shadowPadding + 8
+        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
         let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
         drawer.setFrame(NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height), display: true)
@@ -217,8 +217,8 @@ final class PanelCoordinator: NSObject {
         let screen = panelCurrentScreen(panel: dock)
         let vf = screen.visibleFrame
         let dockFrame = dock.frame
-        let rawX = dockFrame.maxX + Self.capsuleGap
-        let rawY = dockFrame.minY + (Self.panelHeight - Self.capsuleWidth) / 2
+        let rawX = dockFrame.maxX - Self.shadowPadding + Self.capsuleGap
+        let rawY = dockFrame.minY + Self.shadowPadding + (Self.panelHeight - Self.capsuleWidth) / 2
         let clampedX = min(max(rawX, vf.minX), vf.maxX - Self.capsuleWidth)
         let clampedY = min(max(rawY, vf.minY), vf.maxY - Self.capsuleWidth)
         let targetFrame = NSRect(x: clampedX - Self.shadowPadding, y: clampedY - Self.shadowPadding, width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)
@@ -277,7 +277,7 @@ final class PanelCoordinator: NSObject {
 
     private func measureAndApplyWidth() {
         guard let hosting = dockPanel?.contentView else { return }
-        let contentWidth = hosting.fittingSize.width
+        let contentWidth = hosting.fittingSize.width - 2 * Self.shadowPadding
         lastDesiredWidth = contentWidth
         applyPanelWidth(contentWidth)
     }
@@ -307,7 +307,7 @@ final class PanelCoordinator: NSObject {
     @objc private func screenParametersChanged() {
         guard let panel = dockPanel else { return }
         let screen = panelCurrentScreen(panel: panel)
-        let contentWidth = panel.contentView?.fittingSize.width ?? 0
+        let contentWidth = (panel.contentView?.fittingSize.width ?? 0) - 2 * Self.shadowPadding
         let maxWidth = screen.visibleFrame.width - 2 * (Self.outerMargin + Self.capsuleGap + Self.capsuleWidth)
         let panelWidth = max(min(contentWidth, maxWidth), 120)
         panel.setFrame(centeredPanelFrame(panelWidth: panelWidth, screen: screen), display: true, animate: false)
