@@ -217,11 +217,21 @@ final class AppTracker: ObservableObject {
         // Pass B：没被认领的合格窗口 → 新座位（新窗口 / 被赶出去的当前标签）。
         // token 用全局自增序号,【绝不从 cgID 派生】——cgID 会被复用,从它派生会撞车（实测:旧座位
         // 种子=68、activeCgID 已换成 60,后来 68 独立成窗又生成同名 token → 两座位撞一张卡）。
+        // **最小化折叠**：最小化一个多标签窗口时,Ghostty 会把该窗口的【所有标签】一下子都暴露成
+        // AX 窗口(平时只暴露当前标签)。它们都 min=true 且同 frame——是同一个(已最小化)窗口的后台
+        // 标签,折叠进已落座的同 frame 座位,不另建座位（否则有几个标签就裂几张卡）。非 min 的同 frame
+        // 窗口是"两个独立窗口重叠"的合法场景,照常各自建座位。
+        var placedFrames = Set(newOrder.compactMap { fk(newByID[$0]?.bounds) })
         for s in eligible {
             guard let c = s.cgWindowID, !usedEligible.contains(c), newByID[c] == nil else { continue }
+            if s.isMinimized, let key = fk(s.bounds), placedFrames.contains(key) {
+                usedEligible.insert(c)   // 最小化窗口的后台标签 → 折叠进同 frame 座位,不另建
+                continue
+            }
             nextSeatSerial += 1
             place(make(token: "tabgrp-\(pid)-s\(nextSeatSerial)", s))
             observers[pid]?.registerWindow(s.element, cgWindowID: c)
+            if let key = fk(s.bounds) { placedFrames.insert(key) }
         }
 
         app.windowOrder = newOrder
