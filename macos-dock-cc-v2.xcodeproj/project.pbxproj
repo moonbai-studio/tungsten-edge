@@ -14,6 +14,7 @@
 		A00000000000000000001045 /* DrawerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006B /* DrawerStore.swift */; };
 		A000000000000000000019A0 /* MessagingAppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B0 /* MessagingAppStore.swift */; };
 		A00000000000000000005011 /* StripOrderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000005010 /* StripOrderStore.swift */; };
+		A00000000000000000006011 /* DragController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000006010 /* DragController.swift */; };
 		A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B4 /* LaunchFavoriteStore.swift */; };
 		A000000000000000000019A1 /* LauncherChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B1 /* LauncherChip.swift */; };
 		A000000000000000000019A2 /* BadgeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B2 /* BadgeStore.swift */; };
@@ -86,6 +87,7 @@
 		A0000000000000000000006B /* DrawerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B0 /* MessagingAppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingAppStore.swift; sourceTree = "<group>"; };
 		A00000000000000000005010 /* StripOrderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripOrderStore.swift; sourceTree = "<group>"; };
+		A00000000000000000006010 /* DragController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragController.swift; sourceTree = "<group>"; };
 		A000000000000000000019B4 /* LaunchFavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFavoriteStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B1 /* LauncherChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChip.swift; sourceTree = "<group>"; };
 		A000000000000000000019B2 /* BadgeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeStore.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 				A0000000000000000000006B /* DrawerStore.swift */,
 				A000000000000000000019B0 /* MessagingAppStore.swift */,
 				A00000000000000000005010 /* StripOrderStore.swift */,
+				A00000000000000000006010 /* DragController.swift */,
 				A000000000000000000019B4 /* LaunchFavoriteStore.swift */,
 				A000000000000000000019B2 /* BadgeStore.swift */,
 				A00000000000000000000027 /* ObservationPipeline */,
@@ -577,6 +580,7 @@
 					A00000000000000000001045 /* DrawerStore.swift in Sources */,
 					A000000000000000000019A0 /* MessagingAppStore.swift in Sources */,
 					A00000000000000000005011 /* StripOrderStore.swift in Sources */,
+					A00000000000000000006011 /* DragController.swift in Sources */,
 					A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */,
 					A000000000000000000019A1 /* LauncherChip.swift in Sources */,
 					A000000000000000000019A2 /* BadgeStore.swift in Sources */,

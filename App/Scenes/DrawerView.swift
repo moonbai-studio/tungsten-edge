@@ -81,14 +81,12 @@ struct DrawerView: View {
                 if hasRunningZone {
                     LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(drawerItems, id: \.id) { item in
+                            // 必须用 actionWindowID（真正的目标窗口），不是 item.id —— 后者是卡片稳定
+                            // 身份令牌(tabgrp-…)，不是窗口 ID，传进去动作找不到窗口 → 点了没反应
+                            // （2026-06-20 owner 报告：抽屉里有窗口的 app 点击无效，被放开拖动后暴露）。
+                            // 与任务条统一用 toggle（最小化/还原），行为一致。
                             ChipView(item: item, scale: 0.7, iconOnly: true, showRunningDot: true,
-                                     drawerTap: {
-                                         if item.status == "hidden" {
-                                             runtime.activate(windowID: item.id)
-                                         } else {
-                                             runtime.hide(windowID: item.id)
-                                         }
-                                     })
+                                     drawerTap: { runtime.toggle(windowID: item.actionWindowID) })
                         }
                         ForEach(runningStashedIDs, id: \.self) { bundleID in
                             LauncherChip(bundleID: bundleID,

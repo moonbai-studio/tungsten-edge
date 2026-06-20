@@ -28,21 +28,20 @@ struct DockStripView: View {
     @EnvironmentObject var messagingStore: MessagingAppStore
     @EnvironmentObject var badgeStore: BadgeStore
     @EnvironmentObject var stripOrderStore: StripOrderStore
+    /// 跨面板拖动权威（拖卡进抽屉 路线 C）：起拖 → beginDrag；读 draggingItem 隐藏原位卡片、
+    /// 读 isOverDropZone 在进投放区时停掉条内重排。载体面板/监视器/收尾都在它里面，本视图不碰。
+    @EnvironmentObject var dragController: DragController
 
-    /// id of the live chip currently being dragged (nil = not dragging). Drives the
-    /// in-flight hide so its slot becomes the landing gap, and gates the floating copy.
-    @State private var draggingID: String?
-
-    /// Finger position in the `"strip"` coordinate space during a drag — positions the
-    /// floating copy and feeds the left/right-half landing decision.
-    @State private var dragLocation: CGPoint?
-
-    /// Offset from the finger to the grabbed chip's center at press time, so the floating
-    /// copy doesn't snap its center under the cursor (no jump when grabbing from an edge).
-    @State private var grabOffset: CGSize = .zero
+    /// id of the live chip currently being dragged (nil = not dragging) —读自 dragController，
+    /// 限定 live 区 chip（pinned 消息区是 .messagingApp、无拖动手势，本就不会进来），
+    /// 驱动原位卡片隐藏成落位空位。应用级图标也算（它是 .window 项、可拖、可收纳）。
+    private var draggingID: String? {
+        guard let item = dragController.draggingItem else { return nil }
+        return liveOrderIDs.contains(item.id) ? item.id : nil
+    }
 
     /// Live chip frames by id in the `"strip"` space (含滚动偏移后的屏上位置), collected via
-    /// preference — feeds both the floating-copy positioning and the left/right-half split.
+    /// preference — feeds the grab offset at drag start and the full-frame landing hit-test.
     /// `.background` GeometryReader (not overlay) so it never steals chip clicks.
     @State private var chipFrames: [String: CGRect] = [:]
 
@@ -161,12 +160,8 @@ struct DockStripView: View {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
-        // Floating drag copy: the chip we *carry*. A real SwiftUI view we fully own — its
-        // teardown is instant on release (no system drag image fading in place → 零残影).
-        // Drawn on the same view that owns the `"strip"` space + reads chipFrames, so its
-        // `.position` shares one coordinate system with the finger and the chip frames
-        // (no scroll-offset skew). Not hit-testable so it never blocks the drop math.
-        .overlay { floatingDragCopy }
+        // 跨面板后，被拖的卡片改由 DragController 的全屏载体面板绘制（不再画在任务条 overlay 上 —
+        // 任务条窗口只有 92pt 高，自绘 overlay 会被裁掉，飘不出去）。这里只保留"让出空位"的原位隐藏。
         .coordinateSpace(name: "strip")
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
@@ -175,12 +170,9 @@ struct DockStripView: View {
         // appearance so the very first render's reconcile (empty → current) is a visual no-op.
         .onChange(of: liveOrderIDs, initial: true) { _, current in
             stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
-            // If the dragged chip's window vanished mid-drag, clear the drag so its slot
-            // doesn't stay a stuck gap. (The other lost-release case — mouse up with no
-            // gesture callback — is covered by watchDragEnd.)
-            if let id = draggingID, !current.contains(id) {
-                draggingID = nil
-                dragLocation = nil
+            // 拖动中被拖窗口消失 → 取消拖动，免得空位卡死。(松手无回调那条由 DragController 的轮询兜底。)
+            if let item = dragController.draggingItem, !current.contains(item.id) {
+                dragController.cancelDrag()
             }
         }
         .onPreferenceChange(ChipFramePreferenceKey.self) { chipFrames = $0 }
@@ -188,45 +180,13 @@ struct DockStripView: View {
         // the natural content width so AppDelegate can read it for panel sizing.
     }
 
-    /// The lifted card that follows the finger during a drag. Rendered from the same
-    /// `stripEntryView` as the real chip but forced into a fixed "dragging" visual so it
-    /// doesn't inherit/lose the original's hover state (which would pop its size on grab).
-    @ViewBuilder
-    private var floatingDragCopy: some View {
-        if let id = draggingID,
-           let location = dragLocation,
-           let entry = stripEntries.first(where: { $0.id == id }) {
-            stripEntryView(entry, dragging: true)
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
-                .scaleEffect(1.05)
-                .position(x: location.x + grabOffset.width, y: location.y + grabOffset.height)
-                .allowsHitTesting(false)
-                .transition(.identity)
-        }
-    }
-
-    /// Mouse-up safety net for the drag. `DragGesture.onEnded` is the primary teardown, but a
-    /// gesture can be *cancelled* without `.onEnded` (view churn, panel state change) — that
-    /// would strand the hidden chip's slot as a gap. So while a drag is live, poll the hardware
-    /// button and clear the drag the instant the button is up, wherever that happens. (The other
-    /// lost case — the dragged window vanishing mid-drag — is handled in the liveOrderIDs
-    /// onChange.) Runs only during a drag (stops once the button is up or the id is cleared).
-    private func watchDragEnd() {
-        guard draggingID != nil else { return }
-        if NSEvent.pressedMouseButtons == 0 {
-            draggingID = nil
-            dragLocation = nil
-            return
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { watchDragEnd() }
-    }
-
-    /// Live-zone reorder during a drag: find the chip whose frame the finger is over (excluding
-    /// the dragged chip itself), and place the dragged chip on the half the finger is in. Drives
-    /// the existing `stripLayoutKeys` spring so the others slide aside as the gap moves.
+    /// Live-zone reorder during a drag: find the chip whose **full frame** the finger is over
+    /// (excluding the dragged chip itself), and place the dragged chip on the half the finger is
+    /// in. Drives the existing `stripLayoutKeys` spring so the others slide aside as the gap moves.
+    /// 全帧命中（不只看 x）：手指抬向胶囊/抽屉时 y 已离开条内行，contains 不命中 → 不误改顺序（Codex 二审）。
     private func reorderTarget(at point: CGPoint, dragging id: String) {
         guard let hit = chipFrames.first(where: { kv in
-            kv.key != id && point.x >= kv.value.minX && point.x <= kv.value.maxX
+            kv.key != id && kv.value.contains(point)
         }) else { return }
         stripOrderStore.reorder(draggedID: id, relativeTo: hit.key,
                                 after: point.x > hit.value.midX, current: liveOrderIDs)
@@ -258,27 +218,27 @@ struct DockStripView: View {
                     }
                 )
                 // simultaneousGesture so the chip's own onTapGesture / contextMenu stay intact.
-                // minimumDistance: 8 → a click never starts a drag (no draggingID, no misfire).
+                // minimumDistance: 8 → a click never starts a drag (no misfire).
+                // 起拖交给 DragController（载体面板 + 监视器全程接管跟手/落点/收尾）；本手势只负责：
+                // ① 起拖一次（算 grabOffset，取屏幕坐标起点）；② 条内重排（进投放区即停，Codex 二审第 4 条 —
+                // 实测手势离开面板后不会自停，必须显式 gate）。onEnded 是监视器 mouseUp 之外的幂等兜底。
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 8, coordinateSpace: .named("strip"))
                         .onChanged { value in
-                            if draggingID != item.id {
-                                draggingID = item.id
-                                if let f = chipFrames[item.id] {
-                                    grabOffset = CGSize(width: f.midX - value.startLocation.x,
-                                                        height: f.midY - value.startLocation.y)
-                                } else {
-                                    grabOffset = .zero
-                                }
-                                watchDragEnd()
+                            if dragController.draggingItem == nil {
+                                let grab: CGSize = chipFrames[item.id].map {
+                                    CGSize(width: $0.midX - value.startLocation.x,
+                                           height: $0.midY - value.startLocation.y)
+                                } ?? .zero
+                                dragController.beginDrag(item: item,
+                                                         startScreenLocation: NSEvent.mouseLocation,
+                                                         grabOffset: grab)
                             }
-                            dragLocation = value.location
-                            reorderTarget(at: value.location, dragging: item.id)
+                            if !dragController.isOverDropZone {
+                                reorderTarget(at: value.location, dragging: item.id)
+                            }
                         }
-                        .onEnded { _ in
-                            draggingID = nil
-                            dragLocation = nil
-                        }
+                        .onEnded { _ in dragController.endDrag() }
                 )
         case .messagingApp:
             stripEntryView(entry)
@@ -583,6 +543,8 @@ struct ChipView: View {
 
 struct DrawerCapsuleButton: View {
     @EnvironmentObject var drawerStore: DrawerStore
+    /// 拖卡进抽屉的投放反馈：手指压在投放区时胶囊放大 + 高亮描边。
+    @EnvironmentObject var dragController: DragController
     let action: () -> Void
 
     private static let iconSize: CGFloat = 10
@@ -619,8 +581,11 @@ struct DrawerCapsuleButton: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
+                .strokeBorder(dragController.isOverDropZone ? .white.opacity(0.9) : .white.opacity(0.15),
+                              lineWidth: dragController.isOverDropZone ? 2 : 0.5)
         }
+        .scaleEffect(dragController.isOverDropZone ? 1.08 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: dragController.isOverDropZone)
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         .contentShape(Rectangle())

@@ -19,6 +19,9 @@ final class PanelCoordinator: NSObject {
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
+    /// 跨面板拖动（拖卡进抽屉 路线 C）的唯一权威：载体面板 + 鼠标监视器 + 落点收尾都在它里面。
+    /// 必须在 setupDockPanel/setupCapsulePanel 之前建好，因为要注入进这两个面板的 hosting。
+    private var dragController: DragController!
     private var drawerLocalMonitor: Any?
     private var drawerGlobalMonitor: Any?
     private var snapshotWidthSubscription: AnyCancellable?
@@ -43,6 +46,7 @@ final class PanelCoordinator: NSObject {
     }
 
     func start() {
+        setupDragController()
         setupDockPanel()
         setupCapsulePanel()
         subscribeSnapshotWidth()
@@ -156,6 +160,45 @@ final class PanelCoordinator: NSObject {
         closeDrawer()
     }
 
+    // MARK: - Drag Controller (拖卡进抽屉 路线 C)
+
+    private func setupDragController() {
+        dragController = DragController(
+            drawerStore: drawerStore,
+            dropZonesProvider: { [weak self] in self?.dragDropZones() ?? [] },
+            screenProvider: { [weak self] in self?.carrierTargetScreen() ?? (NSScreen.main ?? NSScreen.screens[0]) },
+            carrierFactory: { [runtime = self.runtime,
+                               drawerStore = self.drawerStore,
+                               messagingStore = self.messagingStore,
+                               launchFavoriteStore = self.launchFavoriteStore] controller in
+                NSHostingView(rootView: DragCarrierView(controller: controller)
+                    .environmentObject(runtime)
+                    .environmentObject(drawerStore)
+                    .environmentObject(messagingStore)
+                    .environmentObject(launchFavoriteStore))
+            }
+        )
+    }
+
+    /// 投放候选区（屏幕坐标）：胶囊可见内容区 + 8pt 容错（胶囊 frame 含 shadowPadding=20 透明边，
+    /// 减 20 得 52×52 可见区，再外扩 8 容错，不能更宽——胶囊紧挨任务条，太宽会"拖到附近就被收走"）。
+    /// 抽屉打开时叠加抽屉可见内容区（同样减 shadowPadding）。
+    private func dragDropZones() -> [CGRect] {
+        var zones: [CGRect] = []
+        if let capsule = capsulePanel {
+            zones.append(capsule.frame.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
+        }
+        if let drawer = drawerPanel, drawer.isVisible {
+            zones.append(drawer.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
+        }
+        return zones
+    }
+
+    private func carrierTargetScreen() -> NSScreen {
+        if let dock = dockPanel { return panelCurrentScreen(panel: dock) }
+        return NSScreen.main ?? NSScreen.screens[0]
+    }
+
     private func setupDockPanel() {
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let s = screen.frame
@@ -175,7 +218,7 @@ final class PanelCoordinator: NSObject {
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
 
-        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore).environmentObject(stripOrderStore))
+        let hosting = NSHostingView(rootView: DockStripView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(badgeStore).environmentObject(stripOrderStore).environmentObject(dragController))
         hosting.autoresizingMask = [.width, .height]
         // Prevent NSHostingView from adding its own opaque background over the blur
         hosting.wantsLayer = true
@@ -204,6 +247,7 @@ final class PanelCoordinator: NSObject {
             DrawerCapsuleButton { [weak self] in self?.toggleDrawer() }
                 .environmentObject(runtime)
                 .environmentObject(drawerStore)
+                .environmentObject(dragController)
         )
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
@@ -305,6 +349,7 @@ final class PanelCoordinator: NSObject {
     }
 
     @objc private func screenParametersChanged() {
+        dragController?.cancelDrag()   // 切屏/分辨率变 → 取消进行中的跨面板拖动，免得载体留在旧屏坐标
         guard let panel = dockPanel else { return }
         let screen = panelCurrentScreen(panel: panel)
         let contentWidth = (panel.contentView?.fittingSize.width ?? 0) - 2 * Self.shadowPadding
