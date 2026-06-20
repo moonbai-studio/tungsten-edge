@@ -3,7 +3,7 @@
 > **📍 New agent: read this first.**
 > The source of truth for current product state, roadmap, and design decisions is the owner's Obsidian vault — **not** this file or `Docs/`:
 > `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — entry note: `00 macos-dock-cc-v2 总览.md`. Follow its own links for what's current; don't hardcode a sub-note list here, it drifts as the vault grows.
-> This `AGENTS.md` and most of `Docs/` are scoped to the **foundation engine** (window identity / placement / taskbar trust) and **dated historical findings**. They do **not** track the UX feature layer (message chips, badges, drawer, native-tab merge…), which lives only in Obsidian. Treat dated `Docs/*` as historical records, not live status — except `Docs/05-known-platform-quirks.md`, which is kept current as repo-local engineering reference.
+> **Division of labor:** `AGENTS.md` holds engineering **do-not-revisit guardrails** — the hard constraints touching window identity, placement, taskbar trust, card identity, and input mechanism. A UX feature earns a section here **only once it hardens into such a constraint** (e.g. native-tab single-seat, strip drag-reorder); each entry stays terse and points to Obsidian for the full rationale + reversal log. Pure product surface with no engine-level constraint (badge styling, drawer copy, hover labels) stays **Obsidian-only**. Obsidian remains the source of truth for product state, decisions, and roadmap. Dated `Docs/*` are historical records, not live status — except `Docs/05-known-platform-quirks.md`, kept current as repo-local engineering reference.
 
 ## Purpose
 
