@@ -77,6 +77,15 @@ Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. 
 - **Order-layer stickiness (`StripOrderStore.rankRetentionGrace` ~5s)** stays: a chip id that briefly leaves the live set keeps its rank instead of being dropped-and-reappended.
 - **Known step-1 edges (acceptable / future):** two genuinely separate windows at a pixel-identical frame won't be disambiguated by frame alone (rare); closing the active tab relies on a takeover tab appearing promptly. `Docs` not yet written; this section is the live reference.
 
+### Strip Drag-Reorder Mechanism — self-drawn in-app drag (路线 A, 残影根治)
+
+> 2026-06-20. The live-zone chip drag carries a **self-rendered floating copy** (`DockStripView.floatingDragCopy`), driven by an in-app `DragGesture(coordinateSpace: .named("strip"))` — **not** SwiftUI system drag. The reorder logic underneath (`StripOrdering` / `StripOrderStore`, seat-lifecycle ranks) is unchanged; only the *carried image* changed. Full rationale + reversal log: Obsidian `03 设计决策`「拖动载体改自绘（松手残影根治）」.
+
+- **Do not reintroduce SwiftUI `.onDrag` / `NSItemProvider` for the strip.** The system snapshots the chip and fades that image **in place on release** — an un-suppressible "release ghost". That ghost is exactly the bug this mechanism replaced; the API gives no handle to stop the fade.
+- **Do not switch to AppKit `beginDraggingSession` (路线 B) to gain cross-panel drag-into-drawer.** The cross-panel convenience and the ghost are the *same coin*: a system-owned drag image floats above all panels AND can't be suppressed. Route B keeps that image, so it can't guarantee a ghost-free release — it's the one path that would be wasted work.
+- **Cross-panel endgame (C) = extend the self-drawn copy, not the system session.** Drag-into-drawer should grow the floating copy into a screen-spanning carrier (global mouse monitor + drop-into-drawer hit-test), keeping full ownership of the image. 路线 A is deliberately step 1 of this.
+- **Implementation guardrails that must hold:** (1) one `"strip"` coordinate space shared by chip frames (`ChipFramePreferenceKey`, read via `.background` GeometryReader — never `.overlay`, which steals clicks), the finger location, and the floating copy — else horizontal scroll skews finger↔copy↔target. (2) `grabOffset` (chip center − press point) so an edge-grab doesn't snap the copy's center to the cursor. (3) a slim `watchDragEnd` mouse-up fallback (a `DragGesture` can cancel without `.onEnded`) plus a `liveOrderIDs` onChange that clears a stale drag if the dragged window vanishes mid-drag — together they stop a hidden chip's slot from sticking as a gap. (4) the floating copy forces the hovered visual (`ChipView.forceHover`, since it's `allowsHitTesting(false)`) so it doesn't pop size on grab.
+
 ## Collaboration Rule
 
 The project owner directs the product but does not read code, and does not read English comfortably — reply in Chinese.
