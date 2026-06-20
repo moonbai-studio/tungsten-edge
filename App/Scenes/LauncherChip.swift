@@ -33,6 +33,7 @@ struct LauncherChip: View {
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
 
     @State private var isLaunching = false
+    @State private var isHovering = false
 
     /// 弹跳动画：偏移量由 isLaunching 声明式推导，动画类型也跟着 isLaunching 切换。
     /// 关键——绝不能用「withAnimation(.repeatForever) 起跳 + withAnimation 把值设回 0」
@@ -46,16 +47,28 @@ struct LauncherChip: View {
     }
 
     var body: some View {
-        ZStack {
+        let iconSize: CGFloat = isHovering ? 24 * scale : 36 * scale
+        let iconOpacity: Double = dimsWhenInactive ? (!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0)) : 1.0
+        return VStack(spacing: 2) {
+            Spacer(minLength: 0)
             Image(nsImage: AppIconResolver.icon(for: bundleID))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 36 * scale, height: 36 * scale)
-                .clipShape(RoundedRectangle(cornerRadius: 36 * scale / 4, style: .continuous))
-                .opacity(dimsWhenInactive ? (!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0)) : 1.0)
+                .frame(width: iconSize, height: iconSize)
+                .clipShape(RoundedRectangle(cornerRadius: iconSize / 4, style: .continuous))
+                .opacity(iconOpacity)
                 .shadow(color: .black.opacity(0.22), radius: 3, y: 1)
                 .offset(y: isLaunching ? -6 : 0)
                 .animation(bounceAnimation, value: isLaunching)
+            if isHovering {
+                Text(displayName)
+                    .font(.system(size: max(8, 10 * scale), weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .frame(maxWidth: 64 * scale)
+                    .transition(.opacity)
+            }
+            Spacer(minLength: 0)
         }
         .frame(width: 44 * scale, height: 52 * scale)
         .overlay(alignment: .bottom) {
@@ -67,6 +80,7 @@ struct LauncherChip: View {
             }
         }
         .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
         .onTapGesture {
             if let onTap { onTap() } else { handleTap() }
         }
@@ -76,6 +90,7 @@ struct LauncherChip: View {
         .onChange(of: isRunning) { _, newValue in
             if newValue { stopBounce() }
         }
+        .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 
     @ViewBuilder

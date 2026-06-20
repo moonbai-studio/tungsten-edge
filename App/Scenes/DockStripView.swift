@@ -297,6 +297,8 @@ struct ChipView: View {
     var showRunningDot: Bool = false
     var drawerTap: (() -> Void)? = nil
 
+    @State private var isHovering = false
+
     /// 乐观态优先（交互打磨 2026-06-13）：点击瞬间 chip 立刻按预测态渲染
     ///（minimize → 变暗），不等快照 round-trip，也不再转圈。
     private var effectiveStatus: String {
@@ -325,22 +327,37 @@ struct ChipView: View {
 
     private var bareIconChip: some View {
         let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
-        return appIcon(size: 36 * scale, opacity: iconOpacity)
-            .frame(width: 44 * scale, height: 52 * scale)
-            .overlay(alignment: .bottom) {
-                if showRunningDot {
-                    Circle()
-                        .fill(.white.opacity(0.85))
-                        .frame(width: 4, height: 4)
-                        .padding(.bottom, 2)
-                }
+        let iconSize: CGFloat = isHovering ? 24 * scale : 36 * scale
+        return VStack(spacing: 2) {
+            Spacer(minLength: 0)
+            appIcon(size: iconSize, opacity: iconOpacity)
+            if isHovering {
+                Text(displayTitle)
+                    .font(.system(size: max(8, 10 * scale), weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .frame(maxWidth: 64 * scale)
+                    .transition(.opacity)
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
+            Spacer(minLength: 0)
+        }
+        .frame(width: 44 * scale, height: 52 * scale)
+        .overlay(alignment: .bottom) {
+            if showRunningDot {
+                Circle()
+                    .fill(.white.opacity(0.85))
+                    .frame(width: 4, height: 4)
+                    .padding(.bottom, 2)
             }
-            .contextMenu { chipContextMenu }
-            .help(displayTitle)
+        }
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
+        .onTapGesture {
+            if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
+        }
+        .contextMenu { chipContextMenu }
+        .help(displayTitle)
+        .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 
     // MARK: - Labeled chip
@@ -348,9 +365,15 @@ struct ChipView: View {
     private var multiWindowChip: some View {
         let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
         let textOpacity: Double = effectiveIsOnDesktop ? 0.9 : 0.60
-        return HStack(spacing: 6 * scale) {
-            appIcon(size: 22 * scale, opacity: iconOpacity)
+        let bgOpacity: Double = isHovering ? 0.14 : 0.08
 
+        let pillHeight: CGFloat = isHovering ? 28 * scale : 34 * scale
+        let pillIconSize: CGFloat = isHovering ? 18 * scale : 22 * scale
+        let pill = HStack(spacing: 6 * scale) {
+            // Fixed layout frame (22pt) so HStack width never changes on hover;
+            // only the visual icon content shrinks.
+            appIcon(size: pillIconSize, opacity: iconOpacity)
+                .frame(width: 22 * scale, height: 22 * scale)
             Text(displayTitle)
                 .font(.system(size: max(10, 12 * scale), weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(textOpacity))
@@ -358,15 +381,15 @@ struct ChipView: View {
                 .frame(maxWidth: 140, alignment: .leading)
         }
         .padding(.horizontal, 10 * scale)
-        .frame(height: 34 * scale)
+        .frame(height: pillHeight)
         .background(
             RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
-                .fill(Color.white.opacity(0.08))
+                .fill(Color.white.opacity(bgOpacity))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [.white.opacity(0.15), .white.opacity(0.02)],
+                                colors: [.white.opacity(isHovering ? 0.25 : 0.15), .white.opacity(0.02)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
@@ -374,12 +397,29 @@ struct ChipView: View {
                         )
                 )
         )
-        .contentShape(RoundedRectangle(cornerRadius: 10 * scale, style: .continuous))
+
+        return VStack(spacing: 2) {
+            Spacer(minLength: 0)
+            pill
+            if isHovering {
+                Text(appName)
+                    .font(.system(size: max(8, 9 * scale), weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.65))
+                    .lineLimit(1)
+                    .frame(maxWidth: 160 * scale)
+                    .transition(.opacity)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(height: 52 * scale)
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
         .onTapGesture {
             if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
         }
         .contextMenu { chipContextMenu }
         .help(displayTitle)
+        .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 
     // MARK: - Shared Icon
@@ -471,6 +511,12 @@ struct ChipView: View {
 
     private var displayTitle: String {
         item.title == "macos-dock-cc-v2" ? "任务条" : item.title
+    }
+
+    private var appName: String {
+        guard let bid = item.bundleIdentifier else { return displayTitle }
+        let name = AppDisplayNameResolver.displayName(for: bid)
+        return name == "macos-dock-cc-v2" ? "任务条" : name
     }
 }
 
