@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// One slot in the strip: either a concrete window chip, or a pinned messaging
 /// app-level entry (Dock-icon-like, 方案 B 2026-06-12).
@@ -31,12 +30,21 @@ struct DockStripView: View {
     @EnvironmentObject var stripOrderStore: StripOrderStore
 
     /// id of the live chip currently being dragged (nil = not dragging). Drives the
-    /// in-flight hide so its slot becomes the landing gap.
+    /// in-flight hide so its slot becomes the landing gap, and gates the floating copy.
     @State private var draggingID: String?
 
-    /// Live chip widths by id, collected via preference — feeds the drop delegate's
-    /// left/right-half split without an overlay (which would steal clicks).
-    @State private var chipWidths: [String: CGFloat] = [:]
+    /// Finger position in the `"strip"` coordinate space during a drag — positions the
+    /// floating copy and feeds the left/right-half landing decision.
+    @State private var dragLocation: CGPoint?
+
+    /// Offset from the finger to the grabbed chip's center at press time, so the floating
+    /// copy doesn't snap its center under the cursor (no jump when grabbing from an edge).
+    @State private var grabOffset: CGSize = .zero
+
+    /// Live chip frames by id in the `"strip"` space (含滚动偏移后的屏上位置), collected via
+    /// preference — feeds both the floating-copy positioning and the left/right-half split.
+    /// `.background` GeometryReader (not overlay) so it never steals chip clicks.
+    @State private var chipFrames: [String: CGRect] = [:]
 
     private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -153,6 +161,13 @@ struct DockStripView: View {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
+        // Floating drag copy: the chip we *carry*. A real SwiftUI view we fully own — its
+        // teardown is instant on release (no system drag image fading in place → 零残影).
+        // Drawn on the same view that owns the `"strip"` space + reads chipFrames, so its
+        // `.position` shares one coordinate system with the finger and the chip frames
+        // (no scroll-offset skew). Not hit-testable so it never blocks the drop math.
+        .overlay { floatingDragCopy }
+        .coordinateSpace(name: "strip")
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         // Converge the remembered live order with the current snapshot (drop closed, append
@@ -160,90 +175,123 @@ struct DockStripView: View {
         // appearance so the very first render's reconcile (empty → current) is a visual no-op.
         .onChange(of: liveOrderIDs, initial: true) { _, current in
             stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
+            // If the dragged chip's window vanished mid-drag, clear the drag so its slot
+            // doesn't stay a stuck gap. (The other lost-release case — mouse up with no
+            // gesture callback — is covered by watchDragEnd.)
+            if let id = draggingID, !current.contains(id) {
+                draggingID = nil
+                dragLocation = nil
+            }
         }
-        // Catch releases that land in the gaps / background (not onto a chip) so the
-        // in-flight chip's hidden state always clears. (Per-chip delegates clear on
-        // drop-onto-chip; this is the fallback for everything else inside the strip.)
-        .onDrop(of: [.text], delegate: ClearDragDropDelegate(draggingID: $draggingID))
-        .onPreferenceChange(ChipWidthPreferenceKey.self) { chipWidths = $0 }
+        .onPreferenceChange(ChipFramePreferenceKey.self) { chipFrames = $0 }
         // No .frame(maxWidth: .infinity) here — lets NSHostingView.fittingSize reflect
         // the natural content width so AppDelegate can read it for panel sizing.
     }
 
-    /// Wraps a chip with drag-reorder for the **live zone only** (任务条拖动重排 slice 3).
-    /// Pinned messaging chips don't participate — no drop delegate means a window chip can't
-    /// land in that zone (拖动分区内进行).
-    ///
-    /// Live-reorder feel (native-Dock style): while dragging, the in-flight chip is hidden so
-    /// its slot becomes the landing **gap**, and the others slide aside as the gap moves
-    /// through them — driven by the existing `stripLayoutKeys` spring. The drop side returns
-    /// `.move`, so the cursor shows a move (no copy「+」). Pointer over a target's left half →
-    /// land left, right half → land right. macOS click-drag is free here (scrolling uses
-    /// wheel/trackpad), so a plain tap still activates and right-click still opens the menu.
-    /// `.onDrag` has no "drag ended" callback, and a release that lands off every drop target
-    /// (dead space, or over the drawer before it has one) never fires `performDrop` — which
-    /// would otherwise leave the hidden chip stuck invisible. So poll the hardware button state
-    /// and clear `draggingID` the moment the mouse is released, wherever that happens. Runs only
-    /// during a drag (stops as soon as the button is up or the id is already cleared).
+    /// The lifted card that follows the finger during a drag. Rendered from the same
+    /// `stripEntryView` as the real chip but forced into a fixed "dragging" visual so it
+    /// doesn't inherit/lose the original's hover state (which would pop its size on grab).
+    @ViewBuilder
+    private var floatingDragCopy: some View {
+        if let id = draggingID,
+           let location = dragLocation,
+           let entry = stripEntries.first(where: { $0.id == id }) {
+            stripEntryView(entry, dragging: true)
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+                .scaleEffect(1.05)
+                .position(x: location.x + grabOffset.width, y: location.y + grabOffset.height)
+                .allowsHitTesting(false)
+                .transition(.identity)
+        }
+    }
+
+    /// Mouse-up safety net for the drag. `DragGesture.onEnded` is the primary teardown, but a
+    /// gesture can be *cancelled* without `.onEnded` (view churn, panel state change) — that
+    /// would strand the hidden chip's slot as a gap. So while a drag is live, poll the hardware
+    /// button and clear the drag the instant the button is up, wherever that happens. (The other
+    /// lost case — the dragged window vanishing mid-drag — is handled in the liveOrderIDs
+    /// onChange.) Runs only during a drag (stops once the button is up or the id is cleared).
     private func watchDragEnd() {
         guard draggingID != nil else { return }
         if NSEvent.pressedMouseButtons == 0 {
             draggingID = nil
+            dragLocation = nil
             return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { watchDragEnd() }
     }
 
+    /// Live-zone reorder during a drag: find the chip whose frame the finger is over (excluding
+    /// the dragged chip itself), and place the dragged chip on the half the finger is in. Drives
+    /// the existing `stripLayoutKeys` spring so the others slide aside as the gap moves.
+    private func reorderTarget(at point: CGPoint, dragging id: String) {
+        guard let hit = chipFrames.first(where: { kv in
+            kv.key != id && point.x >= kv.value.minX && point.x <= kv.value.maxX
+        }) else { return }
+        stripOrderStore.reorder(draggedID: id, relativeTo: hit.key,
+                                after: point.x > hit.value.midX, current: liveOrderIDs)
+    }
+
+    /// Wraps a chip with in-app drag-reorder for the **live zone only** (路线 A 自绘拖动).
+    /// Pinned messaging chips don't participate (no gesture → can't land in that zone, 拖动分区内进行).
+    ///
+    /// Native-Dock feel: while dragging, the in-place chip is hidden (`opacity 0`) so its slot
+    /// becomes the landing **gap**; what you carry is the self-rendered `floatingDragCopy` (fully
+    /// ours → 松手零残影, unlike the old system `.onDrag` image that faded in place). Pointer over a
+    /// target's left/right half → land left/right. A plain tap (< minimumDistance) still falls
+    /// through to the chip's `onTapGesture`; right-click still opens the menu; horizontal scroll
+    /// is wheel/trackpad so it never fights this click-drag.
     @ViewBuilder
     private func chipWithReorder(_ entry: StripEntry) -> some View {
         switch entry {
         case let .window(item):
             stripEntryView(entry)
-                // Hide the in-flight chip so its slot is the landing **gap** that follows the
-                // cursor (native-Dock feel); the floating **system** drag image is what you
-                // carry (and can cross panels, for the future drag-into-drawer). `draggingID`
-                // is cleared the instant the mouse is released (watchDragEnd), wherever the
-                // release lands — so the chip can never stay hidden after a drop in dead space
-                // / over the drawer, and the reappear coincides with the system image vanishing
-                // (which also cuts the release ghost).
                 .opacity(draggingID == item.id ? 0 : 1)
-                .onDrag {
-                    // Defer one tick so the drag image snapshots at full opacity, then start
-                    // watching for the mouse release that ends the drag.
-                    DispatchQueue.main.async {
-                        draggingID = item.id
-                        watchDragEnd()
-                    }
-                    return NSItemProvider(object: item.id as NSString)
-                }
-                // Width via a **background** GeometryReader — doesn't affect layout and,
-                // crucially, doesn't steal clicks. (An overlay with a hittable Color.clear
-                // sits on top and intercepts taps, breaking chip clicks — the slice-3 bug.)
+                // Frame in the shared `"strip"` space via a **background** GeometryReader — doesn't
+                // affect layout and doesn't steal clicks (an overlay with a hittable Color.clear
+                // intercepts taps — the original slice-3 bug). Feeds both the floating copy's
+                // position and the left/right-half landing decision.
                 .background(
                     GeometryReader { geo in
-                        Color.clear.preference(key: ChipWidthPreferenceKey.self, value: [item.id: geo.size.width])
+                        Color.clear.preference(key: ChipFramePreferenceKey.self,
+                                               value: [item.id: geo.frame(in: .named("strip"))])
                     }
                 )
-                // onDrop directly on the chip: catches drops while leaving onTapGesture /
-                // contextMenu intact (a drop session doesn't block plain clicks).
-                .onDrop(of: [.text], delegate: ChipReorderDropDelegate(
-                    targetID: item.id,
-                    targetWidth: chipWidths[item.id] ?? 44,
-                    draggingID: $draggingID,
-                    reorder: { dragged, after in
-                        stripOrderStore.reorder(draggedID: dragged, relativeTo: item.id, after: after, current: liveOrderIDs)
-                    }
-                ))
+                // simultaneousGesture so the chip's own onTapGesture / contextMenu stay intact.
+                // minimumDistance: 8 → a click never starts a drag (no draggingID, no misfire).
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 8, coordinateSpace: .named("strip"))
+                        .onChanged { value in
+                            if draggingID != item.id {
+                                draggingID = item.id
+                                if let f = chipFrames[item.id] {
+                                    grabOffset = CGSize(width: f.midX - value.startLocation.x,
+                                                        height: f.midY - value.startLocation.y)
+                                } else {
+                                    grabOffset = .zero
+                                }
+                                watchDragEnd()
+                            }
+                            dragLocation = value.location
+                            reorderTarget(at: value.location, dragging: item.id)
+                        }
+                        .onEnded { _ in
+                            draggingID = nil
+                            dragLocation = nil
+                        }
+                )
         case .messagingApp:
             stripEntryView(entry)
         }
     }
 
+    /// `dragging: true` forces the chip's hovered visual — the floating drag copy renders this
+    /// so it matches the chip you grabbed (cursor is on it → it was hovered), no size pop.
     @ViewBuilder
-    private func stripEntryView(_ entry: StripEntry) -> some View {
+    private func stripEntryView(_ entry: StripEntry, dragging: Bool = false) -> some View {
         switch entry {
         case let .window(item):
-            ChipView(item: item)
+            ChipView(item: item, forceHover: dragging)
         case let .messagingApp(bid, main):
             // Explicit ZStack: the badge is the LAST child + zIndex, guaranteed to
             // draw on top of the icon (classic Dock badge sits over the icon corner).
@@ -296,8 +344,14 @@ struct ChipView: View {
     var iconOnly: Bool = false
     var showRunningDot: Bool = false
     var drawerTap: (() -> Void)? = nil
+    /// Force the hovered visual regardless of pointer (used by the floating drag copy, which
+    /// isn't hit-testable so its own `isHovering` would never light up).
+    var forceHover: Bool = false
 
     @State private var isHovering = false
+
+    /// Visual hover state: the real pointer hover OR forced (drag copy).
+    private var showsHover: Bool { forceHover || isHovering }
 
     /// 乐观态优先（交互打磨 2026-06-13）：点击瞬间 chip 立刻按预测态渲染
     ///（minimize → 变暗），不等快照 round-trip，也不再转圈。
@@ -332,11 +386,11 @@ struct ChipView: View {
 
     private var bareIconChip: some View {
         let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
-        let iconSize: CGFloat = isHovering ? 24 * scale : 36 * scale
+        let iconSize: CGFloat = showsHover ? 24 * scale : 36 * scale
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             appIcon(size: iconSize, opacity: iconOpacity)
-            if isHovering {
+            if showsHover {
                 Text(displayTitle)
                     .font(.system(size: max(8, 10 * scale), weight: .medium, design: .rounded))
                     .foregroundStyle(.white.opacity(0.85))
@@ -370,10 +424,10 @@ struct ChipView: View {
     private var multiWindowChip: some View {
         let iconOpacity: Double = effectiveIsOnDesktop ? 1.0 : 0.45
         let textOpacity: Double = effectiveIsOnDesktop ? 0.9 : 0.60
-        let bgOpacity: Double = isHovering ? 0.14 : 0.08
+        let bgOpacity: Double = showsHover ? 0.14 : 0.08
 
-        let pillHeight: CGFloat = isHovering ? 28 * scale : 34 * scale
-        let pillIconSize: CGFloat = isHovering ? 18 * scale : 22 * scale
+        let pillHeight: CGFloat = showsHover ? 28 * scale : 34 * scale
+        let pillIconSize: CGFloat = showsHover ? 18 * scale : 22 * scale
         let pill = HStack(spacing: 6 * scale) {
             // Fixed layout frame (22pt) so HStack width never changes on hover;
             // only the visual icon content shrinks.
@@ -394,7 +448,7 @@ struct ChipView: View {
                     RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [.white.opacity(isHovering ? 0.25 : 0.15), .white.opacity(0.02)],
+                                colors: [.white.opacity(showsHover ? 0.25 : 0.15), .white.opacity(0.02)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
@@ -406,7 +460,7 @@ struct ChipView: View {
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             pill
-            if isHovering {
+            if showsHover {
                 Text(appName)
                     .font(.system(size: max(8, 9 * scale), weight: .medium, design: .rounded))
                     .foregroundStyle(.white.opacity(0.65))
@@ -652,49 +706,14 @@ struct DockVisualEffectView: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
-// MARK: - Drag-reorder drop delegates (任务条拖动重排 slice 3)
+// MARK: - Drag-reorder preference (任务条拖动重排 路线 A 自绘拖动)
 
-/// Collects live chip widths by id (for the drop delegate's left/right-half split).
-private struct ChipWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: [String: CGFloat] = [:]
-    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+/// Collects live chip frames by id in the `"strip"` space — feeds the floating drag copy's
+/// position and the left/right-half landing decision (replaces the old width-only key + the
+/// SwiftUI DropDelegates, now that the drag is a self-rendered in-app gesture).
+private struct ChipFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
         value.merge(nextValue(), uniquingKeysWith: { _, new in new })
-    }
-}
-
-/// Per-chip drop target: while a live chip is dragged over this one, place it left/right of
-/// this chip by which half the pointer is in, live (so the others slide aside). Returns
-/// `.move` so the cursor shows a move, not a copy「+」.
-private struct ChipReorderDropDelegate: DropDelegate {
-    let targetID: String
-    let targetWidth: CGFloat
-    @Binding var draggingID: String?
-    let reorder: (_ draggedID: String, _ after: Bool) -> Void
-
-    func validateDrop(info: DropInfo) -> Bool { draggingID != nil }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        if let dragging = draggingID, dragging != targetID {
-            reorder(dragging, info.location.x > targetWidth / 2)
-        }
-        return DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggingID = nil
-        return true
-    }
-}
-
-/// Strip-background fallback: clears the drag state when a release lands off any chip, so the
-/// in-flight chip never stays hidden. Doesn't reorder — the last `dropUpdated` already did.
-private struct ClearDragDropDelegate: DropDelegate {
-    @Binding var draggingID: String?
-
-    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggingID = nil
-        return true
     }
 }
