@@ -312,9 +312,14 @@ struct ChipView: View {
         return optimistic.status == .active
     }
 
+    private var isMessagingAppWindow: Bool {
+        guard let bid = item.bundleIdentifier else { return false }
+        return !item.isAppLevelFallback && messagingStore.contains(bid)
+    }
+
     var body: some View {
         Group {
-            if !iconOnly && item.showsTitle {
+            if !iconOnly && (item.showsTitle || isMessagingAppWindow) {
                 multiWindowChip
             } else {
                 bareIconChip
