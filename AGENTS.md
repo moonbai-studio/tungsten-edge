@@ -86,6 +86,22 @@ Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. 
 - **Cross-panel endgame (C) = extend the self-drawn copy, not the system session.** Drag-into-drawer should grow the floating copy into a screen-spanning carrier (global mouse monitor + drop-into-drawer hit-test), keeping full ownership of the image. 路线 A is deliberately step 1 of this.
 - **Implementation guardrails that must hold:** (1) one `"strip"` coordinate space shared by chip frames (`ChipFramePreferenceKey`, read via `.background` GeometryReader — never `.overlay`, which steals clicks), the finger location, and the floating copy — else horizontal scroll skews finger↔copy↔target. (2) `grabOffset` (chip center − press point) so an edge-grab doesn't snap the copy's center to the cursor. (3) a slim `watchDragEnd` mouse-up fallback (a `DragGesture` can cancel without `.onEnded`) plus a `liveOrderIDs` onChange that clears a stale drag if the dragged window vanishes mid-drag — together they stop a hidden chip's slot from sticking as a gap. (4) the floating copy forces the hovered visual (`ChipView.forceHover`, since it's `allowsHitTesting(false)`) so it doesn't pop size on grab.
 
+### Optimistic Action State — interruptible interaction (去转圈 + 可打断)
+
+> 2026-06-13. Deliberately relaxes the older "lock the chip while an action is in flight" rule — that rule is **superseded, do not reinstate**.
+
+- Clicking a chip writes an **optimistic state** (predicted status + frontmost) immediately; UI render and toggle-planning read it first, cleared when the real snapshot confirms or after a ~4s timeout (silent rollback, no shake/red). This *is* the feedback — **no spinner**.
+- **Scope = show/hide only** (toggle / activate / minimize / hide). **close / quit stay locked until confirmed** — making a chip vanish optimistically then bounce back on failure is worse than a brief wait. Re-entrancy guard lives in `AppRuntime.trigger`, not UI graying.
+- Grounding diagnostic: a spinner (`pending`) ≠ "action running" — execution is a one-shot AX call, pending is just awaiting the snapshot. The real bug was `toggle` re-reading a not-yet-flipped snapshot → repeating one action instead of alternating; the optimistic state fixes both that and the interruptibility.
+- Known accepted: `hideApp` only optimistically covers the clicked chip; other windows of the same app wait for the snapshot.
+
+### Panel Layout — shadowPadding coordinate rule
+
+> SwiftUI `.shadow()` draws the panel shadow, so each panel window reserves `shadowPadding = 20pt` of transparent margin on all sides (AppKit `NSWindow` shadow is off; `clipShape` does the rounding).
+
+- **Any coordinate math on `dockFrame` / `capsuleFrame` must subtract `shadowPadding` first** to reach the visual content edge — forgetting this offsets placement (4 such bugs fixed 2026-06-19, `c44d17e`).
+- **Reading `fittingSize.width` must subtract `2 × shadowPadding`**, else the panel sizes ~80pt too wide.
+
 ## Collaboration Rule
 
 The project owner directs the product but does not read code, and does not read English comfortably — reply in Chinese.
