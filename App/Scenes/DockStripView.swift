@@ -158,8 +158,8 @@ struct DockStripView: View {
         // 抽屉图标拖到任务条上方 = 移回任务栏的投放反馈：整条任务条高亮描边（对称于胶囊的收纳高亮）。
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(dragController.isOverUnstashZone ? .white.opacity(0.9) : .white.opacity(0.15),
-                              lineWidth: dragController.isOverUnstashZone ? 2 : 0.5)
+                .strokeBorder(dragController.isOverUnstashZone ? .white.opacity(0.45) : .white.opacity(0.15),
+                              lineWidth: dragController.isOverUnstashZone ? 1 : 0.5)
         }
         .animation(.easeOut(duration: 0.15), value: dragController.isOverUnstashZone)
         // 跨面板后，被拖的卡片改由 DragController 的全屏载体面板绘制（不再画在任务条 overlay 上 —
@@ -587,11 +587,12 @@ struct DrawerCapsuleButton: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(dragController.isOverStashZone ? .white.opacity(0.9) : .white.opacity(0.15),
-                              lineWidth: dragController.isOverStashZone ? 2 : 0.5)
+                .strokeBorder(dragController.isOverStashZone ? .white.opacity(0.45) : .white.opacity(0.15),
+                              lineWidth: dragController.isOverStashZone ? 1 : 0.5)
         }
-        .scaleEffect(dragController.isOverStashZone ? 1.08 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: dragController.isOverStashZone)
+        .scaleEffect(dragController.isOverStashZone ? 1.03 : 1.0)
+        // 去弹性、平滑淡入,不再"啪"地弹一下（owner 2026-06-21 觉得太生硬）。
+        .animation(.easeOut(duration: 0.18), value: dragController.isOverStashZone)
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         .contentShape(Rectangle())

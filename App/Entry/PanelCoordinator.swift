@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import Combine
+import QuartzCore
 import SwiftUI
 import os
 
@@ -29,8 +30,17 @@ final class PanelCoordinator: NSObject {
     private var drawerStoreWidthSubscription: AnyCancellable?
     private var messagingStoreWidthSubscription: AnyCancellable?
     private var launchFavoriteStoreSubscription: AnyCancellable?
+    private var dragSpringSubscription: AnyCancellable?
+    private var springOpenTimer: Timer?
     private var lastDesiredWidth: CGFloat = 0
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
+    /// 目标 frame 驱动布局：每次 layoutPanels 算齐三个目标并存这里。drop zone 命中、开抽屉定位都读**目标**
+    /// 而非 live frame——动画中 live frame 是中途值,会和视觉/逻辑短暂不一致（Codex 二审 P2）。
+    private var lastDockTargetFrame: NSRect = .zero
+    private var lastCapsuleTargetFrame: NSRect = .zero
+    private var lastDrawerTargetFrame: NSRect = .zero
+    /// 首帧布局强制瞬时（面板刚建好,别从初始/原点位置滑过来）。
+    private var didInitialLayout = false
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "dock-panel")
 
     private var isHiddenForFullscreen = false
@@ -55,6 +65,7 @@ final class PanelCoordinator: NSObject {
         subscribeDrawerStoreWidth()
         subscribeMessagingStoreWidth()
         subscribeLaunchFavoriteStore()
+        subscribeDragSpringLoad()
         setupFullscreenMonitor()
         setupHoverDiagnostics()
         NotificationCenter.default.addObserver(
@@ -68,6 +79,7 @@ final class PanelCoordinator: NSObject {
     deinit {
         fullscreenReconcileTimer?.invalidate()
         hoverPollTimer?.invalidate()
+        springOpenTimer?.invalidate()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
     }
@@ -102,20 +114,18 @@ final class PanelCoordinator: NSObject {
             drawerPanel = panel
         }
 
-        guard let capsule = capsulePanel else { return }
+        guard capsulePanel != nil else { return }
         let screen = panelCurrentScreen(panel: mainPanel)
-        let vf = screen.visibleFrame
-        let capsuleFrame = capsule.frame
-        let s = lastDrawerSize
-        let rawX = capsuleFrame.maxX - s.width
-        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
-        let clampedX = min(max(rawX, vf.minX), vf.maxX - s.width)
-        let clampedY = min(max(rawY, vf.minY), vf.maxY - s.height)
-        drawerPanel?.setFrame(NSRect(x: clampedX, y: clampedY, width: s.width, height: s.height), display: false)
+        // 用胶囊**目标** frame 定位（不读 live：用户可能在任务条宽度动画中触发弹簧开抽屉,live 胶囊是中途值,Codex 二审 P1）。
+        let capsuleRef = lastCapsuleTargetFrame == .zero ? (capsulePanel?.frame ?? .zero) : lastCapsuleTargetFrame
+        let initialFrame = drawerTargetFrame(forCapsule: capsuleRef, size: lastDrawerSize, on: screen)
+        lastDrawerTargetFrame = initialFrame
+        drawerPanel?.setFrame(initialFrame, display: false)
         drawerPanel?.orderFrontRegardless()
+        // 弹出后量真实 fittingSize 重新布局（瞬时,刚弹出不滑）。
         DispatchQueue.main.async { [weak self] in
             DispatchQueue.main.async { [weak self] in
-                self?.syncDrawerPanel()
+                self?.relayout(animated: false)
             }
         }
 
@@ -126,24 +136,6 @@ final class PanelCoordinator: NSObject {
         drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             self?.dismissDrawerIfOutside()
         }
-    }
-
-    private func syncDrawerPanel() {
-        guard let drawer = drawerPanel, drawer.isVisible,
-              let capsule = capsulePanel,
-              let dock = dockPanel,
-              let hosting = drawer.contentView else { return }
-        let fitting = hosting.fittingSize
-        let drawerSize = CGSize(width: max(fitting.width, 60), height: max(fitting.height, 60))
-        lastDrawerSize = drawerSize
-        let screen = panelCurrentScreen(panel: dock)
-        let vf = screen.visibleFrame
-        let capsuleFrame = capsule.frame
-        let rawX = capsuleFrame.maxX - drawerSize.width
-        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
-        let clampedX = min(max(rawX, vf.minX), vf.maxX - drawerSize.width)
-        let clampedY = min(max(rawY, vf.minY), vf.maxY - drawerSize.height)
-        drawer.setFrame(NSRect(x: clampedX, y: clampedY, width: drawerSize.width, height: drawerSize.height), display: true)
     }
 
     private func closeDrawer() {
@@ -178,6 +170,13 @@ final class PanelCoordinator: NSObject {
                     .environmentObject(drawerStore)
                     .environmentObject(messagingStore)
                     .environmentObject(launchFavoriteStore))
+            },
+            stashAtCommit: { [weak self] bid, index in
+                guard let self else { return }
+                // 先把待入项插到抽屉顺序第 index 位（members 不含 bid），再 add 成员（Codex 二审 P2-5）。
+                let members = self.drawerStore.bundleIDs + self.launchFavoriteStore.bundleIDs.filter { !self.drawerStore.contains($0) }
+                self.drawerOrderStore.insert(bid, at: index, members: members)
+                self.drawerStore.add(bid)
             }
         )
     }
@@ -188,25 +187,68 @@ final class PanelCoordinator: NSObject {
     ///   抽屉打开时叠加抽屉可见内容区。
     /// - `.drawer`（抽屉图标找移回目标）= 任务条 dock 面板可见内容区（减 shadowPadding）。
     private func dragDropZones(for source: DragSource) -> [CGRect] {
+        // 读**目标** frame：动画中 live frame 是中途值,会和视觉/落点短暂错位（Codex 二审 P2）。目标未初始化时退回 live。
+        func target(_ stored: NSRect, _ live: NSRect?) -> NSRect? { stored != .zero ? stored : live }
         switch source {
         case .strip:
             var zones: [CGRect] = []
-            if let capsule = capsulePanel {
-                zones.append(capsule.frame.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
+            if let c = target(lastCapsuleTargetFrame, capsulePanel?.frame) {
+                zones.append(c.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
             }
-            if let drawer = drawerPanel, drawer.isVisible {
-                zones.append(drawer.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
+            if let drawer = drawerPanel, drawer.isVisible, let d = target(lastDrawerTargetFrame, drawer.frame) {
+                zones.append(d.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
             }
             return zones
         case .drawer:
-            guard let dock = dockPanel else { return [] }
-            return [dock.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding)]
+            guard let d = target(lastDockTargetFrame, dockPanel?.frame) else { return [] }
+            return [d.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding)]
         }
     }
 
     private func carrierTargetScreen() -> NSScreen {
         if let dock = dockPanel { return panelCurrentScreen(panel: dock) }
         return NSScreen.main ?? NSScreen.screens[0]
+    }
+
+    // MARK: - 弹簧文件夹：拖卡悬停胶囊自动弹开抽屉
+
+    /// strip 卡悬在胶囊上（抽屉关着时投放区只有胶囊）约 0.4s → 自动弹开抽屉,之后移进抽屉即接上精确定位;
+    /// 不等它开、直接在胶囊松手仍按"收进末尾"。移开/松手取消定时器。
+    private func subscribeDragSpringLoad() {
+        dragSpringSubscription = dragController.$isOverDropZone
+            .combineLatest(dragController.$draggingPayload)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] over, payload in
+                self?.updateSpringLoad(over: over, source: payload?.source)
+            }
+    }
+
+    private func updateSpringLoad(over: Bool, source: DragSource?) {
+        let drawerClosed = !(drawerPanel?.isVisible ?? false)
+        let arm = over && source == .strip && drawerClosed
+        if arm {
+            if springOpenTimer == nil {
+                // 必须用 .common 模式：拖动时主 run loop 在事件跟踪模式,scheduledTimer(默认 default 模式)
+                // 拖动期间不触发 → 0.4s 到不了、抽屉永不自动开（owner 2026-06-21 报告"弹簧没生效"的真因）。
+                let timer = Timer(timeInterval: 0.4, repeats: false) { [weak self] _ in
+                    Task { @MainActor in self?.springOpenDrawer() }
+                }
+                RunLoop.main.add(timer, forMode: .common)
+                springOpenTimer = timer
+            }
+        } else {
+            springOpenTimer?.invalidate(); springOpenTimer = nil
+        }
+    }
+
+    private func springOpenDrawer() {
+        springOpenTimer = nil
+        // 到点仍在拖、仍悬投放区、抽屉仍关 → 弹开（toggleDrawer 此时是 open）。
+        guard dragController.draggingPayload?.source == .strip,
+              dragController.isOverDropZone,
+              !(drawerPanel?.isVisible ?? false) else { return }
+        toggleDrawer()
+        dragController.bringCarrierToFront()
     }
 
     private func setupDockPanel() {
@@ -266,21 +308,6 @@ final class PanelCoordinator: NSObject {
         capsulePanel = panel
     }
 
-    private func syncCapsulePanel() {
-        guard let dock = dockPanel, let capsule = capsulePanel else { return }
-        let screen = panelCurrentScreen(panel: dock)
-        let vf = screen.visibleFrame
-        let dockFrame = dock.frame
-        let rawX = dockFrame.maxX - Self.shadowPadding + Self.capsuleGap
-        let rawY = dockFrame.minY + Self.shadowPadding + (Self.panelHeight - Self.capsuleWidth) / 2
-        let clampedX = min(max(rawX, vf.minX), vf.maxX - Self.capsuleWidth)
-        let clampedY = min(max(rawY, vf.minY), vf.maxY - Self.capsuleWidth)
-        let targetFrame = NSRect(x: clampedX - Self.shadowPadding, y: clampedY - Self.shadowPadding, width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)
-        capsule.setFrame(targetFrame, display: true)
-        Logger(subsystem: "com.caye.macosdockcc.v2", category: "Drawer")
-            .info("syncCapsule dockFrame=(\(dockFrame.minX, privacy: .public),\(dockFrame.minY, privacy: .public),\(dockFrame.width, privacy: .public),\(dockFrame.height, privacy: .public)) capsuleFrame=(\(targetFrame.minX, privacy: .public),\(targetFrame.minY, privacy: .public),\(targetFrame.width, privacy: .public),\(targetFrame.height, privacy: .public)) vf=(\(vf.minX, privacy: .public),\(vf.minY, privacy: .public),\(vf.width, privacy: .public),\(vf.height, privacy: .public))")
-    }
-
     // MARK: - Content Width via fittingSize
 
     private func subscribeSnapshotWidth() {
@@ -289,8 +316,7 @@ final class PanelCoordinator: NSObject {
             .sink { [weak self] _ in
                 // Defer one run-loop cycle so SwiftUI finishes layout before we read fittingSize
                 DispatchQueue.main.async { [weak self] in
-                    self?.measureAndApplyWidth()
-                    self?.syncDrawerPanel()
+                    self?.relayout(animated: true)   // layoutPanels 内含抽屉重定位
                 }
             }
     }
@@ -301,8 +327,7 @@ final class PanelCoordinator: NSObject {
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
                     self?.syncDrawerOrder()
-                    self?.measureAndApplyWidth()
-                    self?.syncDrawerPanel()
+                    self?.relayout(animated: true)
                 }
             }
     }
@@ -319,63 +344,106 @@ final class PanelCoordinator: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
-                    self?.measureAndApplyWidth()
+                    self?.relayout(animated: true)
                 }
             }
     }
 
     /// Launch favorites never change the strip's content (a favorite stays on the
-    /// strip while running), so no dock-width remeasure — only the open drawer's size
-    /// can change (固定/取消固定 while the drawer is showing).
+    /// strip while running) — relayout 的任务条宽度会算成同值（dock/胶囊动画 no-op），只有打开的抽屉尺寸会变。
     private func subscribeLaunchFavoriteStore() {
         launchFavoriteStoreSubscription = launchFavoriteStore.$bundleIDs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
                     self?.syncDrawerOrder()
-                    self?.syncDrawerPanel()
+                    self?.relayout(animated: true)
                 }
             }
     }
 
-    private func measureAndApplyWidth() {
-        guard let hosting = dockPanel?.contentView else { return }
-        let contentWidth = hosting.fittingSize.width - 2 * Self.shadowPadding
-        lastDesiredWidth = contentWidth
-        applyPanelWidth(contentWidth)
-    }
+    // MARK: - 目标 frame 驱动布局
+    //
+    // Codex 二审根因：动画后若"读上一个面板正在动画的 live frame 来定位下一个"，读到的是动画起点的旧值
+    // → 胶囊按旧任务条、抽屉按旧胶囊定位 → 任务条变宽后错位、抽屉与任务条重叠。修法：一次算齐三个**目标**
+    // frame（纯函数,互不读 live frame），三面板在**同一个动画组**里各自滑向目标。
 
-    private func repositionPanel(width desiredWidth: CGFloat, on screen: NSScreen) {
-        guard let panel = dockPanel else { return }
-        let maxWidth = screen.visibleFrame.width - 2 * (Self.outerMargin + Self.capsuleGap + Self.capsuleWidth)
-        let panelWidth = max(min(desiredWidth, maxWidth), 120)
-        let frame = centeredPanelFrame(panelWidth: panelWidth, screen: screen)
-        panel.setFrame(frame, display: true)
-        syncCapsulePanel()
-    }
+    private static let layoutAnimationDuration: TimeInterval = 0.22
 
-    private func applyPanelWidth(_ contentWidth: CGFloat) {
-        guard let panel = dockPanel else { return }
-        let screen = panelCurrentScreen(panel: panel)
-        let visibleFrame = screen.visibleFrame
+    /// 任务条目标 frame（按内容宽度、居中、限宽）。
+    private func dockTargetFrame(contentWidth: CGFloat, on screen: NSScreen) -> NSRect {
         let maxWidth = screen.visibleFrame.width - 2 * (Self.outerMargin + Self.capsuleGap + Self.capsuleWidth)
         let panelWidth = max(min(contentWidth, maxWidth), 120)
-        let frame = centeredPanelFrame(panelWidth: panelWidth, screen: screen)
+        return centeredPanelFrame(panelWidth: panelWidth, screen: screen)
+    }
 
-        logger.info("applyPanelWidth contentWidth=\(contentWidth, privacy: .public) panelWidth=\(panelWidth, privacy: .public) maxWidth=\(maxWidth, privacy: .public) frame=(\(frame.origin.x, privacy: .public),\(frame.origin.y, privacy: .public),\(frame.width, privacy: .public),\(frame.height, privacy: .public)) visibleFrame=(\(visibleFrame.origin.x, privacy: .public),\(visibleFrame.origin.y, privacy: .public),\(visibleFrame.width, privacy: .public),\(visibleFrame.height, privacy: .public))")
+    /// 胶囊目标 frame（贴任务条右边、纵向居中）。只依赖传入的 dock **目标** frame。
+    private func capsuleTargetFrame(forDock dockFrame: NSRect, on screen: NSScreen) -> NSRect {
+        let vf = screen.visibleFrame
+        let rawX = dockFrame.maxX - Self.shadowPadding + Self.capsuleGap
+        let rawY = dockFrame.minY + Self.shadowPadding + (Self.panelHeight - Self.capsuleWidth) / 2
+        let clampedX = min(max(rawX, vf.minX), vf.maxX - Self.capsuleWidth)
+        let clampedY = min(max(rawY, vf.minY), vf.maxY - Self.capsuleWidth)
+        return NSRect(x: clampedX - Self.shadowPadding, y: clampedY - Self.shadowPadding,
+                      width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)
+    }
 
-        repositionPanel(width: contentWidth, on: screen)
+    /// 抽屉目标 frame（右边贴胶囊右边、底在胶囊上方）。只依赖传入的胶囊 **目标** frame + 抽屉尺寸。
+    private func drawerTargetFrame(forCapsule capsuleFrame: NSRect, size: CGSize, on screen: NSScreen) -> NSRect {
+        let vf = screen.visibleFrame
+        let rawX = capsuleFrame.maxX - size.width
+        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
+        let clampedX = min(max(rawX, vf.minX), vf.maxX - size.width)
+        let clampedY = min(max(rawY, vf.minY), vf.maxY - size.height)
+        return NSRect(x: clampedX, y: clampedY, width: size.width, height: size.height)
+    }
+
+    /// 统一布局入口：算齐三个目标 frame、存好（给 drop zone / 开抽屉读），三面板同组动画到目标。
+    /// 开屏/切屏/多屏悬停传 animated:false；内容变化、收纳/移回、抽屉尺寸变化传 animated:true。
+    private func layoutPanels(contentWidth: CGFloat, on screen: NSScreen, animated: Bool) {
+        guard let dock = dockPanel, let capsule = capsulePanel else { return }
+        let anim = animated && didInitialLayout   // 首帧瞬时,别从初始位置滑过来
+        didInitialLayout = true
+
+        let dockT = dockTargetFrame(contentWidth: contentWidth, on: screen)
+        let capsuleT = capsuleTargetFrame(forDock: dockT, on: screen)
+        lastDockTargetFrame = dockT
+        lastCapsuleTargetFrame = capsuleT
+
+        var pairs: [(NSPanel, NSRect)] = [(dock, dockT), (capsule, capsuleT)]
+        if let drawer = drawerPanel, drawer.isVisible, let hosting = drawer.contentView {
+            let fitting = hosting.fittingSize
+            let drawerSize = CGSize(width: max(fitting.width, 60), height: max(fitting.height, 60))
+            lastDrawerSize = drawerSize
+            let drawerT = drawerTargetFrame(forCapsule: capsuleT, size: drawerSize, on: screen)
+            lastDrawerTargetFrame = drawerT
+            pairs.append((drawer, drawerT))
+        }
+        setFrames(pairs, animated: anim)
+    }
+
+    /// 量当前内容宽度后布局（内容变化的统一入口）。
+    private func relayout(animated: Bool) {
+        guard let panel = dockPanel, let hosting = panel.contentView else { return }
+        let contentWidth = hosting.fittingSize.width - 2 * Self.shadowPadding
+        lastDesiredWidth = contentWidth
+        layoutPanels(contentWidth: contentWidth, on: panelCurrentScreen(panel: panel), animated: animated)
+    }
+
+    /// 三面板同一个动画组提交,共用一条时间轴（Codex 二审 P2：避免各跑各的时间轴抖动）。
+    private func setFrames(_ pairs: [(NSPanel, NSRect)], animated: Bool) {
+        guard animated else { for (p, f) in pairs { p.setFrame(f, display: true) }; return }
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = Self.layoutAnimationDuration
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            for (p, f) in pairs { p.animator().setFrame(f, display: true) }
+        }
     }
 
     @objc private func screenParametersChanged() {
         dragController?.cancelDrag()   // 切屏/分辨率变 → 取消进行中的跨面板拖动，免得载体留在旧屏坐标
-        guard let panel = dockPanel else { return }
-        let screen = panelCurrentScreen(panel: panel)
-        let contentWidth = (panel.contentView?.fittingSize.width ?? 0) - 2 * Self.shadowPadding
-        let maxWidth = screen.visibleFrame.width - 2 * (Self.outerMargin + Self.capsuleGap + Self.capsuleWidth)
-        let panelWidth = max(min(contentWidth, maxWidth), 120)
-        panel.setFrame(centeredPanelFrame(panelWidth: panelWidth, screen: screen), display: true, animate: false)
-        syncCapsulePanel()
+        guard dockPanel != nil else { return }
+        relayout(animated: false)      // 切屏瞬时,不滑
         if NSScreen.screens.count > 1 {
             startHoverPollTimer()
         } else {
@@ -591,7 +659,7 @@ final class PanelCoordinator: NSObject {
                 let fromIdx = screens.firstIndex(of: panelScreen).map { "\($0)" } ?? "?"
                 let toIdx = screens.firstIndex(of: targetScreen).map { "\($0)" } ?? "?"
                 let actualWidth = max(min(lastDesiredWidth, targetScreen.visibleFrame.width - 2 * Self.outerMargin), 120)
-                repositionPanel(width: lastDesiredWidth, on: targetScreen)
+                layoutPanels(contentWidth: lastDesiredWidth, on: targetScreen, animated: false)   // 多屏切换瞬时
                 hoverLogger.info("switch toScreen=\(toIdx, privacy: .public) name=\(targetScreen.localizedName, privacy: .public) actualWidth=\(actualWidth, privacy: .public) fromScreen=\(fromIdx, privacy: .public)")
             }
         }

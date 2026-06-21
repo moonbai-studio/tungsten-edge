@@ -35,6 +35,17 @@ final class DrawerOrderStore: ObservableObject {
         if next != order { order = next; persist() }
     }
 
+    /// 跨区精确定位落点（任务条→抽屉运行区）：把**还不是成员**的 `id` 插到第 `index` 位
+    /// （`index` 是不含 `id` 的 `reconciled(members)` 顺序里的全局位置）。先写顺序，调用方**随后**再
+    /// `drawerStore.add` 成员——避免 add 触发 sync 先把 id 追加末尾再被移动（Codex 二审 P2-5）。
+    func insert(_ id: String, at index: Int, members: [String]) {
+        var base = reconciled(members: members)
+        base.removeAll { $0 == id }
+        let clamped = max(0, min(index, base.count))
+        base.insert(id, at: clamped)
+        if base != order { order = base; persist() }
+    }
+
     /// 拖动落位：把 `draggedID` 落到 `targetID` 左/右。先按成员全集 reconcile 定基线，再插位。
     /// 调用方负责把 `targetID` 限制在与 `draggedID` 同一显示区内（同区排序，见 DrawerView）。
     func reorder(draggedID: String, relativeTo targetID: String, after: Bool, members: [String]) {

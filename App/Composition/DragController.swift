@@ -32,6 +32,14 @@ final class DragController: ObservableObject {
     @Published private(set) var draggingPayload: DragPayload?
     @Published private(set) var globalLocation: CGPoint = .zero
     @Published private(set) var isOverDropZone = false
+    /// 跨区精确定位（任务条→已打开抽屉运行区）：待入项在抽屉顺序里的**全局插入位**。
+    /// 仅 strip 来源、光标在打开的抽屉里时由 `DrawerView` 算出并发布；nil = 没精确落点（胶囊/抽屉没开 → 追加末尾）。
+    @Published private(set) var dropPreview: Int?
+
+    /// `DrawerView` 高频更新落点用，去重：index 没变不发布，防重绘循环（Codex 二审 P2-6）。
+    func setDropPreview(_ index: Int?) {
+        if index != dropPreview { dropPreview = index }
+    }
 
     private(set) var grabOffset: CGSize = .zero
     private(set) var carrierScreenFrame: CGRect = .zero
@@ -45,6 +53,9 @@ final class DragController: ObservableObject {
     private let dropZonesProvider: (DragSource) -> [CGRect]
     private let screenProvider: () -> NSScreen
     private let carrierFactory: (DragController) -> NSView
+    /// 精确落位提交（bundleID, 全局插入位）：插入抽屉顺序后再 add 成员。由 PanelCoordinator 注入
+    /// （它同时握有 drawerStore + drawerOrderStore，提交仍由本控制器这个唯一权威在 `endDrag` 触发）。
+    private let stashAtCommit: (String, Int) -> Void
 
     private var carrierPanel: NSPanel?
     private var localMonitor: Any?
@@ -54,11 +65,13 @@ final class DragController: ObservableObject {
     init(drawerStore: DrawerStore,
          dropZonesProvider: @escaping (DragSource) -> [CGRect],
          screenProvider: @escaping () -> NSScreen,
-         carrierFactory: @escaping (DragController) -> NSView) {
+         carrierFactory: @escaping (DragController) -> NSView,
+         stashAtCommit: @escaping (String, Int) -> Void) {
         self.drawerStore = drawerStore
         self.dropZonesProvider = dropZonesProvider
         self.screenProvider = screenProvider
         self.carrierFactory = carrierFactory
+        self.stashAtCommit = stashAtCommit
     }
 
     // MARK: - 起拖
@@ -91,12 +104,16 @@ final class DragController: ObservableObject {
     /// 正常松手：在投放区 → 按来源收纳/移回；否则什么都不做（区内排序已在拖动中实时提交）。
     func endDrag() {
         guard let p = draggingPayload else { return }
-        let shouldExternal = isOverDropZone
+        let external = isOverDropZone
+        let preview = dropPreview   // 先捕获——teardown 会清掉，之后才能按 K 提交（Codex 二审 P2-4）
         teardown()
-        guard shouldExternal else { return }
+        guard external else { return }
         switch p.source {
-        case .strip:  drawerStore.add(p.bundleID)     // 收纳（canExternalDrop 已含 canStash）
-        case .drawer: drawerStore.remove(p.bundleID)  // 移回任务栏（= 右键「移回任务栏」同语义）
+        case .strip:
+            if let preview { stashAtCommit(p.bundleID, preview) }  // 精确落位（在打开的抽屉运行区第 K 位）
+            else { drawerStore.add(p.bundleID) }                   // 胶囊/抽屉没开 → 追加末尾
+        case .drawer:
+            drawerStore.remove(p.bundleID)                         // 移回任务栏（= 右键「移回任务栏」同语义）
         }
     }
 
@@ -109,6 +126,7 @@ final class DragController: ObservableObject {
     private func teardown() {
         draggingPayload = nil
         isOverDropZone = false
+        dropPreview = nil
         removeMonitors()
         pollTimer?.invalidate(); pollTimer = nil
         carrierPanel?.orderOut(nil)
@@ -151,6 +169,13 @@ final class DragController: ObservableObject {
         host.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
         panel.contentView = host
         return panel
+    }
+
+    /// 弹簧开抽屉后把载体重新提到最前——新开的抽屉 orderFront 后可能盖住先于它创建的载体（owner 2026-06-21
+    /// 报告"拖进弹簧开的抽屉时浮动图标消失"）。仅拖动进行中才动。
+    func bringCarrierToFront() {
+        guard draggingPayload != nil, let c = carrierPanel else { return }
+        c.orderFrontRegardless()
     }
 
     /// 屏幕坐标(bottom-left) → 载体面板内 SwiftUI 坐标(top-left, y-down) 的卡片中心位置。
@@ -216,7 +241,9 @@ struct DragCarrierView: View {
         switch p.visualKind {
         case .stripChip:
             if let item = p.item {
-                ChipView(item: item, forceHover: true)
+                // forceHover: false —— 悬停态会在图标下方带出 app 名,拖动时不想要（owner 2026-06-21）。
+                // 非悬停态 = 干净的大图标(单窗口卡),贴近抽屉拖动的观感。代价是起拖瞬间图标略放大,可接受。
+                ChipView(item: item, forceHover: false)
                     .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
             }
         case .drawerIcon:
