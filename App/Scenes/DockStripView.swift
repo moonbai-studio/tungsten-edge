@@ -32,12 +32,11 @@ struct DockStripView: View {
     /// 读 isOverDropZone 在进投放区时停掉条内重排。载体面板/监视器/收尾都在它里面，本视图不碰。
     @EnvironmentObject var dragController: DragController
 
-    /// id of the live chip currently being dragged (nil = not dragging) —读自 dragController，
-    /// 限定 live 区 chip（pinned 消息区是 .messagingApp、无拖动手势，本就不会进来），
-    /// 驱动原位卡片隐藏成落位空位。应用级图标也算（它是 .window 项、可拖、可收纳）。
+    /// id of the live chip currently being dragged (nil = not dragging) —读自 dragController。
+    /// 只认 strip 来源的拖动（抽屉来源的载荷在任务条里不该隐藏任何卡片），且限定 live 区 chip。
     private var draggingID: String? {
-        guard let item = dragController.draggingItem else { return nil }
-        return liveOrderIDs.contains(item.id) ? item.id : nil
+        guard let p = dragController.draggingPayload, p.source == .strip else { return nil }
+        return liveOrderIDs.contains(p.id) ? p.id : nil
     }
 
     /// Live chip frames by id in the `"strip"` space (含滚动偏移后的屏上位置), collected via
@@ -156,10 +155,13 @@ struct DockStripView: View {
                 }
             }
         }
+        // 抽屉图标拖到任务条上方 = 移回任务栏的投放反馈：整条任务条高亮描边（对称于胶囊的收纳高亮）。
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
+                .strokeBorder(dragController.isOverUnstashZone ? .white.opacity(0.9) : .white.opacity(0.15),
+                              lineWidth: dragController.isOverUnstashZone ? 2 : 0.5)
         }
+        .animation(.easeOut(duration: 0.15), value: dragController.isOverUnstashZone)
         // 跨面板后，被拖的卡片改由 DragController 的全屏载体面板绘制（不再画在任务条 overlay 上 —
         // 任务条窗口只有 92pt 高，自绘 overlay 会被裁掉，飘不出去）。这里只保留"让出空位"的原位隐藏。
         .coordinateSpace(name: "strip")
@@ -171,7 +173,7 @@ struct DockStripView: View {
         .onChange(of: liveOrderIDs, initial: true) { _, current in
             stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
             // 拖动中被拖窗口消失 → 取消拖动，免得空位卡死。(松手无回调那条由 DragController 的轮询兜底。)
-            if let item = dragController.draggingItem, !current.contains(item.id) {
+            if let p = dragController.draggingPayload, p.source == .strip, !current.contains(p.id) {
                 dragController.cancelDrag()
             }
         }
@@ -225,12 +227,16 @@ struct DockStripView: View {
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 8, coordinateSpace: .named("strip"))
                         .onChanged { value in
-                            if dragController.draggingItem == nil {
+                            if dragController.draggingPayload == nil {
                                 let grab: CGSize = chipFrames[item.id].map {
                                     CGSize(width: $0.midX - value.startLocation.x,
                                            height: $0.midY - value.startLocation.y)
                                 } ?? .zero
-                                dragController.beginDrag(item: item,
+                                let payload = DragPayload(source: .strip, id: item.id,
+                                                          bundleID: item.bundleIdentifier ?? "",
+                                                          item: item, visualKind: .stripChip,
+                                                          canExternalDrop: DragController.canStash(item))
+                                dragController.beginDrag(payload: payload,
                                                          startScreenLocation: NSEvent.mouseLocation,
                                                          grabOffset: grab)
                             }
@@ -581,11 +587,11 @@ struct DrawerCapsuleButton: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(dragController.isOverDropZone ? .white.opacity(0.9) : .white.opacity(0.15),
-                              lineWidth: dragController.isOverDropZone ? 2 : 0.5)
+                .strokeBorder(dragController.isOverStashZone ? .white.opacity(0.9) : .white.opacity(0.15),
+                              lineWidth: dragController.isOverStashZone ? 2 : 0.5)
         }
-        .scaleEffect(dragController.isOverDropZone ? 1.08 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: dragController.isOverDropZone)
+        .scaleEffect(dragController.isOverStashZone ? 1.08 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: dragController.isOverStashZone)
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         .contentShape(Rectangle())

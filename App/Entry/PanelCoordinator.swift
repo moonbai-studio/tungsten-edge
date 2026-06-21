@@ -16,6 +16,7 @@ final class PanelCoordinator: NSObject {
     private let launchFavoriteStore: LaunchFavoriteStore
     private let badgeStore: BadgeStore
     private let stripOrderStore: StripOrderStore
+    private let drawerOrderStore: DrawerOrderStore
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
@@ -35,13 +36,14 @@ final class PanelCoordinator: NSObject {
     private var isHiddenForFullscreen = false
     private var fullscreenReconcileTimer: Timer?
 
-    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore, stripOrderStore: StripOrderStore) {
+    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore, stripOrderStore: StripOrderStore, drawerOrderStore: DrawerOrderStore) {
         self.runtime = runtime
         self.drawerStore = drawerStore
         self.messagingStore = messagingStore
         self.launchFavoriteStore = launchFavoriteStore
         self.badgeStore = badgeStore
         self.stripOrderStore = stripOrderStore
+        self.drawerOrderStore = drawerOrderStore
         super.init()
     }
 
@@ -93,7 +95,7 @@ final class PanelCoordinator: NSObject {
             panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
             panel.hasShadow = false
             panel.hidesOnDeactivate = false
-            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore))
+            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(drawerOrderStore).environmentObject(dragController))
             hosting.wantsLayer = true
             hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
             panel.contentView = hosting
@@ -165,7 +167,7 @@ final class PanelCoordinator: NSObject {
     private func setupDragController() {
         dragController = DragController(
             drawerStore: drawerStore,
-            dropZonesProvider: { [weak self] in self?.dragDropZones() ?? [] },
+            dropZonesProvider: { [weak self] source in self?.dragDropZones(for: source) ?? [] },
             screenProvider: { [weak self] in self?.carrierTargetScreen() ?? (NSScreen.main ?? NSScreen.screens[0]) },
             carrierFactory: { [runtime = self.runtime,
                                drawerStore = self.drawerStore,
@@ -180,18 +182,26 @@ final class PanelCoordinator: NSObject {
         )
     }
 
-    /// 投放候选区（屏幕坐标）：胶囊可见内容区 + 8pt 容错（胶囊 frame 含 shadowPadding=20 透明边，
-    /// 减 20 得 52×52 可见区，再外扩 8 容错，不能更宽——胶囊紧挨任务条，太宽会"拖到附近就被收走"）。
-    /// 抽屉打开时叠加抽屉可见内容区（同样减 shadowPadding）。
-    private func dragDropZones() -> [CGRect] {
-        var zones: [CGRect] = []
-        if let capsule = capsulePanel {
-            zones.append(capsule.frame.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
+    /// 投放候选区（屏幕坐标），按拖动来源分：
+    /// - `.strip`（任务条卡找收纳目标）= 胶囊可见内容区 + 8pt 容错（胶囊 frame 含 shadowPadding=20
+    ///   透明边，减 20 得 52×52 可见区，再外扩 8 容错，不能更宽——胶囊紧挨任务条，太宽会"拖到附近就被收走"）；
+    ///   抽屉打开时叠加抽屉可见内容区。
+    /// - `.drawer`（抽屉图标找移回目标）= 任务条 dock 面板可见内容区（减 shadowPadding）。
+    private func dragDropZones(for source: DragSource) -> [CGRect] {
+        switch source {
+        case .strip:
+            var zones: [CGRect] = []
+            if let capsule = capsulePanel {
+                zones.append(capsule.frame.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
+            }
+            if let drawer = drawerPanel, drawer.isVisible {
+                zones.append(drawer.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
+            }
+            return zones
+        case .drawer:
+            guard let dock = dockPanel else { return [] }
+            return [dock.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding)]
         }
-        if let drawer = drawerPanel, drawer.isVisible {
-            zones.append(drawer.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
-        }
-        return zones
     }
 
     private func carrierTargetScreen() -> NSScreen {
@@ -290,10 +300,18 @@ final class PanelCoordinator: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
+                    self?.syncDrawerOrder()
                     self?.measureAndApplyWidth()
                     self?.syncDrawerPanel()
                 }
             }
+    }
+
+    /// 抽屉显示顺序层按成员全集（收纳 ∪ 固定）收敛。收纳/固定名单任一变化都同步一次，
+    /// 即便抽屉没开也要同步——这样新收纳的 app 进来时已在顺序末尾就位，不丢已排好的相对序。
+    private func syncDrawerOrder() {
+        let members = drawerStore.bundleIDs + launchFavoriteStore.bundleIDs.filter { !drawerStore.contains($0) }
+        drawerOrderStore.sync(members: members)
     }
 
     private func subscribeMessagingStoreWidth() {
@@ -314,6 +332,7 @@ final class PanelCoordinator: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async { [weak self] in
+                    self?.syncDrawerOrder()
                     self?.syncDrawerPanel()
                 }
             }

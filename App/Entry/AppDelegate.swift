@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let launchFavoriteStore = LaunchFavoriteStore()
     let badgeStore = BadgeStore()
     let stripOrderStore = StripOrderStore()
+    let drawerOrderStore = DrawerOrderStore()
     private var panelCoordinator: PanelCoordinator?
     private var debugWindow: NSWindow?
     private var statusItem: NSStatusItem?
@@ -63,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.messagingStore.autoRegister(runningBundleIDs: running)
             }
 
-        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore, launchFavoriteStore: launchFavoriteStore, badgeStore: badgeStore, stripOrderStore: stripOrderStore)
+        let coordinator = PanelCoordinator(runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore, launchFavoriteStore: launchFavoriteStore, badgeStore: badgeStore, stripOrderStore: stripOrderStore, drawerOrderStore: drawerOrderStore)
         panelCoordinator = coordinator
         runtime.onToggleDrawer = { [weak coordinator] in coordinator?.toggleDrawer() }
         coordinator.start()

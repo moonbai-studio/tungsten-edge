@@ -99,9 +99,21 @@ Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. 
 - **Teardown is idempotent + clear-before-commit:** monitor mouseUp, gesture `onEnded`, and the `pressedMouseButtons == 0` poll may all fire; `endDrag` guards on `draggingItem`, clears state first, then commits the stash. The `liveOrderIDs` onChange is only the mid-drag window-vanish safety net (`cancelDrag`), not the normal-release path.
 - **Same no-system-drag guardrail as the strip:** do not reintroduce SwiftUI `.onDrag` / AppKit `beginDraggingSession` — the release ghost. The screen-spanning carrier is the deliberate alternative.
 
-### Drawer/Strip action target — route to `actionWindowID`, never the chip id token
+### Strip action target — route to `actionWindowID`, never the chip id token
 
-- A chip's `StripItem.id` is its **stable identity token** (`tabgrp-…`), not a window id; the action target is `item.actionWindowID` (the representative window). All show/hide/minimize/toggle calls must pass `actionWindowID`. The drawer running-zone tap was passing `item.id` → actions found no window → clicks did nothing for window-backed drawer apps (latent since the single-seat token refactor, surfaced 2026-06-20 once drag made stashing normal apps easy). Now `runtime.toggle(windowID: item.actionWindowID)`, matching the strip.
+- A **strip** chip's `StripItem.id` is its **stable identity token** (`tabgrp-…`), not a window id; the action target is `item.actionWindowID` (the representative window). All strip show/hide/minimize/toggle calls must pass `actionWindowID`. (The **drawer** no longer does window-level actions at all — it's app-centric, see below; so the old drawer-tap-uses-`item.id` bug is gone with that path.)
+
+### Drawer = app-centric, one-icon-per-app, ordered by `DrawerOrderStore` (2026-06-21)
+
+> The drawer is the deliberate **app-view** island (原则 2). Drawer-internal drag-reorder + drag-back-to-strip ship as the symmetric mate of 拖卡进抽屉. Full rationale: Obsidian `03 设计决策`「抽屉内拖动排序 + 拖回任务条」.
+
+- **One bundleID = one icon.** The drawer renders every member as an app-level `LauncherChip` (not per-window `ChipView`). A multi-window stashed app shows one icon. Click = **app-level** (`LauncherChip.handleTap`: frontmost→hide, else unhide+open; not-running→launch) — **never** window-level toggle. Do not reintroduce per-window drawer chips or a window-id tap target.
+- **`DrawerOrderStore` = single display-order layer, keyed by bundleID, persisted permanently** (bundleID is reuse-stable across reboots → no boot-time guard, unlike `StripOrderStore`). **Order is kept over the MEMBER SET (`drawerStore ∪ launchFavoriteStore`), not the currently-visible icons** — a pure favorite leaves the drawer while running and returns on quit; syncing only on visible ids would drop then re-append it (lost order). `PanelCoordinator.syncDrawerOrder()` runs on either store's change, even with the drawer closed. Membership (stashed vs pinned) still lives in the two original stores; only *order* is unified here.
+- **Same-zone reorder only.** Running-zone icons reorder relative to running-zone icons, launch-zone likewise (`reorderTarget` filters candidates to the dragged item's zone). Cross-divider drops are meaningless (zone = running-state, not order) and would surface invisibly later.
+- **Generalized `DragPayload`** (`source + id + bundleID + item: StripItem? + visualKind + canExternalDrop`) replaces the StripItem-only drag — drawer icons have no `StripItem`, so `bundleID` is the key. `id` is the source-region reorder key (strip = `item.id` token, drawer = bundleID).
+- **Symmetric cross-panel drag via the same `DragController` carrier.** Drop zones by source: `.strip`→capsule (stash, `drawerStore.add`); `.drawer`→dock strip panel (unstash, `drawerStore.remove`). `isOverStashZone`/`isOverUnstashZone` drive the capsule vs strip highlight. `canExternalDrop`: strip = `canStash`; drawer = `drawerStore.contains(bid)` — **pure favorites are reorder-only** (no external drop, no highlight; dragging one to the strip is a no-op snap-back, matching their no-`移回` menu).
+- **Drag-out = `drawerStore.remove` only (= 右键「移回任务栏」 semantics).** A coexisting favorite pin survives, so a stashed+favorited closed app stays in the drawer launch zone after drag-out — **not a bug**.
+- **Carrier renders by `visualKind`:** drawer drags use the lightweight `DrawerDragIconView` (icon only — no `LauncherChip` menu/bounce/tap in the carrier).
 
 ### Optimistic Action State — interruptible interaction (去转圈 + 可打断)
 
