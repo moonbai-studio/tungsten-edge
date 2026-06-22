@@ -49,6 +49,8 @@ brew tap moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
+> 若 Homebrew 提示该第三方 tap「未受信任」（untrusted tap），按它给出的 `brew trust ...` 命令确认一次即可继续安装。安装后若首次打开被系统拦截，同样用「右键 → 打开」放行。
+
 ## 推荐配置（让最小化动画对准底部）
 
 如果你把系统原生程序坞放在屏幕**两侧或顶部**，最小化窗口时动画会朝原生坞的方向飞，和底部任务条的方向不一致。建议把原生程序坞移回**底部**并设为自动隐藏，最小化动画就会缩向底部、与 Tungsten Edge 一致：
