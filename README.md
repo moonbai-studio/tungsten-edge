@@ -4,7 +4,7 @@
 
 # Tungsten Edge
 
-**A window-oriented bottom taskbar for macOS — a replacement for the system Dock.**
+**The ultra-lightweight, unprecedented ultimate window management solution for macOS.**
 
 English · [中文](README.zh-CN.md)
 
