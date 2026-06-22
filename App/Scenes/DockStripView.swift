@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// One slot in the strip: either a concrete window chip, or a pinned messaging
-/// app-level entry (Dock-icon-like, 方案 B 2026-06-12).
+/// One slot in the strip: either a concrete window chip, a pinned messaging
+/// app-level entry (Dock-icon-like, 方案 B 2026-06-12), or a zone divider.
 enum StripEntry: Identifiable, Hashable {
     case window(StripItem)
     /// Constant app-icon chip for a pinned messaging app. Carries the main window's
@@ -11,6 +11,8 @@ enum StripEntry: Identifiable, Hashable {
     /// equivalent) so the app recreates it — verified to work for WeChat even with
     /// other chat windows visible.
     case messagingApp(bundleID: String, mainWindow: StripItem?)
+    /// Visual separator between the pinned messaging zone and the live window zone.
+    case divider
 
     var id: String {
         switch self {
@@ -18,6 +20,7 @@ enum StripEntry: Identifiable, Hashable {
         // Stable id regardless of main-window presence, so the chip doesn't churn
         // when the main window opens/closes.
         case let .messagingApp(bid, _): return "msg-app-\(bid)"
+        case .divider: return "zone-divider"
         }
     }
 }
@@ -128,7 +131,8 @@ struct DockStripView: View {
         let order = stripOrderStore.reconciled(current: liveNatural.map(\.id), appKeyOf: appKeyOf)
         let byID = Dictionary(liveNatural.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let orderedLive = order.compactMap { byID[$0] }.map(StripEntry.window)
-        return pinned + orderedLive
+        guard !pinned.isEmpty, !orderedLive.isEmpty else { return pinned + orderedLive }
+        return pinned + [.divider] + orderedLive
     }
 
     private var stripLayoutKeys: [StripLayoutKey] {
@@ -360,6 +364,8 @@ struct DockStripView: View {
                 )
         case .messagingApp:
             stripEntryView(entry)
+        case .divider:
+            stripEntryView(entry)
         }
     }
 
@@ -370,6 +376,11 @@ struct DockStripView: View {
         switch entry {
         case let .window(item):
             ChipView(item: item, forceHover: dragging)
+        case .divider:
+            Rectangle()
+                .fill(.white.opacity(0.18))
+                .frame(width: 1, height: 20)
+                .padding(.horizontal, 2)
         case let .messagingApp(bid, main):
             // Explicit ZStack: the badge is the LAST child + zIndex, guaranteed to
             // draw on top of the icon (classic Dock badge sits over the icon corner).
@@ -759,6 +770,8 @@ private struct StripLayoutKey: Equatable {
             else                        { form = .single }
         case .messagingApp:
             form = .launcher    // both states render as a fixed-size icon chip
+        case .divider:
+            form = .launcher    // fixed-size separator, no animation form change
         }
     }
 }
