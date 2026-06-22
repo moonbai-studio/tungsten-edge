@@ -9,7 +9,7 @@
   <key>CFBundleIdentifier</key>
   <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
   <key>CFBundleDisplayName</key>
-  <string>任务条调试台</string>
+  <string>Tungsten Edge 钨极</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

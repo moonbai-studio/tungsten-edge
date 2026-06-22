@@ -5,3 +5,6 @@ dist/
 *.xcuserstate
 xcuserdata/
 scratch/
+.build/
+DemoVideo/
+品牌视觉/

@@ -1,98 +1,71 @@
-# Neo 坞
+<div align="center">
 
-> 一个替代 macOS 系统 Dock 的任务条 App，以窗口为单位显示，多窗口 app 拆成多张卡片。
+<img src="assets/icon.png" width="128" alt="Tungsten Edge 钨极" />
+
+# Tungsten Edge 钨极
+
+**一个以「窗口」为单位的 macOS 底部任务条，用来替代系统程序坞。**
+
+</div>
+
+![演示](assets/demo.gif)
 
 ---
 
-*以下为内部开发文档。*
+## 这是什么
 
-> **📍 Source of truth = Obsidian, not this repo's prose.**
-> Current product state, roadmap, and design decisions live in the owner's Obsidian vault:
-> `/Users/caye/Documents/Obsidian Vault/Projects/macos-dock-cc-v2/` — key notes: `02 当前进度`, `03 设计决策`, `05 待办与想法/Backlog`.
-> Files under `Docs/` are **dated historical findings, incident reports, and timeless macOS platform quirks** — accurate as of their dates, **not a live status board**; don't infer current features from them (`Docs/05-known-platform-quirks.md` is the exception worth keeping current — repo-local engineering reference).
-> The "Current State" list below covers only the **foundation engine** (identity / placement / trust) and intentionally lags the UX feature layer (message chips, badges, drawer, native-tab merge…), which is tracked only in Obsidian.
+macOS 自带的程序坞（Dock）是按「应用」组织的：一个应用一个图标，开了几个窗口你也看不出来，要切到某个具体窗口得先点开应用、再去窗口列表里找。
 
-## Current State
+**Tungsten Edge 把任务条改成按「窗口」组织**——每个打开的窗口在底部都有一张自己的卡片，点一下直接切到那个窗口，再点一下最小化。多窗口的应用会拆成多张卡片，一眼看清你到底开了哪些东西、它们各自是什么。
 
-- Finder P0 window-level identity foundation was accepted on 2026-05-05.
-- Identity and placement remain the current core.
-- The app now renders a minimal usable bottom task strip.
-- Strip actions now include activate / hide / minimize / close, with user-facing feedback.
-- Main strip labels now toggle: click an inactive/minimized concrete window to activate it, and click the active concrete window to minimize it.
-- Strip actions are interruptible (2026-06-13): no pending spinner, no click lock for show/hide-class actions; an optimistic per-window state overlay keeps rapid re-clicks strictly alternating. Only close / quit stay locked until confirmed.
-- Technical quality fixes landed (2026-06-14, `6233111`): all major ObservableObject stores and pipeline classes are `@MainActor`; `DockBadgeReader` is a pure `Sendable` struct; `AppWindowObserver` AX callback uses `[weak obs]` + `MainActor.assumeIsolated`; all 6 timers have `.tolerance`; `hoverPollTimer` skipped on single-display machines; `AppIconResolver` uses `NSCache`; `NSVisualEffectView.state` is `.followsWindowActiveState`.
-- Strip chips are drag-reorderable (2026-06-15, slices `e47146d`→`f248585`): drag a live window chip to reorder; the others slide aside live and the drop lands left/right of a target by which half the pointer is over. Order is session-internal (anti-scramble — existing chips keep position, new windows append at tail, only true-close drops them) and survives the taskbar app's own restart via `cgWindowID` + `kern.boottime` (deliberately not a cross-reboot layout). The pinned messaging zone keeps its own order, so reordering stays within-zone. Implemented with the system drag (cross-panel-ready for a future drag-chip-into-drawer); a minor system drag-image release fade remains, deferred to that work.
-  - minimize / hide / temporary disappearance keep the slot
-  - only true close releases the slot
-- Feishu may fall back to a single stable app-level item when window-level AX detail is unreliable.
-- Finder concrete folder windows are handled as window-level items and must not collapse into a generic Finder app item.
-- A Finder minimize feedback bug was fixed: minimized or temporarily disappeared observations both count as successful minimize feedback.
-- Taskbar trust hardening is now active: system/widget/internal windows are filtered before they can become strip items, and an anomaly-count fuse rejects obviously bad observation rounds before they mutate the trusted snapshot.
-- Discovery is now inventory-first when Accessibility permission is available: the app starts from normal user App windows, then uses `CG` / `AX` evidence to enrich identity, frame, minimized, hidden, and focus state.
-- The taskbar app now filters its own window from strip admission so the debug shell cannot self-pollute the taskbar.
-- A long-gap duplicate-card issue was captured and fixed on 2026-05-13: before creating a new card, identity now checks the existing taskbar snapshot for a matching same-app, same-process seat.
-- The app has a read-only debug snapshot exporter for duplicate-card diagnosis.
-- `CG` fallback remains available when Accessibility permission is unavailable. Local rollback flags: `DOCK_INVENTORY_FIRST_ENABLED=0` or `DOCK_AX_ADMISSION_MODE=legacy`.
-- Next product focus: keep running the fixed app on a real desktop, especially across long idle/sleep/overnight gaps, and confirm the strip shows normal user windows without fake/system/helper entries or duplicate cards.
+## 主要功能
 
-## Docs
+- **窗口级任务条**：一窗一卡，多窗口应用拆成多张卡片，点击切换 / 最小化。
+- **原生标签智能合并**：Ghostty、访达这类「标签即窗口」的应用，切标签时卡片不乱跳、不分裂。
+- **消息应用常驻 + 角标**：微信、飞书等消息应用有固定常驻入口，并镜像系统 Dock 的红圈未读角标。
+- **应用抽屉**：不常用的应用收进右侧抽屉，保持任务条清爽；抽屉里还能固定常用应用当启动器。
+- **拖拽整理**：拖动卡片排序；把卡片拖进抽屉收纳；从抽屉拖回任务条，落在你松手的精确位置。
+- **磨砂玻璃质感**：原生级的毛玻璃材质，融入桌面。
+- **多屏跟随**：鼠标移到哪块屏幕，任务条跟到哪块。
 
-- [Agent Handoff](AGENTS.md)
-- [Implementation Plan](Docs/06-implementation-plan.md)
-- [Progress Board](Docs/07-progress-board.md)
-- [Boundaries](Docs/01-boundaries.md)
-- [Data Flow](Docs/02-data-flow.md)
-- [Window Lab Output](Docs/03-window-lab-output.md)
-- [Acceptance](Docs/04-acceptance.md)
-- [Known Platform Quirks](Docs/05-known-platform-quirks.md)
-- [Real Sample Findings](Docs/08-real-sample-minimize-restore-findings.md)
-- [Calendar Sample Findings](Docs/09-real-sample-calendar-findings.md)
-- [Codex Same-Title Findings](Docs/10-real-sample-codex-same-title-findings.md)
-- [Browser Sample Findings](Docs/11-real-sample-browser-findings.md)
-- [WeChat Sample Findings](Docs/12-real-sample-wechat-findings.md)
-- [Feishu Current Observation](Docs/13-feishu-current-observation.md)
-- [Placement Replay](Docs/14-placement-replay.md)
-- [Feishu Fallback Strategy](Docs/15-feishu-fallback-strategy.md)
-- [Finder Current Observation](Docs/16-finder-current-observation.md)
-- [Finder P0 Implementation](Docs/17-finder-p0-implementation.md)
-- [Finder Real Sample Findings](Docs/18-real-sample-finder-findings.md)
-- [Taskbar Trust Incident](Docs/19-taskbar-trust-incident.md)
-- [Inventory-First Taskbar Trust](Docs/20-inventory-first-taskbar-trust.md)
-- [Long-Gap Duplicate Card Fix](Docs/21-long-gap-duplicate-card-fix.md)
+## 系统要求
 
-## Build & Run
+- macOS 14.0 (Sonoma) 及以上
+- Intel 与 Apple 芯片均可
+- 首次运行需要授予**辅助功能**权限（用于读取和操作窗口，应用会引导你开启）
 
-- `./Scripts/build_and_run.sh`
-- `./Scripts/build_and_run.sh --verify`
-- `./Scripts/build_and_run.sh --lab-replay <scenario-name>`
-- `./Scripts/build_and_run.sh --lab-placement <scenario-name>`
-- `./Scripts/build_and_run.sh --lab-transition <scenario-name>`
-- `./Scripts/build_and_run.sh --lab-close "<keyword>"`
+## 安装
 
-## Most Useful Checks
+### 方式一：下载安装包（推荐普通用户）
 
-- Identity replay:
-  - `./Scripts/build_and_run.sh --lab-replay minimize-restore-replay`
-- Placement replay:
-  - `./Scripts/build_and_run.sh --lab-placement placement-permanent-hold-replay`
-- Transition replay:
-  - `./Scripts/build_and_run.sh --lab-transition focused-active-replay`
-  - `./Scripts/build_and_run.sh --lab-transition close-timeout-replay`
-- Real close sample:
-  - `./Scripts/build_and_run.sh --lab-close "<keyword>"`
-- Real sample:
-  - `./Scripts/build_and_run.sh --lab-minimize "日历"`
-- Finder P0 sample:
-  - `./Scripts/build_and_run.sh --lab-minimize "<unique Finder folder title>"`
-- Finder title/tab replay:
-  - `./Scripts/build_and_run.sh --lab-replay finder-title-tab-replay`
-- Unit tests:
-  - `xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2Tests -configuration Debug -derivedDataPath build/DerivedData -destination 'platform=macOS'`
-- Runtime taskbar snapshot:
-  - Debug menu `导出任务条快照`（the only trigger; `Cmd+Shift+D` / `SIGUSR2` were attempted on 2026-06-12 and reverted — see `AGENTS.md`）
-  - latest file: `$(getconf DARWIN_USER_TEMP_DIR)macos-dock-cc-v2-debug-snapshot-latest.json`
+1. 从 [Releases](../../releases) 下载最新的 `.dmg`。
+2. 打开后把 **Tungsten Edge** 拖进「应用程序」文件夹。
+3. **首次打开要右键**：在「应用程序」里**右键（或按住 Control 点击）Tungsten Edge → 打开**，在弹出的提示里再点一次「打开」。
+   - 为什么要这样：这是一个尚未经过 Apple 公证签名的早期版本，macOS 默认会拦截。右键打开是系统提供的、一次性的放行方式，之后双击即可正常打开。
+4. 按提示在「系统设置 → 隐私与安全性 → 辅助功能」里给 Tungsten Edge 打开开关。
 
-## Targets
+### 方式二：Homebrew（技术用户）
 
-- `window-lab`: CLI identity lab
-- `macos-dock-cc-v2`: macOS app shell with minimal bottom strip
+```bash
+brew tap moonbai-studio/tungsten-edge
+brew install --cask tungsten-edge
+```
+
+## 推荐配置（让最小化动画对准底部）
+
+如果你把系统原生程序坞放在屏幕**两侧或顶部**，最小化窗口时动画会朝原生坞的方向飞，和底部任务条的方向不一致。建议把原生程序坞移回**底部**并设为自动隐藏，最小化动画就会缩向底部、与 Tungsten Edge 一致：
+
+- 系统设置 → 桌面与程序坞 → 「位置」选**底部**、打开**自动隐藏**。
+
+---
+
+## 开发者
+
+工程交接、设计决策与当前进度的权威记录在 [`AGENTS.md`](AGENTS.md) 与作者的 Obsidian 笔记库；`Docs/` 下是按日期归档的历史调研与平台特性记录（非实时状态板）。
+
+构建运行：
+
+```bash
+./Scripts/build_and_run.sh
+```
+</content>
