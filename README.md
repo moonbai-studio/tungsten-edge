@@ -8,8 +8,6 @@
 
 </div>
 
-![演示](assets/demo.gif)
-
 ---
 
 ## 这是什么
