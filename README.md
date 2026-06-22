@@ -4,66 +4,78 @@
 
 # Tungsten Edge 钨极
 
-**一个以「窗口」为单位的 macOS 底部任务条，用来替代系统程序坞。**
+**A window-oriented bottom taskbar for macOS — a replacement for the system Dock.**
+
+English · [中文](README.zh-CN.md)
 
 </div>
 
 ---
 
-## 这是什么
+## What it is
 
-macOS 自带的程序坞（Dock）是按「应用」组织的：一个应用一个图标，开了几个窗口你也看不出来，要切到某个具体窗口得先点开应用、再去窗口列表里找。
+The macOS Dock is organized by **app**: one icon per app, no matter how many windows it has open. To switch to a specific window you first click the app, then hunt through its window list.
 
-**Tungsten Edge 把任务条改成按「窗口」组织**——每个打开的窗口在底部都有一张自己的卡片，点一下直接切到那个窗口，再点一下最小化。多窗口的应用会拆成多张卡片，一眼看清你到底开了哪些东西、它们各自是什么。
+**Tungsten Edge organizes the taskbar by _window_ instead.** Every open window gets its own card at the bottom of the screen — click it to jump straight to that window, click again to minimize. Multi-window apps split into multiple cards, so you can see at a glance exactly what you have open and what each one is.
 
-## 主要功能
+## Features
 
-- **窗口级任务条**：一窗一卡，多窗口应用拆成多张卡片，点击切换 / 最小化。
-- **原生标签智能合并**：Ghostty、访达这类「标签即窗口」的应用，切标签时卡片不乱跳、不分裂。
-- **消息应用常驻 + 角标**：微信、飞书等消息应用有固定常驻入口，并镜像系统 Dock 的红圈未读角标。
-- **应用抽屉**：不常用的应用收进右侧抽屉，保持任务条清爽；抽屉里还能固定常用应用当启动器。
-- **拖拽整理**：拖动卡片排序；把卡片拖进抽屉收纳；从抽屉拖回任务条，落在你松手的精确位置。
-- **磨砂玻璃质感**：原生级的毛玻璃材质，融入桌面。
-- **多屏跟随**：鼠标移到哪块屏幕，任务条跟到哪块。
+- **Window-level taskbar** — one card per window; multi-window apps split into multiple cards; click to switch / minimize.
+- **Smart native-tab merging** — apps where "tabs are windows" (Ghostty, Finder) keep a stable card while you switch tabs: it won't jump around or split.
+- **Pinned messaging apps + badges** — messaging apps (WeChat, Feishu, …) get a persistent pinned entry and mirror the Dock's red unread badge.
+- **App drawer** — stash rarely-used apps into a drawer on the right to keep the strip clean; pin favorites in the drawer to use it as a launcher.
+- **Drag to organize** — reorder cards by dragging; drag a card into the drawer to stash it; drag it back out and it lands exactly where you drop it.
+- **Frosted-glass look** — native-grade translucency that blends into the desktop.
+- **Multi-display follow** — the taskbar follows your cursor to whichever screen it's on.
 
-## 系统要求
+> **Note:** the app's interface is currently **Chinese only**. An English/localized UI is planned but not yet available — see [Roadmap](#roadmap).
 
-- macOS 14.0 (Sonoma) 及以上
-- Intel 与 Apple 芯片均可
-- 首次运行需要授予**辅助功能**权限（用于读取和操作窗口，应用会引导你开启）
+## Requirements
 
-## 安装
+- macOS 14.0 (Sonoma) or later
+- Intel and Apple Silicon (universal binary)
+- On first launch you'll be asked to grant **Accessibility** permission (used to read and manage windows; the app guides you through it).
 
-### 方式一：下载安装包（推荐普通用户）
+## Install
 
-1. 从 [Releases](../../releases) 下载最新的 `.dmg`。
-2. 打开后把 **Tungsten Edge** 拖进「应用程序」文件夹。
-3. **首次打开要右键**：在「应用程序」里**右键（或按住 Control 点击）Tungsten Edge → 打开**，在弹出的提示里再点一次「打开」。
-   - 为什么要这样：这是一个尚未经过 Apple 公证签名的早期版本，macOS 默认会拦截。右键打开是系统提供的、一次性的放行方式，之后双击即可正常打开。
-4. 按提示在「系统设置 → 隐私与安全性 → 辅助功能」里给 Tungsten Edge 打开开关。
+### Option 1 — download the installer (recommended)
 
-### 方式二：Homebrew（技术用户）
+1. Download the latest `.dmg` from [Releases](../../releases).
+2. Open it and drag **Tungsten Edge** into your **Applications** folder.
+3. **First launch needs a right-click:** in Applications, **right-click (or Control-click) Tungsten Edge → Open**, then click **Open** again in the dialog.
+   - Why: this is an early build that is not yet Apple notarized, so macOS blocks it by default. Right-click → Open is the system's one-time way to allow it; after that, double-click works normally.
+4. Grant Accessibility permission when prompted (**System Settings → Privacy & Security → Accessibility**).
+
+### Option 2 — Homebrew (for technical users)
 
 ```bash
 brew tap moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
-> 若 Homebrew 提示该第三方 tap「未受信任」（untrusted tap），按它给出的 `brew trust ...` 命令确认一次即可继续安装。安装后若首次打开被系统拦截，同样用「右键 → 打开」放行。
+> If Homebrew warns that the third-party tap is "untrusted", run the `brew trust ...` command it prints once to continue. If the first launch is blocked by macOS, use right-click → Open as above.
 
-## 推荐配置（让最小化动画对准底部）
+## Recommended setup (align the minimize animation to the bottom)
 
-如果你把系统原生程序坞放在屏幕**两侧或顶部**，最小化窗口时动画会朝原生坞的方向飞，和底部任务条的方向不一致。建议把原生程序坞移回**底部**并设为自动隐藏，最小化动画就会缩向底部、与 Tungsten Edge 一致：
+If your native Dock lives on the **side or top** of the screen, minimizing a window flies the animation toward the native Dock — out of sync with this bottom taskbar. Move the native Dock back to the **bottom** and set it to auto-hide; the minimize animation will then shrink toward the bottom, matching Tungsten Edge:
 
-- 系统设置 → 桌面与程序坞 → 「位置」选**底部**、打开**自动隐藏**。
+- **System Settings → Desktop & Dock → Position on screen → Bottom**, and turn on **Automatically hide and show the Dock**.
+
+## Roadmap
+
+This is an early public build (v0.1). Known limitations and what's next:
+
+- **Not yet signed/notarized** → first launch needs right-click → Open (above). A signed build is planned.
+- **Chinese-only UI** → localization is on the roadmap; the README is bilingual in the meantime.
+- Feedback and issues are very welcome.
 
 ---
 
-## 开发者
+## Developers
 
-工程交接、设计决策与当前进度的权威记录在 [`AGENTS.md`](AGENTS.md) 与作者的 Obsidian 笔记库；`Docs/` 下是按日期归档的历史调研与平台特性记录（非实时状态板）。
+The authoritative record of engineering hand-off, design decisions, and current status lives in [`AGENTS.md`](AGENTS.md) and the author's Obsidian vault. Files under `Docs/` are dated historical findings and platform-quirk references (not a live status board).
 
-构建运行：
+Build & run:
 
 ```bash
 ./Scripts/build_and_run.sh
