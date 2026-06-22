@@ -5,6 +5,12 @@ import QuartzCore
 import SwiftUI
 import os
 
+/// 抽屉相关动画的共享时长，AppKit（面板 frame / alpha）和 SwiftUI（内容 scale/网格重排）都用它，
+/// 让"面板尺寸滑动"和"内容内部动画"同时长、不错拍（Codex：v1 选面板为主 + 内容同参数）。
+enum DrawerAnimation {
+    static let duration: TimeInterval = 0.22
+}
+
 @MainActor
 final class PanelCoordinator: NSObject {
     static let panelHeight: CGFloat = 52
@@ -21,6 +27,8 @@ final class PanelCoordinator: NSObject {
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
+    /// 抽屉真正承载 SwiftUI 的 hosting view（抽屉 contentView 是普通 NSView 容器,故 fittingSize 要读这个）。
+    private var drawerContentHost: NSView?
     /// 跨面板拖动（拖卡进抽屉 路线 C）的唯一权威：载体面板 + 鼠标监视器 + 落点收尾都在它里面。
     /// 必须在 setupDockPanel/setupCapsulePanel 之前建好，因为要注入进这两个面板的 hosting。
     private var dragController: DragController!
@@ -32,6 +40,17 @@ final class PanelCoordinator: NSObject {
     private var launchFavoriteStoreSubscription: AnyCancellable?
     private var dragSpringSubscription: AnyCancellable?
     private var springOpenTimer: Timer?
+    /// 离开抽屉+胶囊后**延迟收回**的定时器（owner 2026-06-22：要延迟,不要一蹭到任务条就关）。
+    private var springCloseTimer: Timer?
+    /// 本次拖动是否**从任务条发起**。任务条卡进抽屉体会被"转正"成 `.drawer` 来源（见 DragController），
+    /// 但弹簧（开/延迟收/重开）整段拖动都该生效,所以认这个、不认实时 source（owner 2026-06-22）。
+    private var dragOriginatedFromStrip = false
+    /// 抽屉**逻辑**开关态（不看 isVisible——淡出动画期间面板还可见但逻辑上已关）。toggle/弹簧/可打断关都看它。
+    private var drawerWantsOpen = false
+    /// 这次抽屉是不是**弹簧**(拖动悬停)打开的。若是、且松手时这张卡没进抽屉(又拖回任务条) → 自动收回。
+    private var drawerSpringOpened = false
+    /// 正在拖的 strip 卡 bundleID,松手时用它判断有没有收进抽屉。
+    private var springDragBundleID: String?
     private var lastDesiredWidth: CGFloat = 0
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     /// 目标 frame 驱动布局：每次 layoutPanels 算齐三个目标并存这里。drop zone 命中、开抽屉定位都读**目标**
@@ -80,17 +99,19 @@ final class PanelCoordinator: NSObject {
         fullscreenReconcileTimer?.invalidate()
         hoverPollTimer?.invalidate()
         springOpenTimer?.invalidate()
+        springCloseTimer?.invalidate()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
     }
 
     func toggleDrawer() {
-        guard let mainPanel = dockPanel else { return }
+        if drawerWantsOpen { closeDrawer() } else { openDrawer() }
+    }
 
-        if let panel = drawerPanel, panel.isVisible {
-            closeDrawer()
-            return
-        }
+    private func openDrawer() {
+        guard let mainPanel = dockPanel, capsulePanel != nil else { return }
+        drawerWantsOpen = true
+        drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
         if drawerPanel == nil {
             let panel = NSPanel(
@@ -107,21 +128,49 @@ final class PanelCoordinator: NSObject {
             panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
             panel.hasShadow = false
             panel.hidesOnDeactivate = false
-            let hosting = NSHostingView(rootView: DrawerView().environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore).environmentObject(launchFavoriteStore).environmentObject(drawerOrderStore).environmentObject(dragController))
-            hosting.wantsLayer = true
-            hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
-            panel.contentView = hosting
             drawerPanel = panel
         }
+        guard let panel = drawerPanel else { return }
 
-        guard capsulePanel != nil else { return }
         let screen = panelCurrentScreen(panel: mainPanel)
-        // 用胶囊**目标** frame 定位（不读 live：用户可能在任务条宽度动画中触发弹簧开抽屉,live 胶囊是中途值,Codex 二审 P1）。
+        let vf = screen.visibleFrame
+        // 用胶囊**目标** frame 定位（不读 live：用户可能在任务条宽度动画中触发弹簧开抽屉,Codex 二审 P1）。
         let capsuleRef = lastCapsuleTargetFrame == .zero ? (capsulePanel?.frame ?? .zero) : lastCapsuleTargetFrame
+        // 抽屉最大内容高度 = 胶囊上方锚点 → 屏幕上沿的可用高度。超出由 DrawerView 内部滚动,
+        // 绝不靠下压底边来塞下（否则压向胶囊/任务条 = 重叠,Codex 二审第 4 点）。
+        let drawerBottomY = capsuleRef.maxY - Self.shadowPadding + 8
+        let maxContentHeight = max(120, (vf.maxY - drawerBottomY) - 2 * Self.shadowPadding)
+
+        // 每次打开都换一份新内容视图 → DrawerView 的 onAppear 重新触发淡入缩放,并拿到当前 maxContentHeight。
+        let hosting = NSHostingView(rootView: DrawerView(maxContentHeight: maxContentHeight)
+            .environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore)
+            .environmentObject(launchFavoriteStore).environmentObject(drawerOrderStore).environmentObject(dragController))
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
+
         let initialFrame = drawerTargetFrame(forCapsule: capsuleRef, size: lastDrawerSize, on: screen)
         lastDrawerTargetFrame = initialFrame
-        drawerPanel?.setFrame(initialFrame, display: false)
-        drawerPanel?.orderFrontRegardless()
+
+        // 关键：用普通 NSView 当 contentView,hosting 作为子视图自适应填充——**不让 NSHostingView 直接当 contentView**。
+        // 否则内容变高时 macOS 会用内容尺寸**顶边锚定、向下撑大**窗口（日志实测 cur(y=24 h=194)、top 恒=218），
+        // 我们的布局随后才把它纠正成底边锚定向上长（y=68）——这一前一后打架 = owner 看到的"先向下扩展再上移"
+        // 的真因（2026-06-22）。普通 NSView 不把子视图内容尺寸传给窗口,窗口高度只由 layoutPanels/setFrames 控制;
+        // fittingSize 改读 hosting（存进 drawerContentHost）。
+        let container = NSView(frame: NSRect(origin: .zero, size: initialFrame.size))
+        hosting.frame = container.bounds
+        hosting.autoresizingMask = [.width, .height]
+        container.addSubview(hosting)
+        panel.contentView = container
+        drawerContentHost = hosting
+
+        panel.setFrame(initialFrame, display: false)
+        if !panel.isVisible { panel.alphaValue = 0 }   // 重开中途若仍可见,从当前 alpha 续上,不跳回 0
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = DrawerAnimation.duration
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 1
+        }
         // 弹出后量真实 fittingSize 重新布局（瞬时,刚弹出不滑）。
         DispatchQueue.main.async { [weak self] in
             DispatchQueue.main.async { [weak self] in
@@ -138,10 +187,22 @@ final class PanelCoordinator: NSObject {
         }
     }
 
+    /// 可打断淡出关闭：立即摘监视器、动画 alpha→0,completion 里确认仍要关才 orderOut（淡出中又打开则不关）。
     private func closeDrawer() {
-        drawerPanel?.orderOut(nil)
+        guard drawerWantsOpen else { return }
+        drawerWantsOpen = false
+        drawerSpringOpened = false
         if let m = drawerLocalMonitor  { NSEvent.removeMonitor(m); drawerLocalMonitor  = nil }
         if let m = drawerGlobalMonitor { NSEvent.removeMonitor(m); drawerGlobalMonitor = nil }
+        guard let panel = drawerPanel else { return }
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = DrawerAnimation.duration
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            guard let self, !self.drawerWantsOpen else { return }   // 淡出中又开了 → 别 orderOut
+            panel.orderOut(nil)
+        })
     }
 
     private func dismissDrawerIfOutside() {
@@ -170,13 +231,6 @@ final class PanelCoordinator: NSObject {
                     .environmentObject(drawerStore)
                     .environmentObject(messagingStore)
                     .environmentObject(launchFavoriteStore))
-            },
-            stashAtCommit: { [weak self] bid, index in
-                guard let self else { return }
-                // 先把待入项插到抽屉顺序第 index 位（members 不含 bid），再 add 成员（Codex 二审 P2-5）。
-                let members = self.drawerStore.bundleIDs + self.launchFavoriteStore.bundleIDs.filter { !self.drawerStore.contains($0) }
-                self.drawerOrderStore.insert(bid, at: index, members: members)
-                self.drawerStore.add(bid)
             }
         )
     }
@@ -196,7 +250,12 @@ final class PanelCoordinator: NSObject {
                 zones.append(c.insetBy(dx: Self.shadowPadding - 8, dy: Self.shadowPadding - 8))
             }
             if let drawer = drawerPanel, drawer.isVisible, let d = target(lastDrawerTargetFrame, drawer.frame) {
-                zones.append(d.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding))
+                // 抽屉只向上长：投放区**上沿拉到屏幕顶**,只认固定的底边+宽度,不随面板增高/缩短而变。
+                // 否则"投放区尺寸→是否插空格→面板增高→投放区尺寸"成反馈环,空格闪烁、面板动画被高频打断
+                // 而过冲向下（owner 2026-06-21"先向下扩展再上移"的真因）。
+                let inset = d.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding)
+                let top = panelCurrentScreen(panel: drawer).visibleFrame.maxY
+                zones.append(CGRect(x: inset.minX, y: inset.minY, width: inset.width, height: max(inset.height, top - inset.minY)))
             }
             return zones
         case .drawer:
@@ -215,39 +274,102 @@ final class PanelCoordinator: NSObject {
     /// strip 卡悬在胶囊上（抽屉关着时投放区只有胶囊）约 0.4s → 自动弹开抽屉,之后移进抽屉即接上精确定位;
     /// 不等它开、直接在胶囊松手仍按"收进末尾"。移开/松手取消定时器。
     private func subscribeDragSpringLoad() {
-        dragSpringSubscription = dragController.$isOverDropZone
+        // 订阅 globalLocation（不是 isOverDropZone）——光标回到任务条上不改 isOverDropZone,
+        // 必须靠位置才能实时收回抽屉（owner 2026-06-21：拖回任务条即收、再移回胶囊再开）。
+        dragSpringSubscription = dragController.$globalLocation
             .combineLatest(dragController.$draggingPayload)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] over, payload in
-                self?.updateSpringLoad(over: over, source: payload?.source)
+            .sink { [weak self] location, payload in
+                self?.updateSpringLoad(location: location, payload: payload)
             }
     }
 
-    private func updateSpringLoad(over: Bool, source: DragSource?) {
-        let drawerClosed = !(drawerPanel?.isVisible ?? false)
-        let arm = over && source == .strip && drawerClosed
-        if arm {
-            if springOpenTimer == nil {
-                // 必须用 .common 模式：拖动时主 run loop 在事件跟踪模式,scheduledTimer(默认 default 模式)
-                // 拖动期间不触发 → 0.4s 到不了、抽屉永不自动开（owner 2026-06-21 报告"弹簧没生效"的真因）。
-                let timer = Timer(timeInterval: 0.4, repeats: false) { [weak self] _ in
-                    Task { @MainActor in self?.springOpenDrawer() }
-                }
-                RunLoop.main.add(timer, forMode: .common)
-                springOpenTimer = timer
+    /// 视区命中：目标 frame 取可见内容区 + 6pt 迟滞（防胶囊/任务条交界反复横跳）。
+    private func springZone(_ target: NSRect) -> CGRect {
+        target.insetBy(dx: Self.shadowPadding - 6, dy: Self.shadowPadding - 6)
+    }
+
+    private func updateSpringLoad(location: CGPoint, payload: DragPayload?) {
+        // 整段拖动只要从任务条发起就享受弹簧（转正成 .drawer 后仍认这个标记）。
+        if let p = payload, p.source == .strip { dragOriginatedFromStrip = true; springDragBundleID = p.bundleID }
+
+        // 松手兜底：弹簧开的抽屉若没把卡收进抽屉 → 收回。（实时悬停大多已处理,这里兜底。）
+        if payload == nil {
+            cancelSpringTimers()
+            if drawerSpringOpened, let bid = springDragBundleID, !drawerStore.contains(bid) {
+                closeDrawer()
+            }
+            drawerSpringOpened = false
+            springDragBundleID = nil
+            dragOriginatedFromStrip = false
+            return
+        }
+        // 非任务条发起（纯抽屉内拖动 / 抽屉→任务条移回）不弹簧。
+        guard dragOriginatedFromStrip else { cancelSpringTimers(); return }
+
+        let inDrawer  = drawerWantsOpen && lastDrawerTargetFrame != .zero && springZone(lastDrawerTargetFrame).contains(location)
+        let inCapsule = lastCapsuleTargetFrame != .zero && springZone(lastCapsuleTargetFrame).contains(location)
+
+        if inDrawer || inCapsule {
+            // 在抽屉或胶囊上 → 取消收回；关着且在胶囊上 → 起开抽屉定时器。
+            springCloseTimer?.invalidate(); springCloseTimer = nil
+            if !drawerWantsOpen {
+                if inCapsule && springOpenTimer == nil { armSpringOpenTimer() }
+            } else {
+                springOpenTimer?.invalidate(); springOpenTimer = nil      // 已开 → 保持
             }
         } else {
+            // 离开抽屉+胶囊（任务条上或空隙）→ 取消未触发的开；开着则**延迟**收回（owner 2026-06-22）。
             springOpenTimer?.invalidate(); springOpenTimer = nil
+            if drawerWantsOpen && springCloseTimer == nil { armSpringCloseTimer() }
         }
+    }
+
+    private func cancelSpringTimers() {
+        springOpenTimer?.invalidate(); springOpenTimer = nil
+        springCloseTimer?.invalidate(); springCloseTimer = nil
+    }
+
+    private func armSpringOpenTimer() {
+        // .common 模式：拖动时主 run loop 在事件跟踪模式,scheduledTimer(默认 default) 拖动期间不触发。
+        let timer = Timer(timeInterval: 0.4, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.springOpenDrawer() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        springOpenTimer = timer
+    }
+
+    /// 离开抽屉+胶囊 ~0.35s 后才收回（短暂蹭过任务条/空隙不收）。到点仍在拖、仍开、仍在外才真关。
+    private func armSpringCloseTimer() {
+        let timer = Timer(timeInterval: 0.35, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.springCloseDrawerIfStillOutside() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        springCloseTimer = timer
+    }
+
+    private func springCloseDrawerIfStillOutside() {
+        springCloseTimer = nil
+        guard dragOriginatedFromStrip, drawerWantsOpen else { return }
+        let loc = dragController.globalLocation
+        let inDrawer  = lastDrawerTargetFrame != .zero && springZone(lastDrawerTargetFrame).contains(loc)
+        let inCapsule = lastCapsuleTargetFrame != .zero && springZone(lastCapsuleTargetFrame).contains(loc)
+        guard !inDrawer, !inCapsule else { return }   // 又回到抽屉/胶囊 → 不关
+        closeDrawer()
     }
 
     private func springOpenDrawer() {
         springOpenTimer = nil
-        // 到点仍在拖、仍悬投放区、抽屉仍关 → 弹开（toggleDrawer 此时是 open）。
-        guard dragController.draggingPayload?.source == .strip,
-              dragController.isOverDropZone,
-              !(drawerPanel?.isVisible ?? false) else { return }
-        toggleDrawer()
+        // 到点仍在拖、仍悬胶囊、抽屉仍关 → 弹开。用 dragOriginatedFromStrip + 重测胶囊命中（不用
+        // isOverDropZone：转正成 .drawer 后它指的是任务条区,悬胶囊时为 false,会误拦重开。owner 2026-06-22）。
+        let loc = dragController.globalLocation
+        let inCapsule = lastCapsuleTargetFrame != .zero && springZone(lastCapsuleTargetFrame).contains(loc)
+        guard dragController.draggingPayload != nil,
+              dragOriginatedFromStrip,
+              inCapsule,
+              !drawerWantsOpen else { return }
+        openDrawer()
+        drawerSpringOpened = true   // openDrawer 把它置 false 了,这里标记是弹簧开的
         dragController.bringCarrierToFront()
     }
 
@@ -368,7 +490,7 @@ final class PanelCoordinator: NSObject {
     // → 胶囊按旧任务条、抽屉按旧胶囊定位 → 任务条变宽后错位、抽屉与任务条重叠。修法：一次算齐三个**目标**
     // frame（纯函数,互不读 live frame），三面板在**同一个动画组**里各自滑向目标。
 
-    private static let layoutAnimationDuration: TimeInterval = 0.22
+    private static let layoutAnimationDuration: TimeInterval = DrawerAnimation.duration
 
     /// 任务条目标 frame（按内容宽度、居中、限宽）。
     private func dockTargetFrame(contentWidth: CGFloat, on screen: NSScreen) -> NSRect {
@@ -388,14 +510,16 @@ final class PanelCoordinator: NSObject {
                       width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)
     }
 
-    /// 抽屉目标 frame（右边贴胶囊右边、底在胶囊上方）。只依赖传入的胶囊 **目标** frame + 抽屉尺寸。
+    /// 抽屉目标 frame（右边贴胶囊右边、**底边硬锚在胶囊上方、向上长**）。只依赖传入的胶囊 **目标** frame + 抽屉尺寸。
+    /// 关键：底边绝不下移——超过上方可用空间就**封顶高度**（内容由 DrawerView 内部滚动），
+    /// 绝不靠"把底边往下压"来塞下，否则压到胶囊/任务条（owner 2026-06-21 报图）。
     private func drawerTargetFrame(forCapsule capsuleFrame: NSRect, size: CGSize, on screen: NSScreen) -> NSRect {
         let vf = screen.visibleFrame
+        let bottom = max(capsuleFrame.maxY - Self.shadowPadding + 8, vf.minY)   // 底边锚点,固定不动
+        let height = min(size.height, max(120, vf.maxY - bottom))               // 超出上方可用空间 → 封顶
         let rawX = capsuleFrame.maxX - size.width
-        let rawY = capsuleFrame.maxY - Self.shadowPadding + 8
         let clampedX = min(max(rawX, vf.minX), vf.maxX - size.width)
-        let clampedY = min(max(rawY, vf.minY), vf.maxY - size.height)
-        return NSRect(x: clampedX, y: clampedY, width: size.width, height: size.height)
+        return NSRect(x: clampedX, y: bottom, width: size.width, height: height)
     }
 
     /// 统一布局入口：算齐三个目标 frame、存好（给 drop zone / 开抽屉读），三面板同组动画到目标。
@@ -411,7 +535,7 @@ final class PanelCoordinator: NSObject {
         lastCapsuleTargetFrame = capsuleT
 
         var pairs: [(NSPanel, NSRect)] = [(dock, dockT), (capsule, capsuleT)]
-        if let drawer = drawerPanel, drawer.isVisible, let hosting = drawer.contentView {
+        if let drawer = drawerPanel, drawer.isVisible, let hosting = drawerContentHost {
             let fitting = hosting.fittingSize
             let drawerSize = CGSize(width: max(fitting.width, 60), height: max(fitting.height, 60))
             lastDrawerSize = drawerSize

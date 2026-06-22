@@ -11,6 +11,10 @@ import SwiftUI
 /// 名单（语义不变、支持共存）。拖动两向：抽屉内同区落点 = 排序；拖到任务条 = 移回（仅收纳项，走
 /// `DragController` 整屏自绘载体）。
 struct DrawerView: View {
+    /// 抽屉内容区最大高度（胶囊上方锚点 → 屏幕上沿可用高度，PanelCoordinator 开抽屉时算好传入）。
+    /// 内容超过它就内部滚动,绝不靠下压底边塞下（防与下方胶囊/任务条重叠）。
+    let maxContentHeight: CGFloat
+
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var launchFavoriteStore: LaunchFavoriteStore
@@ -21,15 +25,13 @@ struct DrawerView: View {
     /// 抽屉图标在 `"drawer"` 坐标空间里的位置，喂给起拖抓取偏移 + 同区落点命中。
     @State private var drawerFrames: [String: CGRect] = [:]
 
-    // MARK: - 任务条→抽屉运行区 精确落位 preview 状态
-
-    /// 任务条卡正拖进抽屉时,在运行区的本地插入位(0..运行数);nil = 没有卡拖进来。驱动让位空格。
-    @State private var previewK: Int?
-    /// 抽屉根视图的屏幕 frame（bottom-left），判"光标在不在抽屉里" + 屏幕坐标→`"drawer"` 空间换算。
+    /// 抽屉根视图的屏幕 frame（bottom-left），判"光标在不在抽屉体" + 屏幕坐标→`"drawer"` 空间换算。
     @State private var drawerRootScreenRect: CGRect = .zero
-    /// 进入抽屉首帧（空格还没插）捕获的运行区格子位置（`"drawer"` 空间）。命中**始终用这份稳定快照**,
-    /// 不用插了空格后位移的实时 frame —— 否则空格一插、格子右移、命中就跳动。
-    @State private var baseRunningFrames: [String: CGRect] = [:]
+
+    /// 入场动画：onAppear 翻 true,内容从胶囊那角轻微放大入场（配合面板 alpha 淡入）。
+    @State private var isPresented = false
+    /// 网格自然高度（量出来）。超过 maxContentHeight 就内部滚动。
+    @State private var contentHeight: CGFloat = 0
 
     private let columns = Array(repeating: GridItem(.fixed(44 * 0.7), spacing: 8), count: 5)
 
@@ -78,39 +80,24 @@ struct DrawerView: View {
     // MARK: - Body
 
     var body: some View {
-        let runningIDs = runningZoneIDs
-        let launchIDs = launchZoneIDs
-        let hasRunningZone = !runningIDs.isEmpty
-
-        ZStack(alignment: .topLeading) {
+        // 底部对齐：抽屉面板向上长时,内容底边钉死在锚点(胶囊上方)、只向上揭开,
+        // 不会像顶部对齐那样底边先垂到锚点下方(向下压胶囊)再升回来（owner 2026-06-21：避让该直接向上扩展）。
+        ZStack(alignment: .bottomLeading) {
             DockVisualEffectView()
                 .padding(-2)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                // 运行区：任务条卡拖进抽屉时,在 previewK 处撑开一个让位空格(精确定位)。
-                // 空运行区但正有卡拖进来时也渲染(只含那个空格),反馈更明确(Codex 二审 P3)。
-                if hasRunningZone || previewK != nil {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(runningCells(runningIDs)) { cell in
-                            switch cell {
-                            case .chip(let id): drawerChip(id, zone: runningIDs, running: true)
-                            case .placeholder:  dropPlaceholder
-                            }
-                        }
-                    }
-                    .animation(.spring(response: 0.28, dampingFraction: 0.82), value: previewK)
-                }
-                if !launchIDs.isEmpty {
-                    Spacer().frame(height: hasRunningZone ? 12 : 0)
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(launchIDs, id: \.self) { id in drawerChip(id, zone: launchIDs, running: false) }
-                    }
+            // 内容超过可用高度就内部滚动（封顶,不下压底边）；否则正常贴合内容。
+            Group {
+                if contentHeight > maxContentHeight + 0.5 {
+                    ScrollView(.vertical, showsIndicators: false) { gridStack }
+                        .frame(height: maxContentHeight)
+                } else {
+                    gridStack
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(12)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -122,18 +109,50 @@ struct DrawerView: View {
             if rect != drawerRootScreenRect { drawerRootScreenRect = rect }
         })
         .coordinateSpace(name: "drawer")
+        // 入场：从贴胶囊的右下角轻微放大入场（配合面板 alpha 淡入）。scaleEffect 是渲染变换,不改布局/命中。
+        .scaleEffect(isPresented ? 1 : 0.96, anchor: .bottomTrailing)
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
+        .onAppear { withAnimation(.easeOut(duration: DrawerAnimation.duration)) { isPresented = true } }
         .onPreferenceChange(DrawerChipFramePreferenceKey.self) { drawerFrames = $0 }
+        .onPreferenceChange(DrawerContentHeightKey.self) { contentHeight = $0 }
         // 拖动中被拖图标的 app 从成员里消失（外部移除等）→ 取消拖动，免得空位卡死。
         .onChange(of: allMembers) { _, members in
             if let p = dragController.draggingPayload, p.source == .drawer, !members.contains(p.id) {
                 dragController.cancelDrag()
             }
         }
-        // 任务条卡拖进抽屉时,跟着光标实时算运行区落点(不在 body 里发布,用 onChange + 去重,Codex 二审 P2-6)。
-        .onChange(of: dragController.globalLocation) { _, _ in updateStripDropPreview() }
+        // 任务条卡拖进抽屉时跟光标算运行区落点；抽屉内拖动时跟光标做重排。都由全局鼠标位置驱动,
+        // 不在 body 里发布(用 onChange + 去重,Codex 二审 P2-6)。
+        .onChange(of: dragController.globalLocation) { _, _ in updateStripDropPreview(); updateDrawerReorder() }
         .onChange(of: dragController.draggingPayload?.id) { _, _ in updateStripDropPreview() }
+    }
+
+    /// 两区网格本体。`.background` 量自然高度喂滚动判定；每区按各自 ID 列表做动画——增删/换行/重排都平滑。
+    /// 任务条卡拖进抽屉是"即时转正成成员"（见 updateStripDropPreview），就是运行区多一个 id,无需占位格。
+    private var gridStack: some View {
+        let runningIDs = runningZoneIDs
+        let launchIDs = launchZoneIDs
+        let hasRunningZone = !runningIDs.isEmpty
+        return VStack(alignment: .leading, spacing: 0) {
+            if hasRunningZone {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(runningIDs, id: \.self) { id in drawerChip(id, zone: runningIDs, running: true) }
+                }
+                .animation(.easeInOut(duration: DrawerAnimation.duration), value: runningIDs)
+            }
+            if !launchIDs.isEmpty {
+                Spacer().frame(height: hasRunningZone ? 12 : 0)
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(launchIDs, id: \.self) { id in drawerChip(id, zone: launchIDs, running: false) }
+                }
+                .animation(.easeInOut(duration: DrawerAnimation.duration), value: launchIDs)
+            }
+        }
+        .padding(12)
+        .background(GeometryReader { g in
+            Color.clear.preference(key: DrawerContentHeightKey.self, value: g.size.height)
+        })
     }
 
     // MARK: - 单个图标（含拖动）
@@ -164,27 +183,37 @@ struct DrawerView: View {
                                            value: [id: geo.frame(in: .named("drawer"))])
                 }
             )
-            // 起拖交给 DragController；本手势只负责起拖一次 + 同区排序（进投放区即停）。
+            // 本手势**只负责起拖一次**：拿到"是哪张卡 + 抓取偏移"后交给 DragController。
+            // 重排**不在这里做**——第一次重排会把被拖图标在网格里挪位,SwiftUI 随即取消这个手势、
+            // onChanged 不再触发 → "挤一下就卡住"（owner 2026-06-22）。重排改由 updateDrawerReorder()
+            // 按 DragController 的全局鼠标位置驱动（见 onChange(globalLocation)），图标怎么换位都不受影响。
             .simultaneousGesture(
                 DragGesture(minimumDistance: 8, coordinateSpace: .named("drawer"))
                     .onChanged { value in
-                        if dragController.draggingPayload == nil {
-                            let grab: CGSize = drawerFrames[id].map {
-                                CGSize(width: $0.midX - value.startLocation.x,
-                                       height: $0.midY - value.startLocation.y)
-                            } ?? .zero
-                            let payload = DragPayload(source: .drawer, id: id, bundleID: id, item: nil,
-                                                      visualKind: .drawerIcon, canExternalDrop: stashed)
-                            dragController.beginDrag(payload: payload,
-                                                     startScreenLocation: NSEvent.mouseLocation,
-                                                     grabOffset: grab)
-                        }
-                        if !dragController.isOverDropZone {
-                            reorderTarget(at: value.location, dragging: id, zone: zone)
-                        }
+                        guard dragController.draggingPayload == nil else { return }
+                        let grab: CGSize = drawerFrames[id].map {
+                            CGSize(width: $0.midX - value.startLocation.x,
+                                   height: $0.midY - value.startLocation.y)
+                        } ?? .zero
+                        let payload = DragPayload(source: .drawer, id: id, bundleID: id, item: nil,
+                                                  visualKind: .drawerIcon, canExternalDrop: stashed)
+                        dragController.beginDrag(payload: payload,
+                                                 startScreenLocation: NSEvent.mouseLocation,
+                                                 grabOffset: grab)
                     }
-                    .onEnded { _ in dragController.endDrag() }
             )
+    }
+
+    /// 抽屉内重排：按 DragController 全局鼠标位置驱动（替代会被取消的逐图标手势）。把屏幕坐标映回 `"drawer"`
+    /// 空间,命中同区目标后让位。抽屉内重排不改成员数 → 抽屉不缩放 → 用实时 drawerRootScreenRect 映射即可。
+    private func updateDrawerReorder() {
+        guard let p = dragController.draggingPayload, p.source == .drawer,
+              !dragController.isOverDropZone,            // 光标已在任务条上 = 移回,不重排
+              drawerRootScreenRect != .zero else { return }
+        let pt = CGPoint(x: dragController.globalLocation.x - drawerRootScreenRect.minX,
+                         y: drawerRootScreenRect.maxY - dragController.globalLocation.y)   // 屏幕(左下) → drawer(左上)
+        let zone = runningZoneIDs.contains(p.id) ? runningZoneIDs : launchZoneIDs
+        reorderTarget(at: pt, dragging: p.id, zone: zone)
     }
 
     /// 抽屉内排序：只在**同一区**内命中落点（Codex 二审 ⑤——跨区改顺序会"偷偷"改、状态变才显现）。
@@ -198,77 +227,25 @@ struct DrawerView: View {
         }
     }
 
-    // MARK: - 任务条→抽屉运行区 精确落位 preview（仅 strip 来源、抽屉已打开）
+    // MARK: - 任务条卡进抽屉体 → 转成抽屉内拖动 / 拖出还原
 
-    /// 运行区网格单元：真 chip 或一个让位占位。
-    private enum DrawerRunCell: Identifiable {
-        case chip(String)
-        case placeholder
-        var id: String {
-            switch self {
-            case .chip(let s): return s
-            case .placeholder: return "__drawer_drop_placeholder__"
-            }
-        }
-    }
-
-    private func runningCells(_ running: [String]) -> [DrawerRunCell] {
-        var cells = running.map { DrawerRunCell.chip($0) }
-        // 多加"拖动仍在进行中"的条件：松手瞬间 draggingPayload 立刻变 nil → 空格同帧撤掉,
-        // 和真图标落位在同一帧完成,不会多挂一帧导致所有图标抖一下（owner 2026-06-21 报告）。
-        if let k = previewK, dragController.draggingPayload?.source == .strip {
-            cells.insert(.placeholder, at: max(0, min(k, cells.count)))
-        }
-        return cells
-    }
-
-    /// 隐形让位空格：只占位撑开,不画任何边框（与抽屉内拖动的空槽一致,owner 2026-06-21 反馈不要虚线框）。
-    private var dropPlaceholder: some View {
-        Color.clear.frame(width: 44 * 0.7, height: 52 * 0.7)
-    }
-
-    /// 跟随光标算"任务条卡落进运行区第几位",并把对应的**全局插入位**发布给 DragController。
+    /// 任务条卡拖进**打开的抽屉体** → 即时转成抽屉内拖动（DragController.convertStripToDrawer：加入抽屉成员、
+    /// 来源改 `.drawer`）。此后这张卡就是普通抽屉成员,由全局鼠标驱动的 `updateDrawerReorder` 重排——与抽屉内
+    /// 拖动**完全同一套**(owner 2026-06-22：统一手感)。彻底绕开旧的"占位空格 + 面板反复缩放"机制（闪烁/卡顿源）。
+    /// 底边/侧边留容差：载体相对鼠标有抓取偏移,鼠标常落在抽屉底边附近,容差让贴边也能稳定判"进了抽屉体"。
     private func updateStripDropPreview() {
         let dc = dragController
-        guard let p = dc.draggingPayload, p.source == .strip, dc.isOverDropZone,
-              drawerRootScreenRect.contains(dc.globalLocation) else {
-            if previewK != nil { previewK = nil; baseRunningFrames = [:]; dc.setDropPreview(nil) }
-            return
+        guard dc.draggingPayload != nil, drawerRootScreenRect != .zero else { return }
+        let g = dc.globalLocation
+        let r = drawerRootScreenRect
+        // 进入阈值松（容差大,好进）；撤销阈值更靠外（迟滞带,防边缘反复转正/撤销 → 抽屉一胀一缩抖）。
+        let enterBody = g.x >= r.minX - 8  && g.x <= r.maxX + 8  && g.y >= r.minY - 28
+        let clearlyOut = g.x < r.minX - 20 || g.x > r.maxX + 20 || g.y < r.minY - 48
+        if let p = dc.draggingPayload, p.source == .strip, p.canExternalDrop, enterBody {
+            dc.convertStripToDrawer()              // 进抽屉体 → 临时转正(挤开别人=预览)
+        } else if dc.isConvertedFromStrip, clearlyOut {
+            dc.revertStripFromDrawer()             // 拖出抽屉体 → 撤销还原(抽屉缩回最初样子)
         }
-        let running = runningZoneIDs
-        // 进入抽屉首帧（previewK 还是 nil、还没空格）捕获一份稳定的运行区格子位置,后续都用它命中。
-        if previewK == nil {
-            baseRunningFrames = drawerFrames.filter { running.contains($0.key) }
-        }
-        let k = runningInsertionIndex(among: running, at: dc.globalLocation)
-        if k != previewK {
-            previewK = k
-            dc.setDropPreview(globalIndex(forRunningK: k, running: running))
-        }
-    }
-
-    /// 屏幕坐标 → `"drawer"` 空间,命中运行区某格按左/右半给插入位;没命中 → 运行区末尾。
-    private func runningInsertionIndex(among running: [String], at screenLoc: CGPoint) -> Int {
-        let pt = CGPoint(x: screenLoc.x - drawerRootScreenRect.minX,
-                         y: drawerRootScreenRect.maxY - screenLoc.y)   // bottom-left 屏幕 → top-left drawer 空间
-        for (i, id) in running.enumerated() {
-            if let f = baseRunningFrames[id], f.insetBy(dx: -6, dy: -6).contains(pt) {   // 外扩,判定区更大
-                return pt.x > f.midX ? i + 1 : i
-            }
-        }
-        return running.count
-    }
-
-    /// 运行区本地插入位 K → 抽屉全局顺序里的插入位（运行区是 displayOrder 的子序列）。
-    private func globalIndex(forRunningK k: Int, running: [String]) -> Int {
-        let order = displayOrder
-        guard !running.isEmpty else { return 0 }   // 运行区空 → 插到最前（渲染在启动区之上）
-        if k >= running.count {
-            let last = running[running.count - 1]
-            return (order.firstIndex(of: last).map { $0 + 1 }) ?? order.count
-        }
-        let at = running[k]
-        return order.firstIndex(of: at) ?? order.count
     }
 }
 
@@ -299,5 +276,13 @@ private struct DrawerChipFramePreferenceKey: PreferenceKey {
     static var defaultValue: [String: CGRect] = [:]
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
         value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+/// 网格自然高度（量出来,喂"超高内部滚动"判定）。
+private struct DrawerContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

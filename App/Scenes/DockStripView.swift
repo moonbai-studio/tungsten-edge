@@ -587,12 +587,13 @@ struct DrawerCapsuleButton: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous)
-                .strokeBorder(dragController.isOverStashZone ? .white.opacity(0.45) : .white.opacity(0.15),
-                              lineWidth: dragController.isOverStashZone ? 1 : 0.5)
+                .strokeBorder(.white.opacity(0.15), lineWidth: 0.5)
         }
-        .scaleEffect(dragController.isOverStashZone ? 1.03 : 1.0)
-        // 去弹性、平滑淡入,不再"啪"地弹一下（owner 2026-06-21 觉得太生硬）。
-        .animation(.easeOut(duration: 0.18), value: dragController.isOverStashZone)
+        // 拖卡悬到胶囊上：**微微发光 + 极轻微放大**（去掉原来生硬的白圈描边,owner 2026-06-21）。
+        .scaleEffect(dragController.isOverStashZone ? 1.04 : 1.0)
+        .shadow(color: .white.opacity(dragController.isOverStashZone ? 0.18 : 0),
+                radius: dragController.isOverStashZone ? 5 : 0)
+        .animation(.easeInOut(duration: DrawerAnimation.duration), value: dragController.isOverStashZone)
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         .contentShape(Rectangle())

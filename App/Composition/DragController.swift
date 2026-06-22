@@ -32,14 +32,6 @@ final class DragController: ObservableObject {
     @Published private(set) var draggingPayload: DragPayload?
     @Published private(set) var globalLocation: CGPoint = .zero
     @Published private(set) var isOverDropZone = false
-    /// 跨区精确定位（任务条→已打开抽屉运行区）：待入项在抽屉顺序里的**全局插入位**。
-    /// 仅 strip 来源、光标在打开的抽屉里时由 `DrawerView` 算出并发布；nil = 没精确落点（胶囊/抽屉没开 → 追加末尾）。
-    @Published private(set) var dropPreview: Int?
-
-    /// `DrawerView` 高频更新落点用，去重：index 没变不发布，防重绘循环（Codex 二审 P2-6）。
-    func setDropPreview(_ index: Int?) {
-        if index != dropPreview { dropPreview = index }
-    }
 
     private(set) var grabOffset: CGSize = .zero
     private(set) var carrierScreenFrame: CGRect = .zero
@@ -53,9 +45,6 @@ final class DragController: ObservableObject {
     private let dropZonesProvider: (DragSource) -> [CGRect]
     private let screenProvider: () -> NSScreen
     private let carrierFactory: (DragController) -> NSView
-    /// 精确落位提交（bundleID, 全局插入位）：插入抽屉顺序后再 add 成员。由 PanelCoordinator 注入
-    /// （它同时握有 drawerStore + drawerOrderStore，提交仍由本控制器这个唯一权威在 `endDrag` 触发）。
-    private let stashAtCommit: (String, Int) -> Void
 
     private var carrierPanel: NSPanel?
     private var localMonitor: Any?
@@ -65,13 +54,11 @@ final class DragController: ObservableObject {
     init(drawerStore: DrawerStore,
          dropZonesProvider: @escaping (DragSource) -> [CGRect],
          screenProvider: @escaping () -> NSScreen,
-         carrierFactory: @escaping (DragController) -> NSView,
-         stashAtCommit: @escaping (String, Int) -> Void) {
+         carrierFactory: @escaping (DragController) -> NSView) {
         self.drawerStore = drawerStore
         self.dropZonesProvider = dropZonesProvider
         self.screenProvider = screenProvider
         self.carrierFactory = carrierFactory
-        self.stashAtCommit = stashAtCommit
     }
 
     // MARK: - 起拖
@@ -85,6 +72,37 @@ final class DragController: ObservableObject {
         showCarrier()
         installMonitors()
         startPoll()
+    }
+
+    // MARK: - 任务条卡进抽屉体 → 转成抽屉内拖动（统一手感，owner 2026-06-22）
+
+    /// 转正前的原始任务条载荷：非 nil 表示"当前这张卡是任务条卡、已临时转正进抽屉"。撤销时据此还原。
+    private var stripPayloadBeforeConvert: DragPayload?
+    /// 当前是不是"任务条卡临时转正进抽屉"的状态（供 DrawerView 决定何时撤销还原）。
+    var isConvertedFromStrip: Bool { stripPayloadBeforeConvert != nil }
+
+    /// 任务条卡拖进**打开的抽屉体** → 即时"转正"成抽屉成员、把来源改成 `.drawer`。之后完全走抽屉内
+    /// 重排路径（全局鼠标驱动、无占位空格、无面板反复缩放）——彻底绕开旧的"占位+面板缩放"机制。
+    /// **可逆**：转正只是临时插入(挤开别人=预览);卡拖出抽屉体 → `revertStripFromDrawer` 撤销还原;
+    /// 真正松手落在抽屉里那刻才算落定（owner 2026-06-22：再开抽屉要是最初的样子,不是被挤过的）。
+    /// `guard source==.strip` 保证幂等（转一次后不再触发）。
+    func convertStripToDrawer() {
+        guard let p = draggingPayload, p.source == .strip, p.canExternalDrop else { return }
+        stripPayloadBeforeConvert = p
+        drawerStore.add(p.bundleID)
+        draggingPayload = DragPayload(source: .drawer, id: p.bundleID, bundleID: p.bundleID,
+                                      item: p.item, visualKind: p.visualKind, canExternalDrop: true)
+        refreshDropZone()   // 投放区集合随来源变,重算
+    }
+
+    /// 撤销转正：卡拖出抽屉体 → 从抽屉成员里移除（抽屉缩回原样、其他图标归位）、来源还原成任务条卡。
+    /// 之后再次拖进抽屉体会重新 `convertStripToDrawer`。让"再开抽屉=最初的样子"。
+    func revertStripFromDrawer() {
+        guard let original = stripPayloadBeforeConvert, draggingPayload?.source == .drawer else { return }
+        drawerStore.remove(original.bundleID)
+        draggingPayload = original
+        stripPayloadBeforeConvert = nil
+        refreshDropZone()
     }
 
     // MARK: - 跟手 / 落点
@@ -105,15 +123,16 @@ final class DragController: ObservableObject {
     func endDrag() {
         guard let p = draggingPayload else { return }
         let external = isOverDropZone
-        let preview = dropPreview   // 先捕获——teardown 会清掉，之后才能按 K 提交（Codex 二审 P2-4）
         teardown()
-        guard external else { return }
         switch p.source {
         case .strip:
-            if let preview { stashAtCommit(p.bundleID, preview) }  // 精确落位（在打开的抽屉运行区第 K 位）
-            else { drawerStore.add(p.bundleID) }                   // 胶囊/抽屉没开 → 追加末尾
+            // 进过抽屉体的卡已被 convertStripToDrawer 转成 .drawer（落在里面 = 已是成员、不走这里）。
+            // 走到这支 = 没进抽屉体的卡：在投放区(胶囊)松手 → 追加末尾收纳；否则什么都不做。
+            if external { drawerStore.add(p.bundleID) }
         case .drawer:
-            drawerStore.remove(p.bundleID)                         // 移回任务栏（= 右键「移回任务栏」同语义）
+            // 落在抽屉里 → 留下（已是成员,external=false 直接返回）；落在任务条上 → 移回（移除成员）。
+            guard external else { return }
+            drawerStore.remove(p.bundleID)
         }
     }
 
@@ -124,9 +143,9 @@ final class DragController: ObservableObject {
     }
 
     private func teardown() {
+        stripPayloadBeforeConvert = nil   // 落定/取消都清掉（落在抽屉里 = 已 add，不撤销）
         draggingPayload = nil
         isOverDropZone = false
-        dropPreview = nil
         removeMonitors()
         pollTimer?.invalidate(); pollTimer = nil
         carrierPanel?.orderOut(nil)
