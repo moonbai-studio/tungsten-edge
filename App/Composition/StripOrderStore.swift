@@ -29,6 +29,11 @@ final class StripOrderStore: ObservableObject {
     private var absentSince: [String: Date] = [:]
     private static let rankRetentionGrace: TimeInterval = 5.0
 
+    /// 抽屉拖回任务条·精确落点的**外部块暂存**。转正那帧窗口卡还没进 live 区（`drawerStore.remove`
+    /// 要下一轮才放回），拿不到卡 id；故只记 `bundleID + 目标`，卡 id 在下一次 `sync` 里用 `appKeyOf`
+    /// 现解析、`movingBlock` 落子，解析出的 id 回填 `boundIDs` 供撤销精确清除。
+    private var externalBlock: (bundleID: String, target: String?, after: Bool, boundIDs: [String])?
+
     init() {
         // 仅当存档来自**同一开机周期**才信任（cgWindowID 跨重启会重排/复用）。
         guard UserDefaults.standard.object(forKey: bootKey) != nil,
@@ -62,9 +67,48 @@ final class StripOrderStore: ObservableObject {
             return now.timeIntervalSince(t) <= Self.rankRetentionGrace
         }
         let effectiveCurrent = current + retainedAbsent
-        let next = StripOrdering.reconcile(remembered: liveOrder, current: effectiveCurrent, appKeyOf: appKeyOf)
+        var next = StripOrdering.reconcile(remembered: liveOrder, current: effectiveCurrent, appKeyOf: appKeyOf)
         absentSince = absentSince.filter { now.timeIntervalSince($0.value) <= Self.rankRetentionGrace }
+        // 消费外部块暂存：当被拖 app 的窗口卡都进了 current（reconcile 已纳入 next），用 appKeyOf 解出这组
+        // 卡、整块落到暂存目标，**在一次发布里完成**——无尾部闪入、不被对账规则挪走。排除 app-* 兜底卡。
+        if var ext = externalBlock {
+            let blockIDs = next.filter { appKeyOf[$0] == ext.bundleID && !$0.hasPrefix("app-") }
+            if !blockIDs.isEmpty {
+                next = StripOrdering.movingBlock(next, move: blockIDs, relativeTo: ext.target, after: ext.after)
+                ext.boundIDs = blockIDs
+                externalBlock = ext
+            }
+        }
         if next != liveOrder { liveOrder = next; persist() }
+    }
+
+    // MARK: - 外部块落点（抽屉拖回任务条·精确落点）
+
+    /// 转正进任务条：暂存"这个 app 的窗口卡整块落到 `target` 左/右（`target==nil` 末尾）"，下一次 `sync` 消费。
+    func stageExternalBlock(bundleID: String, relativeTo target: String?, after: Bool) {
+        externalBlock = (bundleID, target, after, [])
+    }
+
+    /// 连续重排（窗口卡已实体化、暂存已消费后）：把这组 id 整块移到 `targetID` 处。变化才发布。
+    func reorderBlock(ids: [String], relativeTo targetID: String, after: Bool) {
+        let next = StripOrdering.movingBlock(liveOrder, move: ids, relativeTo: targetID, after: after)
+        if next != liveOrder { liveOrder = next; persist() }
+    }
+
+    /// 落定：仅清暂存追踪，`boundIDs` 留在 `liveOrder`（已是正常成员）。
+    func commitExternalBlock() { externalBlock = nil }
+
+    /// 撤销转正：从 `liveOrder` 删 `boundIDs`、清它们的 `absentSince`（否则 5s rank 粘性会复活成幽灵排名）、
+    /// 清暂存。**必须在 `revertDrawerToStrip` 的 `drawerStore.add` 触发 sync 之前调**。
+    func cancelExternalBlock() {
+        guard let ext = externalBlock else { return }
+        let ids = Set(ext.boundIDs)
+        if !ids.isEmpty {
+            let next = liveOrder.filter { !ids.contains($0) }
+            for id in ids { absentSince.removeValue(forKey: id) }
+            if next != liveOrder { liveOrder = next; persist() }
+        }
+        externalBlock = nil
     }
 
     /// 拖动落位：把 `draggedID` 落到 `targetID` 的左/右边。先 reconcile 定下当前显示序，再插位；

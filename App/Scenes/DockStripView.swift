@@ -35,14 +35,24 @@ struct DockStripView: View {
     /// id of the live chip currently being dragged (nil = not dragging) —读自 dragController。
     /// 只认 strip 来源的拖动（抽屉来源的载荷在任务条里不该隐藏任何卡片），且限定 live 区 chip。
     private var draggingID: String? {
-        guard let p = dragController.draggingPayload, p.source == .strip else { return nil }
-        return liveOrderIDs.contains(p.id) ? p.id : nil
+        if let p = dragController.draggingPayload, p.source == .strip {
+            return liveOrderIDs.contains(p.id) ? p.id : nil
+        }
+        // 抽屉拖回任务条·转正后：隐藏**代表卡**成空位（与载体画的是同一张，Codex 三审 P1）。
+        if let rep = dragController.convertedRepresentative, liveOrderIDs.contains(rep.id) {
+            return rep.id
+        }
+        return nil
     }
 
     /// Live chip frames by id in the `"strip"` space (含滚动偏移后的屏上位置), collected via
     /// preference — feeds the grab offset at drag start and the full-frame landing hit-test.
     /// `.background` GeometryReader (not overlay) so it never steals chip clicks.
     @State private var chipFrames: [String: CGRect] = [:]
+
+    /// 任务条内容区（"strip" 空间）在屏幕坐标系的 frame（bottom-left）。抽屉拖回任务条·精确落点用它把
+    /// 全局鼠标位置映回 "strip" 空间命中卡片，并判进/出任务条区（迟滞）。与 "strip" 命名空间挂同一视图。
+    @State private var stripRootScreenRect: CGRect = .zero
 
     private var allNonDrawerItems: [StripItem] {
         StripItem.items(from: runtime.snapshot)
@@ -165,8 +175,18 @@ struct DockStripView: View {
         // 跨面板后，被拖的卡片改由 DragController 的全屏载体面板绘制（不再画在任务条 overlay 上 —
         // 任务条窗口只有 92pt 高，自绘 overlay 会被裁掉，飘不出去）。这里只保留"让出空位"的原位隐藏。
         .coordinateSpace(name: "strip")
+        // 与 "strip" 命名空间同一视图 → 屏幕 frame 即 "strip" 空间原点，供抽屉拖回任务条做坐标映射 + 进出判定。
+        .background(ScreenRectReader { rect in
+            if rect != stripRootScreenRect { stripRootScreenRect = rect }
+        })
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
+        // 抽屉图标拖到任务条上：进任务条区即转正成窗口卡、跟光标整块实时让位（镜像 DrawerView 的全局鼠标驱动）。
+        .onChange(of: dragController.globalLocation) { _, _ in
+            updateDrawerToStripConvert()
+            updateStripBlockReorder()
+            syncConvertedCarrier()
+        }
         // Converge the remembered live order with the current snapshot (drop closed, append
         // new) as a side-effect — never during body eval. `initial: true` seeds on first
         // appearance so the very first render's reconcile (empty → current) is a visual no-op.
@@ -192,6 +212,91 @@ struct DockStripView: View {
         }) else { return }
         stripOrderStore.reorder(draggedID: id, relativeTo: hit.key,
                                 after: point.x > hit.value.midX, current: liveOrderIDs)
+    }
+
+    // MARK: - 抽屉图标拖回任务条·精确落点（运行中应用，全局鼠标驱动，镜像 DrawerView）
+
+    /// 这个 app 能否转正进任务条做精确落点：非空 bundleID、非 Finder、非消息应用，且 snapshot 里有它的
+    /// **非 app-fallback** 窗口（= 运行中且有真实 live 窗口）。用 snapshot 直接判（移出抽屉前就成立，
+    /// 避开"转正当帧 live 区还没放回窗口卡"的误判）。
+    private func canConvertToStrip(_ bid: String) -> Bool {
+        guard !bid.isEmpty, bid != "com.apple.finder", !messagingStore.contains(bid) else { return false }
+        return StripItem.items(from: runtime.snapshot).contains {
+            $0.bundleIdentifier == bid && !$0.isAppLevelFallback
+        }
+    }
+
+    /// 这个 app 当前在 live 区的窗口卡 id（按显示序，排除 app-fallback）。转正后用于整块连续重排。
+    private func appLiveChipIDs(_ bid: String) -> [String] {
+        stripEntries.compactMap { entry -> String? in
+            guard case let .window(item) = entry,
+                  item.bundleIdentifier == bid, !item.isAppLevelFallback else { return nil }
+            return item.id
+        }
+    }
+
+    /// 按 chip id 取当前 `StripItem`（live 区）。
+    private func stripItem(forID id: String) -> StripItem? {
+        partitioned().liveNatural.first { $0.id == id }
+    }
+
+    /// 转正后维护载体的"代表卡"：显示序里该 app **第一张已实体化**的窗口卡。实体化前保持 nil（载体仍画
+    /// 抽屉小图标，不画"没有空位的卡"）。载体与空位都认这同一张（Codex 三审 P1）。非转正态由 DragController 清空。
+    private func syncConvertedCarrier() {
+        let dc = dragController
+        guard dc.isConvertedToStrip, let p = dc.draggingPayload, p.source == .drawer else { return }
+        let rep = appLiveChipIDs(p.bundleID).first
+            .flatMap { liveOrderIDs.contains($0) ? stripItem(forID: $0) : nil }
+        dc.setConvertedRepresentative(rep)
+    }
+
+    /// 屏幕坐标（bottom-left）→ "strip" 空间点（top-left, y-down）。
+    private func stripPoint(from global: CGPoint) -> CGPoint? {
+        guard stripRootScreenRect != .zero else { return nil }
+        return CGPoint(x: global.x - stripRootScreenRect.minX,
+                       y: stripRootScreenRect.maxY - global.y)
+    }
+
+    /// 在 "strip" 点上命中**不属于本组**的目标卡（整帧命中），返回落到它左/右。
+    private func blockTarget(at point: CGPoint, excluding block: Set<String>) -> (id: String, after: Bool)? {
+        for (cid, frame) in chipFrames where !block.contains(cid) && frame.contains(point) {
+            return (cid, point.x > frame.midX)
+        }
+        return nil
+    }
+
+    /// 进/出任务条区驱动转正/还原（迟滞防边界抖）。进 → `convertDrawerToStrip` + 暂存落点（下一帧 sync 落子）；
+    /// 出 → 先 `cancelExternalBlock`（清顺序+absentSince）**再** `revertDrawerToStrip`。
+    private func updateDrawerToStripConvert() {
+        let dc = dragController
+        guard let p = dc.draggingPayload, p.source == .drawer, p.canExternalDrop,
+              stripRootScreenRect != .zero else { return }
+        let bid = p.bundleID
+        let g = dc.globalLocation
+        let r = stripRootScreenRect
+        let enter      = g.x >= r.minX - 8  && g.x <= r.maxX + 8  && g.y >= r.minY - 8  && g.y <= r.maxY + 16
+        let clearlyOut = g.x < r.minX - 24  || g.x > r.maxX + 24  || g.y < r.minY - 24  || g.y > r.maxY + 40
+        if !dc.isConvertedToStrip {
+            guard enter, canConvertToStrip(bid) else { return }
+            // 此刻本组窗口卡还没出现在 live 区，命中目标只在**已有**卡里找（exclude 空集即可）。
+            let target = stripPoint(from: g).flatMap { blockTarget(at: $0, excluding: []) }
+            dc.convertDrawerToStrip()
+            stripOrderStore.stageExternalBlock(bundleID: bid, relativeTo: target?.id, after: target?.after ?? false)
+        } else if clearlyOut {
+            stripOrderStore.cancelExternalBlock()
+            dc.revertDrawerToStrip()
+        }
+    }
+
+    /// 转正后整块连续重排：本组窗口卡都进了 live 区（已实体化）才动；初次落点由暂存在 sync 内完成。
+    private func updateStripBlockReorder() {
+        let dc = dragController
+        guard dc.isConvertedToStrip, let p = dc.draggingPayload, p.source == .drawer else { return }
+        let ids = appLiveChipIDs(p.bundleID)
+        guard !ids.isEmpty, ids.allSatisfy(liveOrderIDs.contains),
+              let pt = stripPoint(from: dc.globalLocation),
+              let target = blockTarget(at: pt, excluding: Set(ids)) else { return }
+        stripOrderStore.reorderBlock(ids: ids, relativeTo: target.id, after: target.after)
     }
 
     /// Wraps a chip with in-app drag-reorder for the **live zone only** (路线 A 自绘拖动).
@@ -251,8 +356,8 @@ struct DockStripView: View {
         }
     }
 
-    /// `dragging: true` forces the chip's hovered visual — the floating drag copy renders this
-    /// so it matches the chip you grabbed (cursor is on it → it was hovered), no size pop.
+    /// `dragging: true` 强制 chip 的悬停视觉。注：现在浮动载体已移到 `DragCarrierView`（且用
+    /// `forceHover: false`），条内不再用 `dragging: true` 渲染载体；此参数保留默认 false，渲染行为不变。
     @ViewBuilder
     private func stripEntryView(_ entry: StripEntry, dragging: Bool = false) -> some View {
         switch entry {

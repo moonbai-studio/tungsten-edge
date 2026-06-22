@@ -39,6 +39,8 @@ final class PanelCoordinator: NSObject {
     private var messagingStoreWidthSubscription: AnyCancellable?
     private var launchFavoriteStoreSubscription: AnyCancellable?
     private var dragSpringSubscription: AnyCancellable?
+    /// 抽屉拖回任务条·"松手才变长"：转正进行中冻结任务条宽度，转正态结束（松手落定 / 拖出还原）再 relayout。
+    private var convertReleaseSubscription: AnyCancellable?
     private var springOpenTimer: Timer?
     /// 离开抽屉+胶囊后**延迟收回**的定时器（owner 2026-06-22：要延迟,不要一蹭到任务条就关）。
     private var springCloseTimer: Timer?
@@ -52,6 +54,9 @@ final class PanelCoordinator: NSObject {
     /// 正在拖的 strip 卡 bundleID,松手时用它判断有没有收进抽屉。
     private var springDragBundleID: String?
     private var lastDesiredWidth: CGFloat = 0
+    /// 跨面板转正进行中钳住的任务条内容宽度（拖动前的值）。非 nil → relayout 用它而非实测宽度，
+    /// 让窗口卡溢出/留空而不改变面板宽度；松手/还原清空后下一次 relayout 变到最终长度（owner 2026-06-22）。
+    private var frozenDockContentWidth: CGFloat?
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     /// 目标 frame 驱动布局：每次 layoutPanels 算齐三个目标并存这里。drop zone 命中、开抽屉定位都读**目标**
     /// 而非 live frame——动画中 live frame 是中途值,会和视觉/逻辑短暂不一致（Codex 二审 P2）。
@@ -85,6 +90,7 @@ final class PanelCoordinator: NSObject {
         subscribeMessagingStoreWidth()
         subscribeLaunchFavoriteStore()
         subscribeDragSpringLoad()
+        subscribeConvertRelease()
         setupFullscreenMonitor()
         setupHoverDiagnostics()
         NotificationCenter.default.addObserver(
@@ -233,6 +239,10 @@ final class PanelCoordinator: NSObject {
                     .environmentObject(launchFavoriteStore))
             }
         )
+        // 抽屉拖回任务条·精确落点：成功松手落定时清顺序层的外部块暂存追踪（boundIDs 已是正常成员、留任务条）。
+        dragController.onDrawerToStripCommitted = { [stripOrderStore] _ in
+            stripOrderStore.commitExternalBlock()
+        }
     }
 
     /// 投放候选区（屏幕坐标），按拖动来源分：
@@ -438,7 +448,7 @@ final class PanelCoordinator: NSObject {
             .sink { [weak self] _ in
                 // Defer one run-loop cycle so SwiftUI finishes layout before we read fittingSize
                 DispatchQueue.main.async { [weak self] in
-                    self?.relayout(animated: true)   // layoutPanels 内含抽屉重定位
+                    self?.relayout(animated: true)   // layoutPanels 内含抽屉重定位；转正期间 relayout 内部钳住宽度
                 }
             }
     }
@@ -450,6 +460,29 @@ final class PanelCoordinator: NSObject {
                 DispatchQueue.main.async { [weak self] in
                     self?.syncDrawerOrder()
                     self?.relayout(animated: true)
+                }
+            }
+    }
+
+    /// 跨面板拖动·"松手才变任务条长度"（owner 2026-06-22，两方向对称）：任一方向转正进行中
+    /// （拖回任务条 `convertedDrawerBundleID` / 拖进抽屉 `isConvertedFromStrip`），把任务条宽度**钳在拖动前的值**
+    /// （`frozenDockContentWidth`，relayout 内部生效）——窗口卡照常出现/移出、实时让位，但只是溢出或留空，
+    /// 面板**全程不变宽**。转正态结束（松手落定 / 拖出还原 → 两标志都 false）才解钳 + relayout，这一刻任务条
+    /// 才动画到最终长度。若全程没真正转正（如拖一半又拖回），结束时宽度=拖动前值，relayout 即无变化。
+    private func subscribeConvertRelease() {
+        let toStrip = dragController.$convertedDrawerBundleID.map { $0 != nil }
+        let fromStrip = dragController.$isConvertedFromStrip
+        convertReleaseSubscription = Publishers.CombineLatest(toStrip, fromStrip)
+            .map { $0 || $1 }
+            .removeDuplicates()
+            .sink { [weak self] converted in
+                guard let self else { return }
+                if converted {
+                    // 转正开始：钳在"拖动前"宽度（此刻 lastDesiredWidth 仍是转正前的值，标志在改 drawerStore 前先置）。
+                    if self.frozenDockContentWidth == nil { self.frozenDockContentWidth = self.lastDesiredWidth }
+                } else {
+                    self.frozenDockContentWidth = nil
+                    DispatchQueue.main.async { [weak self] in self?.relayout(animated: true) }
                 }
             }
     }
@@ -549,8 +582,11 @@ final class PanelCoordinator: NSObject {
     /// 量当前内容宽度后布局（内容变化的统一入口）。
     private func relayout(animated: Bool) {
         guard let panel = dockPanel, let hosting = panel.contentView else { return }
-        let contentWidth = hosting.fittingSize.width - 2 * Self.shadowPadding
-        lastDesiredWidth = contentWidth
+        let measured = hosting.fittingSize.width - 2 * Self.shadowPadding
+        lastDesiredWidth = measured
+        // 跨面板转正进行中 → 任务条宽度钳在拖动前的值（窗口卡溢出/留空而非改变面板宽度，owner 2026-06-22）；
+        // 松手/还原解钳后，下一次 relayout 用真实测量值把任务条变到最终长度。
+        let contentWidth = frozenDockContentWidth ?? measured
         layoutPanels(contentWidth: contentWidth, on: panelCurrentScreen(panel: panel), animated: animated)
     }
 

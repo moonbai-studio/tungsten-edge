@@ -145,6 +145,24 @@ enum StripOrdering {
         return result
     }
 
+    /// 整块落位（抽屉拖回任务条·精确落点）：把 `ids`（保持给定的内部相对序）整体移到 `targetID` 的
+    /// 左边（`after==false`）或右边（`after==true`）；`targetID==nil` → 整块移到**末尾**（append 不依赖
+    /// reconcile 的"新窗口贴同伴/末尾"规则，那正是本功能要覆盖的）。只移动**已在 `order` 里**的 id（防重复
+    /// 插入）；`targetID` 落在 `ids` 内或不在 `order` → 原样返回。
+    static func movingBlock(_ order: [String], move ids: [String], relativeTo targetID: String?, after: Bool) -> [String] {
+        let idSet = Set(ids)
+        let block = ids.filter { order.contains($0) }
+        guard !block.isEmpty else { return order }
+        var result = order.filter { !idSet.contains($0) }
+        if let targetID {
+            guard !idSet.contains(targetID), let t = result.firstIndex(of: targetID) else { return order }
+            result.insert(contentsOf: block, at: after ? t + 1 : t)
+        } else {
+            result.append(contentsOf: block)
+        }
+        return result
+    }
+
     /// 用 `newID` 顶替 `oldID`，**继承其位置（rank）**。用于：app-\* 占位升级成真窗口、
     /// 标签组 anchor 因成员关闭而迁移。`oldID` 不在序列、或 `newID` 已在序列中（防重复）→ 原样返回。
     static func substituting(_ order: [String], oldID: String, newID: String) -> [String] {

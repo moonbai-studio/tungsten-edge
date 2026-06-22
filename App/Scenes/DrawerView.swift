@@ -117,8 +117,10 @@ struct DrawerView: View {
         .onPreferenceChange(DrawerChipFramePreferenceKey.self) { drawerFrames = $0 }
         .onPreferenceChange(DrawerContentHeightKey.self) { contentHeight = $0 }
         // 拖动中被拖图标的 app 从成员里消失（外部移除等）→ 取消拖动，免得空位卡死。
+        // 例外：转正进任务条（抽屉拖回任务条·精确落点）会**主动**把它移出抽屉，不算异常消失，不取消。
         .onChange(of: allMembers) { _, members in
-            if let p = dragController.draggingPayload, p.source == .drawer, !members.contains(p.id) {
+            if let p = dragController.draggingPayload, p.source == .drawer,
+               !dragController.isConvertedToStrip, !members.contains(p.id) {
                 dragController.cancelDrag()
             }
         }
@@ -251,7 +253,8 @@ struct DrawerView: View {
 
 /// 读取宿主视图在屏幕坐标系里的 frame（AppKit 换算,bottom-left）。绕开 SwiftUI `.global`/y 翻转/
 /// shadowPadding 的坑（Codex 二审 P1-3）。去重由调用方负责。
-private struct ScreenRectReader: NSViewRepresentable {
+/// 模块内可见：DrawerView 与 DockStripView（抽屉拖回任务条·精确落点）共用，不复制坐标读取逻辑。
+struct ScreenRectReader: NSViewRepresentable {
     let onChange: (CGRect) -> Void
     func makeNSView(context: Context) -> NSView { TrackingView(onChange: onChange) }
     func updateNSView(_ nsView: NSView, context: Context) { (nsView as? TrackingView)?.report() }
