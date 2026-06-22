@@ -22,6 +22,7 @@
 		A000000000000000000019A3 /* DockBadgeReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B3 /* DockBadgeReader.swift */; };
 		A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* MacOSDockCCV2App.swift */; };
 		A00000000000000000001002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
+		A000000000000000000010F1 /* PermissionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000000F1 /* PermissionOnboardingView.swift */; };
 		A00000000000000000001003 /* AppComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* AppComposition.swift */; };
 		A00000000000000000001004 /* ObservationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* ObservationPipeline.swift */; };
 		A00000000000000000001018 /* PendingCloseTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000052 /* PendingCloseTracker.swift */; };
@@ -96,6 +97,7 @@
 		A000000000000000000019B3 /* DockBadgeReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeReader.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* MacOSDockCCV2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSDockCCV2App.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A000000000000000000000F1 /* PermissionOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionOnboardingView.swift; sourceTree = "<group>"; };
 		A00000000000000000000003 /* AppComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComposition.swift; sourceTree = "<group>"; };
 		A00000000000000000000004 /* ObservationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationPipeline.swift; sourceTree = "<group>"; };
 		A00000000000000000000052 /* PendingCloseTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCloseTracker.swift; sourceTree = "<group>"; };
@@ -231,6 +233,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000002 /* ContentView.swift */,
+				A000000000000000000000F1 /* PermissionOnboardingView.swift */,
 				A00000000000000000000067 /* DockStripView.swift */,
 				A0000000000000000000006A /* DrawerView.swift */,
 				A000000000000000000019B1 /* LauncherChip.swift */,
@@ -579,6 +582,7 @@
 					A00000000000000000001041 /* DockStripView.swift in Sources */,
 					A00000000000000000001044 /* DrawerView.swift in Sources */,
 					A00000000000000000001002 /* ContentView.swift in Sources */,
+					A000000000000000000010F1 /* PermissionOnboardingView.swift in Sources */,
 					A00000000000000000001003 /* AppComposition.swift in Sources */,
 					A00000000000000000001045 /* DrawerStore.swift in Sources */,
 					A000000000000000000019A0 /* MessagingAppStore.swift in Sources */,

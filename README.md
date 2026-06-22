@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/icon.png" width="128" alt="Tungsten Edge 钨极" />
+<img src="assets/icon.png" width="128" alt="Tungsten Edge" />
 
-# Tungsten Edge 钨极
+# Tungsten Edge
 
 **A window-oriented bottom taskbar for macOS — a replacement for the system Dock.**
 
@@ -42,9 +42,7 @@ The macOS Dock is organized by **app**: one icon per app, no matter how many win
 
 1. Download the latest `.dmg` from [Releases](../../releases).
 2. Open it and drag **Tungsten Edge** into your **Applications** folder.
-3. **First launch needs a right-click:** in Applications, **right-click (or Control-click) Tungsten Edge → Open**, then click **Open** again in the dialog.
-   - Why: this is an early build that is not yet Apple notarized, so macOS blocks it by default. Right-click → Open is the system's one-time way to allow it; after that, double-click works normally.
-4. Grant Accessibility permission when prompted (**System Settings → Privacy & Security → Accessibility**).
+3. **First launch needs to be allowed once** (this is an early, unsigned build, so macOS blocks it by default — it's not malware) — follow [First launch](#first-launch) below, then grant Accessibility permission.
 
 ### Option 2 — Homebrew (for technical users)
 
@@ -53,7 +51,35 @@ brew tap moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
-> If Homebrew warns that the third-party tap is "untrusted", run the `brew trust ...` command it prints once to continue. If the first launch is blocked by macOS, use right-click → Open as above.
+> If Homebrew warns that the third-party tap is "untrusted", run the `brew trust ...` command it prints once to continue. If the first launch is blocked by macOS, allow it as described in [First launch](#first-launch) below.
+
+## First launch
+
+Because this is an early build that isn't Apple-notarized yet, macOS blocks it the first time with a message like "cannot be opened because it is from an unidentified developer". **This isn't malware — it's macOS's default block for any unsigned app.** Allow it once and double-clicking works normally afterward. Pick the method for your macOS version:
+
+### Method A — right-click to open (macOS 14 and earlier)
+
+1. Open your **Applications** folder and find **Tungsten Edge**.
+2. **Right-click its icon** (or Control-click it) and choose **Open** from the menu.
+3. The dialog this time has an extra **Open** button — click it.
+4. Done. Double-click works from now on.
+
+> The trick is to go through **right-click → Open**, not a plain double-click — a plain double-click only gets blocked, with no allow button.
+
+### Method B — allow it in System Settings (macOS 15 Sequoia and newer)
+
+Newer macOS removed right-click-to-open, so do this instead:
+
+1. **Double-click** Tungsten Edge once; when it's blocked, **click "Done"** to dismiss the prompt (this lets the system record the attempt).
+2. Open **System Settings → Privacy & Security** and scroll down to the **Security** section.
+3. You'll see a line saying "Tungsten Edge was blocked…" with an **"Open Anyway"** button next to it — click it.
+4. Confirm once more (you may need your login password or Touch ID). Done — double-click works from now on.
+
+### One more step after opening: grant Accessibility permission
+
+Tungsten Edge needs **Accessibility** permission to read and manage your windows; it guides you through this on first run:
+
+- Open **System Settings → Privacy & Security → Accessibility**, find **Tungsten Edge**, and **turn on its switch**.
 
 ## Recommended setup (align the minimize animation to the bottom)
 
@@ -66,7 +92,7 @@ If your native Dock lives on the **side or top** of the screen, minimizing a win
 This is an early public build (v0.1). Known limitations and what's next:
 
 - **Not yet signed/notarized** → first launch needs right-click → Open (above). A signed build is planned.
-- **Chinese-only UI** → localization is on the roadmap; the README is bilingual in the meantime.
+- **Chinese-only UI** → localization is on the roadmap. A Chinese version of this README is available at [README.zh-CN.md](README.zh-CN.md).
 - Feedback and issues are very welcome.
 
 ---
