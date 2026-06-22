@@ -118,7 +118,7 @@ struct DrawerView: View {
         .onPreferenceChange(DrawerContentHeightKey.self) { contentHeight = $0 }
         // 拖动中被拖图标的 app 从成员里消失（外部移除等）→ 取消拖动，免得空位卡死。
         // 例外：转正进任务条（抽屉拖回任务条·精确落点）会**主动**把它移出抽屉，不算异常消失，不取消。
-        .onChange(of: allMembers) { _, members in
+        .onChange(of: allMembers) { members in
             if let p = dragController.draggingPayload, p.source == .drawer,
                !dragController.isConvertedToStrip, !members.contains(p.id) {
                 dragController.cancelDrag()
@@ -126,8 +126,8 @@ struct DrawerView: View {
         }
         // 任务条卡拖进抽屉时跟光标算运行区落点；抽屉内拖动时跟光标做重排。都由全局鼠标位置驱动,
         // 不在 body 里发布(用 onChange + 去重,Codex 二审 P2-6)。
-        .onChange(of: dragController.globalLocation) { _, _ in updateStripDropPreview(); updateDrawerReorder() }
-        .onChange(of: dragController.draggingPayload?.id) { _, _ in updateStripDropPreview() }
+        .onChange(of: dragController.globalLocation) { _ in updateStripDropPreview(); updateDrawerReorder() }
+        .onChange(of: dragController.draggingPayload?.id) { _ in updateStripDropPreview() }
     }
 
     /// 两区网格本体。`.background` 量自然高度喂滚动判定；每区按各自 ID 列表做动画——增删/换行/重排都平滑。

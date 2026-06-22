@@ -32,7 +32,7 @@ The macOS Dock is organized by **app**: one icon per app, no matter how many win
 
 ## Requirements
 
-- macOS 14.0 (Sonoma) or later
+- macOS 12.0 (Monterey) or later
 - Intel and Apple Silicon (universal binary)
 - On first launch you'll be asked to grant **Accessibility** permission (used to read and manage windows; the app guides you through it).
 

@@ -87,7 +87,7 @@ struct LauncherChip: View {
         .contextMenu { contextMenu }
         .help(displayName)
         .onDisappear { stopBounce() }
-        .onChange(of: isRunning) { _, newValue in
+        .onChange(of: isRunning) { newValue in
             if newValue { stopBounce() }
         }
         .animation(.easeInOut(duration: 0.18), value: isHovering)
@@ -152,7 +152,7 @@ struct LauncherChip: View {
 
         // 8s timeout backstop（对 menubar-only app 无窗口回调的情况兜底）
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(8))
+            try? await Task.sleep(nanoseconds: 8 * 1_000_000_000)
             stopBounce()
         }
 
@@ -161,7 +161,7 @@ struct LauncherChip: View {
                 Self.logger.error("launch()：openApplication 失败，bundleID=\(bundleID, privacy: .public)，error=\(error.localizedDescription, privacy: .public)")
             }
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
                 stopBounce()
             }
         }

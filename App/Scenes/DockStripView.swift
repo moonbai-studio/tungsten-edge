@@ -154,7 +154,7 @@ struct DockStripView: View {
                 .animation(.spring(response: 0.28, dampingFraction: 0.82), value: stripLayoutKeys)
             }
             .clipShape(RoundedRectangle(cornerRadius: Style.cornerRadius, style: .continuous))
-            .defaultScrollAnchor(.leading)
+            .compatLeadingScrollAnchor()
             .mask(alignment: .center) {
                 HStack(spacing: 0) {
                     LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
@@ -182,24 +182,31 @@ struct DockStripView: View {
         .shadow(color: .black.opacity(0.35), radius: 15, x: 0, y: 8)
         .padding(PanelCoordinator.shadowPadding)
         // 抽屉图标拖到任务条上：进任务条区即转正成窗口卡、跟光标整块实时让位（镜像 DrawerView 的全局鼠标驱动）。
-        .onChange(of: dragController.globalLocation) { _, _ in
+        .onChange(of: dragController.globalLocation) { _ in
             updateDrawerToStripConvert()
             updateStripBlockReorder()
             syncConvertedCarrier()
         }
         // Converge the remembered live order with the current snapshot (drop closed, append
-        // new) as a side-effect — never during body eval. `initial: true` seeds on first
-        // appearance so the very first render's reconcile (empty → current) is a visual no-op.
-        .onChange(of: liveOrderIDs, initial: true) { _, current in
-            stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
-            // 拖动中被拖窗口消失 → 取消拖动，免得空位卡死。(松手无回调那条由 DragController 的轮询兜底。)
-            if let p = dragController.draggingPayload, p.source == .strip, !current.contains(p.id) {
-                dragController.cancelDrag()
-            }
-        }
+        // new) as a side-effect — never during body eval. The `.onAppear` seed mirrors the old
+        // `initial: true` so the very first render's reconcile (empty → current) is a no-op.
+        .onChange(of: liveOrderIDs) { _ in reconcileLiveOrder() }
+        .onAppear { reconcileLiveOrder() }
         .onPreferenceChange(ChipFramePreferenceKey.self) { chipFrames = $0 }
         // No .frame(maxWidth: .infinity) here — lets NSHostingView.fittingSize reflect
         // the natural content width so AppDelegate can read it for panel sizing.
+    }
+
+    /// Converge the remembered live order with the current snapshot (drop closed, append new).
+    /// Called on every `liveOrderIDs` change **and** once on appear (the latter mirrors the old
+    /// `onChange(of:initial:)` seed that pre-macOS-14 `onChange` doesn't provide).
+    private func reconcileLiveOrder() {
+        let current = liveOrderIDs
+        stripOrderStore.sync(current: current, appKeyOf: liveAppKeys)
+        // 拖动中被拖窗口消失 → 取消拖动，免得空位卡死。(松手无回调那条由 DragController 的轮询兜底。)
+        if let p = dragController.draggingPayload, p.source == .strip, !current.contains(p.id) {
+            dragController.cancelDrag()
+        }
     }
 
     /// Live-zone reorder during a drag: find the chip whose **full frame** the finger is over
@@ -793,5 +800,18 @@ private struct ChipFramePreferenceKey: PreferenceKey {
     static var defaultValue: [String: CGRect] = [:]
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
         value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+extension View {
+    /// macOS 14 的 `defaultScrollAnchor(.leading)` 在更老系统上不可用；横向 ScrollView 本来就从
+    /// 前缘开始，所以旧系统走默认即可（仅 14+ 显式锚定，保持原行为）。
+    @ViewBuilder
+    func compatLeadingScrollAnchor() -> some View {
+        if #available(macOS 14.0, *) {
+            self.defaultScrollAnchor(.leading)
+        } else {
+            self
+        }
     }
 }
