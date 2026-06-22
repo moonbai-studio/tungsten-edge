@@ -158,6 +158,15 @@ Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. 
 - **Drop zones + drawer-open read the stored target frames** (`lastDockTargetFrame`/`lastCapsuleTargetFrame`/`lastDrawerTargetFrame`, live-frame fallback when `.zero`), not live `.frame` — mid-animation live frames disagree with the visual/landing position.
 - **The drawer's `contentView` is a plain `NSView` container with the `NSHostingView` pinned inside via `autoresizingMask` — the `NSHostingView` is NOT the window's `contentView` directly (2026-06-22, hard guardrail).** When an `NSHostingView` *is* the contentView, AppKit resizes the window to the SwiftUI content size **top-anchored** the instant content grows — so a row-add dropped the drawer's bottom edge DOWN (`y 68→24`, top pinned at 218) a frame before our bottom-anchored `setFrame` pulled it back up = the "抽屉先向下扩展再上移" dip (logs: `cur(y=24 h=194)` under `anim=false`). The plain-container interposition stops the window from sizing to content; height is driven only by `layoutPanels`/`setFrames`. We still read the hosting view's `fittingSize` for layout via the stored `drawerContentHost`. (`sizingOptions = []` was tried first and broke content fill — detached drawer; do not use it.)
 
+### Minimum deployment target = macOS 12 (Monterey) — gate newer APIs
+
+> 2026-06-22. Lowered from 14.0 to 12.0 so older Macs can install (a Monterey user hit "can't be used with this version of macOS"). `MACOSX_DEPLOYMENT_TARGET` = 12.0 in all configs; `LSMinimumSystemVersion` = 12.0.
+
+- **Do not use macOS 13+/14+ APIs unguarded** — it silently re-raises the minimum OS and re-breaks old Macs (the build only *warns* via deprecation, it doesn't stop you; the gate failure shows up only at install time on the old OS). Wrap any newer API in `if #available(macOS X, *)` with a ≤12 fallback.
+- Already converted for 12.0: `defaultScrollAnchor` → `compatLeadingScrollAnchor()` (availability-gated helper in `DockStripView`); the two-parameter `onChange(of:_:)` / `onChange(of:initial:)` → the old single-value `onChange(of:perform:)` (the `initial: true` seed is replicated with `.onAppear` calling the same `reconcileLiveOrder()`); `Task.sleep(for: .seconds(_))` (macOS 13+) → `Task.sleep(nanoseconds:)`.
+- The deprecation warnings from the old single-value `onChange` are expected back-deployment noise, not bugs.
+- Compile-verify by building at target 12 (`MACOSX_DEPLOYMENT_TARGET=12.0`) — a clean build proves no >12 API slipped in. Note: CI/dev machines run newer macOS, so runtime behavior on 12/13 still needs a real old-OS check.
+
 ## Collaboration Rule
 
 The project owner directs the product but does not read code, and does not read English comfortably — reply in Chinese.
