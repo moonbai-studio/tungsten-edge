@@ -21,9 +21,9 @@ English · [中文](README.zh-CN.md)
     <td align="center"><b>Drag to organize</b></td>
   </tr>
   <tr>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/multi-window.mov" autoplay loop muted playsinline></video></td>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/launcher.mov" autoplay loop muted playsinline></video></td>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/drag-reorder.mov" autoplay loop muted playsinline></video></td>
+    <td><img src="assets/multi-window.gif" alt="Multi-window management" /></td>
+    <td><img src="assets/launcher.gif" alt="App drawer &amp; launcher" /></td>
+    <td><img src="assets/drag-reorder.gif" alt="Drag to organize" /></td>
   </tr>
 </table>
 

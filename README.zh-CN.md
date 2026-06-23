@@ -21,9 +21,9 @@
     <td align="center"><b>随意拖拽</b></td>
   </tr>
   <tr>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/multi-window.mov" autoplay loop muted playsinline></video></td>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/launcher.mov" autoplay loop muted playsinline></video></td>
-    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/drag-reorder.mov" autoplay loop muted playsinline></video></td>
+    <td><img src="assets/multi-window.gif" alt="多窗口管理" /></td>
+    <td><img src="assets/launcher.gif" alt="启动台功能" /></td>
+    <td><img src="assets/drag-reorder.gif" alt="随意拖拽" /></td>
   </tr>
 </table>
 
