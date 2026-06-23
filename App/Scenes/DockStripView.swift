@@ -748,7 +748,7 @@ private struct ChipBadgeView: View {
             // Native Dock badges sit mostly ON the icon, protruding only slightly past
             // its rounded corner. Chip frame is 44×52, icon inset (4, 8) → this offset
             // puts the badge center just inside the icon's top-right corner.
-            .offset(x: 2, y: 3)
+            .offset(x: 0, y: 5)
             .allowsHitTesting(false)
     }
 }
