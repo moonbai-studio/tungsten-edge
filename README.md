@@ -14,9 +14,7 @@ English · [中文](README.zh-CN.md)
 
 ## What it is
 
-The macOS Dock is organized by **app**: one icon per app, no matter how many windows it has open. To switch to a specific window you first click the app, then hunt through its window list.
-
-**Tungsten Edge organizes the taskbar by _window_ instead.** Every open window gets its own card at the bottom of the screen — click it to jump straight to that window, click again to minimize. Multi-window apps split into multiple cards, so you can see at a glance exactly what you have open and what each one is.
+Manage your windows from the Tungsten Edge dock bar.
 
 ## Features
 
