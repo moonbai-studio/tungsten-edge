@@ -225,7 +225,8 @@ final class DragController: ObservableObject {
     }
 
     private func makeCarrierPanel() -> NSPanel {
-        let panel = NSPanel(contentRect: screenProvider().frame,
+        // NonConstrainingPanel: 载体覆盖整屏，若被系统约束到"当前屏"可用区会错位（多屏共享边场景），同 dock/胶囊。
+        let panel = NonConstrainingPanel(contentRect: screenProvider().frame,
                             styleMask: [.borderless, .nonactivatingPanel],
                             backing: .buffered, defer: false)
         panel.level = .popUpMenu                 // 压在抽屉(.floating)之上

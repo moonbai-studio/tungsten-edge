@@ -11,6 +11,17 @@ enum DrawerAnimation {
     static let duration: TimeInterval = 0.22
 }
 
+/// 关闭 AppKit 的窗口自动约束。系统默认会把靠近/跨越屏幕边缘的窗口挪回"当前屏"可用区内（避开菜单栏）。
+/// 多屏**共享边**场景下这会致命：把任务条放到上方屏底部时，窗口原点 y 落在下方屏那一侧，系统就拿下方屏
+/// 来约束，把整窗按到下方屏菜单栏正下方 → 任务条/胶囊跑到错误的屏（2026-06-23 三屏 bug 根因；实测 y=970
+/// 被按成 y=857 = 下方屏可用区顶 949 − 窗口高 92）。我们的面板永远手动精确定位、永不盖菜单栏，故直接
+/// 返回原 frame、不让系统二次约束。
+final class NonConstrainingPanel: NSPanel {
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        frameRect
+    }
+}
+
 @MainActor
 final class PanelCoordinator: NSObject {
     static let panelHeight: CGFloat = 52
@@ -120,7 +131,7 @@ final class PanelCoordinator: NSObject {
         drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
         if drawerPanel == nil {
-            let panel = NSPanel(
+            let panel = NonConstrainingPanel(
                 contentRect: NSRect(origin: .zero, size: lastDrawerSize),
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
@@ -387,7 +398,7 @@ final class PanelCoordinator: NSObject {
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let s = screen.frame
 
-        let panel = NSPanel(
+        let panel = NonConstrainingPanel(
             contentRect: NSRect(x: s.minX, y: s.minY + Self.bottomGap - Self.shadowPadding, width: s.width, height: Self.windowHeight),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -413,7 +424,7 @@ final class PanelCoordinator: NSObject {
     }
 
     private func setupCapsulePanel() {
-        let panel = NSPanel(
+        let panel = NonConstrainingPanel(
             contentRect: NSRect(origin: .zero, size: CGSize(width: Self.capsuleWidth + Self.shadowPadding * 2, height: Self.capsuleWidth + Self.shadowPadding * 2)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -602,6 +613,7 @@ final class PanelCoordinator: NSObject {
 
     @objc private func screenParametersChanged() {
         dragController?.cancelDrag()   // 切屏/分辨率变 → 取消进行中的跨面板拖动，免得载体留在旧屏坐标
+        cancelHoverSwitch()
         guard dockPanel != nil else { return }
         relayout(animated: false)      // 切屏瞬时,不滑
         if NSScreen.screens.count > 1 {
@@ -686,16 +698,28 @@ final class PanelCoordinator: NSObject {
         isHiddenForFullscreen = isFullscreen
         guard let panel = dockPanel else { return }
         if isFullscreen {
+            closeDrawer()
             panel.orderOut(nil)
-            logger.info("[fullscreen] panel hidden")
+            capsulePanel?.orderOut(nil)
+            logger.info("[fullscreen] panels hidden")
         } else {
             panel.orderFront(nil)
-            logger.info("[fullscreen] panel restored")
+            capsulePanel?.orderFront(nil)
+            logger.info("[fullscreen] panels restored")
         }
     }
 
     private func panelCurrentScreen(panel: NSPanel) -> NSScreen {
-        NSScreen.screens.first(where: { $0.frame.intersects(panel.frame) }) ?? NSScreen.main ?? NSScreen.screens[0]
+        // Use the center of the visible content area (inset by shadowPadding) so the 12pt shadow
+        // bleed below screen.frame.minY doesn't cause first(where:intersects) to return the wrong
+        // adjacent screen in multi-monitor setups (e.g. vertically stacked 3-screen layouts).
+        let visualCenter = CGPoint(
+            x: panel.frame.midX,
+            y: panel.frame.minY + Self.shadowPadding + Self.panelHeight / 2
+        )
+        return NSScreen.screens.first(where: { $0.frame.contains(visualCenter) })
+            ?? NSScreen.screens.first(where: { $0.frame.intersects(panel.frame) })
+            ?? NSScreen.main ?? NSScreen.screens[0]
     }
 
     // AppKit frame (bottom-left origin) → CG/Quartz frame (top-left origin of primary screen)
@@ -741,10 +765,13 @@ final class PanelCoordinator: NSObject {
 
     private let hoverLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "HoverSwitch")
     private static let hoverHotZone: CGFloat = 4.0
+    private static let hoverSwitchDwell: TimeInterval = 0.35   // 光标驻留热区 ≥ 350ms 才切换，路过不算
     private static let hoverVerboseLogging = false
     private var hoverPollTimer: Timer?
     private var hoverLastScreenIndex: Int? = nil
     private var hoverLastInHotZone: Bool? = nil
+    private var hoverSwitchTimer: Timer?
+    private var hoverSwitchTargetScreen: NSScreen? = nil
 
     private func setupHoverDiagnostics() {
         if Self.hoverVerboseLogging { logScreenMap() }
@@ -763,6 +790,7 @@ final class PanelCoordinator: NSObject {
     private func stopHoverPollTimer() {
         hoverPollTimer?.invalidate()
         hoverPollTimer = nil
+        cancelHoverSwitch()
     }
 
     private func logScreenMap() {
@@ -812,17 +840,61 @@ final class PanelCoordinator: NSObject {
             }
         }
 
-        // Hover switch: cursor just entered hot zone of a different screen → move panel there
-        if inHotZone, let targetScreen = curScreen, let panel = dockPanel {
-            let panelScreen = panelCurrentScreen(panel: panel)
-            if targetScreen != panelScreen {
-                let fromIdx = screens.firstIndex(of: panelScreen).map { "\($0)" } ?? "?"
-                let toIdx = screens.firstIndex(of: targetScreen).map { "\($0)" } ?? "?"
-                let actualWidth = max(min(lastDesiredWidth, targetScreen.visibleFrame.width - 2 * Self.outerMargin), 120)
-                layoutPanels(contentWidth: lastDesiredWidth, on: targetScreen, animated: false)   // 多屏切换瞬时
-                hoverLogger.info("switch toScreen=\(toIdx, privacy: .public) name=\(targetScreen.localizedName, privacy: .public) actualWidth=\(actualWidth, privacy: .public) fromScreen=\(fromIdx, privacy: .public)")
+        // Hover switch (multi-monitor): move the strip to the screen the cursor "reaches into".
+        //
+        // Arming: the cursor enters the BOTTOM hot zone of a screen other than the panel's.
+        // Dwell:  once armed for a screen, keep counting as long as the cursor stays ANYWHERE on
+        //         that screen — NOT only within the 4pt strip. Required for vertically stacked
+        //         screens: to reach an upper screen you cross UP through its bottom edge (its hot
+        //         zone == the shared edge) and immediately move off the 4pt strip, so a "must stay
+        //         in the strip" dwell could never complete from below. Cancel if the cursor leaves
+        //         the armed screen (to another screen or back to the panel's own screen).
+        if let cur = curScreen, let panel = dockPanel, cur != panelCurrentScreen(panel: panel) {
+            if hoverSwitchTargetScreen == cur {
+                // Already armed for this screen — keep the dwell alive even after leaving the strip.
+            } else if inHotZone {
+                // Newly reached this screen's bottom hot zone → arm the dwell.
+                hoverSwitchTimer?.invalidate()
+                hoverSwitchTargetScreen = cur
+                let timer = Timer(timeInterval: Self.hoverSwitchDwell, repeats: false) { [weak self] _ in
+                    Task { @MainActor [weak self] in self?.commitHoverSwitch() }
+                }
+                RunLoop.main.add(timer, forMode: .common)
+                hoverSwitchTimer = timer
+            } else {
+                // On a different screen but never touched its bottom edge (just passing through high
+                // up, e.g. crossing the middle screen on the way to the far-left one) → don't arm.
+                cancelHoverSwitch()
             }
+            return
         }
+        // On the panel's own screen, or off all screens → cancel any pending switch.
+        cancelHoverSwitch()
+    }
+
+    private func cancelHoverSwitch() {
+        hoverSwitchTimer?.invalidate()
+        hoverSwitchTimer = nil
+        hoverSwitchTargetScreen = nil
+    }
+
+    private func commitHoverSwitch() {
+        hoverSwitchTimer = nil
+        guard let targetScreen = hoverSwitchTargetScreen, let panel = dockPanel else {
+            hoverSwitchTargetScreen = nil
+            return
+        }
+        hoverSwitchTargetScreen = nil
+        // Confirm the cursor is still on the target screen (it may have left within the last poll gap).
+        guard targetScreen.frame.contains(NSEvent.mouseLocation) else { return }
+        let panelScreen = panelCurrentScreen(panel: panel)
+        guard targetScreen != panelScreen else { return }   // panel already moved (e.g. screenParametersChanged)
+        let screens = NSScreen.screens
+        let fromIdx = screens.firstIndex(of: panelScreen).map { "\($0)" } ?? "?"
+        let toIdx = screens.firstIndex(of: targetScreen).map { "\($0)" } ?? "?"
+        let actualWidth = max(min(lastDesiredWidth, targetScreen.visibleFrame.width - 2 * Self.outerMargin), 120)
+        layoutPanels(contentWidth: lastDesiredWidth, on: targetScreen, animated: false)
+        hoverLogger.info("switch toScreen=\(toIdx, privacy: .public) name=\(targetScreen.localizedName, privacy: .public) actualWidth=\(actualWidth, privacy: .public) fromScreen=\(fromIdx, privacy: .public)")
     }
 
     // MARK: - Frame Helpers
