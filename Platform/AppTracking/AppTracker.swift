@@ -148,6 +148,7 @@ final class AppTracker: ObservableObject {
         let eligible = reader.windows(forPID: pid).filter {
             isEligible($0, bundleIdentifier: app.bundleIdentifier, activationPolicy: app.activationPolicy)
         }
+        let onScreenCGIDs = onScreenCGWindowIDSet()
         func fk(_ b: CGRect?) -> String? { frameKey(pid, b) }
 
         var eligibleByCgID: [CGWindowID: AXWindowSnapshot] = [:]
@@ -218,15 +219,32 @@ final class AppTracker: ObservableObject {
         // token 用全局自增序号,【绝不从 cgID 派生】——cgID 会被复用,从它派生会撞车（实测:旧座位
         // 种子=68、activeCgID 已换成 60,后来 68 独立成窗又生成同名 token → 两座位撞一张卡）。
         // **最小化折叠**：最小化一个多标签窗口时,Ghostty 会把该窗口的【所有标签】一下子都暴露成
-        // AX 窗口(平时只暴露当前标签)。它们都 min=true 且同 frame——是同一个(已最小化)窗口的后台
-        // 标签,折叠进已落座的同 frame 座位,不另建座位（否则有几个标签就裂几张卡）。非 min 的同 frame
-        // 窗口是"两个独立窗口重叠"的合法场景,照常各自建座位。
+        // AX 窗口(平时只暴露当前标签)。它们都 min=true——是同一个(已最小化)窗口的后台标签,折叠进
+        // 已落座的座位,不另建座位（否则有几个标签就裂几张卡）。
+        // 正常情况下 frame 精确匹配。特例：窗口被拖动后后台标签的 AX 坐标不会更新（order-out
+        // 窗口不收 kAXWindowMovedNotification），导致后台标签 frame 与已移动的活跃标签 frame
+        // 不一致 → 精确匹配失败。回退：同尺寸（宽高）+ 屏幕外 → 判定为同窗口后台标签，折叠。
+        // 非 min 的同 frame 窗口是"两个独立窗口重叠"的合法场景,照常各自建座位。
         var placedFrames = Set(newOrder.compactMap { fk(newByID[$0]?.bounds) })
         for s in eligible {
             guard let c = s.cgWindowID, !usedEligible.contains(c), newByID[c] == nil else { continue }
-            if s.isMinimized, let key = fk(s.bounds), placedFrames.contains(key) {
-                usedEligible.insert(c)   // 最小化窗口的后台标签 → 折叠进同 frame 座位,不另建
-                continue
+            if s.isMinimized {
+                let exactMatch = fk(s.bounds).map { placedFrames.contains($0) } ?? false
+                // 窗口被移动后后台标签 AX 坐标过时：精确匹配失败时回退到尺寸匹配
+                // 条件：屏幕外（非活跃标签）+ 与某个已放置的最小化座位宽高相同
+                let sizeMatch: Bool = !exactMatch && !onScreenCGIDs.contains(c) && {
+                    guard let sb = s.bounds else { return false }
+                    return newOrder.contains { id in
+                        guard let pb = newByID[id]?.bounds,
+                              newByID[id]?.isMinimized == true else { return false }
+                        return abs(pb.size.width  - sb.size.width)  < 3 &&
+                               abs(pb.size.height - sb.size.height) < 3
+                    }
+                }()
+                if exactMatch || sizeMatch {
+                    usedEligible.insert(c)   // 后台标签 → 折叠进已有座位,不另建
+                    continue
+                }
             }
             nextSeatSerial += 1
             place(make(token: "tabgrp-\(pid)-s\(nextSeatSerial)", s))
