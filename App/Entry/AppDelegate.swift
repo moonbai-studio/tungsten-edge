@@ -17,7 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
     private var permissionModel: AccessibilityPermissionModel?
-    private var onboardingWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 行缓冲 stdout：从命令行/后台启动时，print() 输出到文件默认是块缓冲，
@@ -29,61 +28,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 调试旗：本地签名的开发版无法用 tccutil 可靠撤销辅助功能权限，
         // 设 DOCK_FORCE_ONBOARDING=1 可强制展示权限引导窗口（演示/截图用），
         // 窗口停在真实新用户看到的「待开启」状态。
-        let forceOnboarding = ProcessInfo.processInfo.environment["DOCK_FORCE_ONBOARDING"] == "1"
-        if AXIsProcessTrusted() && !forceOnboarding {
+        if AXIsProcessTrusted() {
             startApp()
         } else {
-            requestAccessibilityPermission(demo: forceOnboarding)
+            requestAccessibilityPermission()
         }
     }
 
-    private func requestAccessibilityPermission(demo: Bool = false) {
-        // 系统原生提示框：既弹出"打开系统设置"按钮，又把本应用注册进辅助功能列表
-        // （这样用户进设置页时已能直接看到 Tungsten Edge 的开关，无需点"+"号去找）。
-        if !demo {
-            AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-        }
+    private func requestAccessibilityPermission() {
+        // 系统原生提示框：既弹出"打开系统设置"按钮，又把本应用注册进辅助功能列表。
+        AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
 
-        let model = AccessibilityPermissionModel(demoMode: demo)
+        let model = AccessibilityPermissionModel()
         model.onGranted = { [weak self] in self?.handlePermissionGranted() }
         permissionModel = model
-        showOnboardingWindow(model: model)
         model.startPolling()
-    }
-
-    private func showOnboardingWindow(model: AccessibilityPermissionModel) {
-        let hosting = NSHostingView(rootView: PermissionOnboardingView(model: model))
-        // 固定一个稳妥的初始尺寸——不能直接 setContentSize(fittingSize)：刚挂上 contentView
-        // 时 NSHostingView 尚未完成布局，fittingSize 会返回 0×0，窗口被缩成不可见。
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 470),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Tungsten Edge"
-        window.isReleasedWhenClosed = false
-        window.contentView = hosting
-        window.center()
-        window.level = .floating
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        // 下一轮 runloop 布局完成后，再按真实内容高度精修一次并重新居中。
-        DispatchQueue.main.async {
-            let fit = hosting.fittingSize
-            if fit.width > 100, fit.height > 100 {
-                window.setContentSize(fit)
-                window.center()
-            }
-        }
-        onboardingWindow = window
     }
 
     private func handlePermissionGranted() {
         permissionModel?.stop()
         permissionModel = nil
-        onboardingWindow?.close()
-        onboardingWindow = nil
         startApp()
     }
 
