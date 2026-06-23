@@ -14,14 +14,16 @@
 
 ## 演示
 
+**多窗口管理**
+
+<img src="assets/multi-window.gif" alt="多窗口管理" width="100%" />
+
 <table>
   <tr>
-    <td align="center"><b>多窗口管理</b></td>
     <td align="center"><b>启动台功能</b></td>
     <td align="center"><b>随意拖拽</b></td>
   </tr>
   <tr>
-    <td><img src="assets/multi-window.gif" alt="多窗口管理" /></td>
     <td><img src="assets/launcher.gif" alt="启动台功能" /></td>
     <td><img src="assets/drag-reorder.gif" alt="随意拖拽" /></td>
   </tr>

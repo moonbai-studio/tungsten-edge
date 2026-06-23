@@ -14,14 +14,16 @@ English · [中文](README.zh-CN.md)
 
 ## Demo
 
+**Multi-window management**
+
+<img src="assets/multi-window.gif" alt="Multi-window management" width="100%" />
+
 <table>
   <tr>
-    <td align="center"><b>Multi-window management</b></td>
     <td align="center"><b>App drawer &amp; launcher</b></td>
     <td align="center"><b>Drag to organize</b></td>
   </tr>
   <tr>
-    <td><img src="assets/multi-window.gif" alt="Multi-window management" /></td>
     <td><img src="assets/launcher.gif" alt="App drawer &amp; launcher" /></td>
     <td><img src="assets/drag-reorder.gif" alt="Drag to organize" /></td>
   </tr>
