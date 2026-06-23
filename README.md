@@ -48,10 +48,11 @@ The macOS Dock is organized by **app**: one icon per app, no matter how many win
 
 ```bash
 brew tap moonbai-studio/tungsten-edge
+brew trust moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
-> If Homebrew warns that the third-party tap is "untrusted", run the `brew trust ...` command it prints once to continue. If the first launch is blocked by macOS, allow it as described in [First launch](#first-launch) below.
+> The `brew trust` step is required for any third-party tap. If the first launch is blocked by macOS, allow it as described in [First launch](#first-launch) below.
 
 ## First launch
 
