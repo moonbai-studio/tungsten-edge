@@ -12,6 +12,23 @@
 
 ---
 
+## 演示
+
+<table>
+  <tr>
+    <td align="center"><b>多窗口管理</b></td>
+    <td align="center"><b>启动台功能</b></td>
+    <td align="center"><b>随意拖拽</b></td>
+  </tr>
+  <tr>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/multi-window.mov" autoplay loop muted playsinline></video></td>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/launcher.mov" autoplay loop muted playsinline></video></td>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/drag-reorder.mov" autoplay loop muted playsinline></video></td>
+  </tr>
+</table>
+
+---
+
 ## 这是什么
 
 在钨极 dock 栏管理、整理您的窗口。

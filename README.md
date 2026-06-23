@@ -12,6 +12,23 @@ English · [中文](README.zh-CN.md)
 
 ---
 
+## Demo
+
+<table>
+  <tr>
+    <td align="center"><b>Multi-window management</b></td>
+    <td align="center"><b>App drawer &amp; launcher</b></td>
+    <td align="center"><b>Drag to organize</b></td>
+  </tr>
+  <tr>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/multi-window.mov" autoplay loop muted playsinline></video></td>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/launcher.mov" autoplay loop muted playsinline></video></td>
+    <td><video src="https://github.com/moonbai-studio/tungsten-edge/releases/download/v0.1.2/drag-reorder.mov" autoplay loop muted playsinline></video></td>
+  </tr>
+</table>
+
+---
+
 ## What it is
 
 Manage your windows from the Tungsten Edge dock bar.
