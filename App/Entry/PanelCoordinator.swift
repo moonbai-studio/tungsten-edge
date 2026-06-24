@@ -60,6 +60,9 @@ final class PanelCoordinator: NSObject {
     private var dragOriginatedFromStrip = false
     /// 抽屉**逻辑**开关态（不看 isVisible——淡出动画期间面板还可见但逻辑上已关）。toggle/弹簧/可打断关都看它。
     private var drawerWantsOpen = false
+    /// 每次 openDrawer() 递增。closeDrawerAfterAction() 捕获当前值，触发时不匹配则丢弃，
+    /// 防止旧点击的延迟关闭在抽屉重新打开后误杀新抽屉。
+    private var drawerActionCloseToken = 0
     /// 这次抽屉是不是**弹簧**(拖动悬停)打开的。若是、且松手时这张卡没进抽屉(又拖回任务条) → 自动收回。
     private var drawerSpringOpened = false
     /// 正在拖的 strip 卡 bundleID,松手时用它判断有没有收进抽屉。
@@ -127,6 +130,7 @@ final class PanelCoordinator: NSObject {
 
     private func openDrawer() {
         guard let mainPanel = dockPanel, capsulePanel != nil else { return }
+        drawerActionCloseToken += 1  // 旧点击排队的 delayed close 捕获旧 token，不匹配则丢弃
         drawerWantsOpen = true
         drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
@@ -159,7 +163,8 @@ final class PanelCoordinator: NSObject {
         let maxContentHeight = max(120, (vf.maxY - drawerBottomY) - 2 * Self.shadowPadding)
 
         // 每次打开都换一份新内容视图 → DrawerView 的 onAppear 重新触发淡入缩放,并拿到当前 maxContentHeight。
-        let hosting = NSHostingView(rootView: DrawerView(maxContentHeight: maxContentHeight)
+        let hosting = NSHostingView(rootView: DrawerView(maxContentHeight: maxContentHeight,
+                                                         onPrimaryAction: { [weak self] in self?.closeDrawerAfterAction() })
             .environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore)
             .environmentObject(launchFavoriteStore).environmentObject(drawerOrderStore).environmentObject(dragController))
         hosting.wantsLayer = true
@@ -204,6 +209,19 @@ final class PanelCoordinator: NSObject {
         }
     }
 
+    /// 抽屉内点击 app 主操作后的延迟关闭。捕获 token，触发时三重确认才关：
+    /// 1. token 匹配（排除抽屉在延迟期被重开的情况）；2. 抽屉仍是逻辑打开态；3. 无拖动进行中。
+    private func closeDrawerAfterAction() {
+        let token = drawerActionCloseToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self,
+                  self.drawerActionCloseToken == token,
+                  self.drawerWantsOpen,
+                  self.dragController.draggingPayload == nil else { return }
+            self.closeDrawer()
+        }
+    }
+
     /// 可打断淡出关闭：立即摘监视器、动画 alpha→0,completion 里确认仍要关才 orderOut（淡出中又打开则不关）。
     private func closeDrawer() {
         guard drawerWantsOpen else { return }
@@ -223,6 +241,7 @@ final class PanelCoordinator: NSObject {
     }
 
     private func dismissDrawerIfOutside() {
+        guard dragController.draggingPayload == nil else { return }   // 拖动中不误关
         guard let drawer = drawerPanel, drawer.isVisible,
               let dock   = dockPanel else { return }
         let mouse = NSEvent.mouseLocation
@@ -253,6 +272,10 @@ final class PanelCoordinator: NSObject {
         // 抽屉拖回任务条·精确落点：成功松手落定时清顺序层的外部块暂存追踪（boundIDs 已是正常成员、留任务条）。
         dragController.onDrawerToStripCommitted = { [stripOrderStore] _ in
             stripOrderStore.commitExternalBlock()
+        }
+        // 抽屉图标落进任务条（精确落点 + 降级路径都触发）→ 关闭抽屉。
+        dragController.onDrawerToStripCompleted = { [weak self] _ in
+            self?.closeDrawerAfterAction()
         }
     }
 

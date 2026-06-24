@@ -14,6 +14,9 @@ struct DrawerView: View {
     /// 抽屉内容区最大高度（胶囊上方锚点 → 屏幕上沿可用高度，PanelCoordinator 开抽屉时算好传入）。
     /// 内容超过它就内部滚动,绝不靠下压底边塞下（防与下方胶囊/任务条重叠）。
     let maxContentHeight: CGFloat
+    /// 点击 app 图标的主操作（唤出/收起/启动）成功发出后回调。由 PanelCoordinator 注入，用于关闭抽屉。
+    /// 右键菜单、拖动操作不触发此回调。
+    var onPrimaryAction: () -> Void = {}
 
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
@@ -144,7 +147,9 @@ struct DrawerView: View {
                 .animation(.easeInOut(duration: DrawerAnimation.duration), value: runningIDs)
             }
             if !launchIDs.isEmpty {
-                Spacer().frame(height: hasRunningZone ? 12 : 0)
+                if hasRunningZone {
+                    Spacer().frame(height: 12)
+                }
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(launchIDs, id: \.self) { id in drawerChip(id, zone: launchIDs, running: false) }
                 }
@@ -176,7 +181,8 @@ struct DrawerView: View {
                      scale: 0.7,
                      removeMenuLabel: stashed ? "移回任务栏" : nil,
                      onRemove: { if stashed { drawerStore.remove(id) } },
-                     onLaunch: { runtime.beginLaunch(id) })
+                     onLaunch: { runtime.beginLaunch(id) },
+                     onPrimaryAction: onPrimaryAction)
             .opacity(isDragging(id) ? 0 : 1)
             // `"drawer"` 空间里的 frame，背景 GeometryReader（不夺点击），喂抓取偏移 + 同区落点。
             .background(

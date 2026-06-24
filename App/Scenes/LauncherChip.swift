@@ -29,6 +29,10 @@ struct LauncherChip: View {
     /// The drawer wires it to `runtime.beginLaunch` for the 窗口出现门控 (keeps the
     /// app bouncing in the launch zone until its window shows, not just its process).
     var onLaunch: () -> Void = {}
+    /// Fired after a primary tap action has been successfully dispatched (hide / unhide+activate / launch).
+    /// Only set by DrawerView; strip messaging chips leave it nil.
+    /// Guard failures (missing URL, isLaunching already) do NOT fire this — it means "action went out".
+    var onPrimaryAction: (() -> Void)? = nil
 
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
 
@@ -118,15 +122,17 @@ struct LauncherChip: View {
             if let app, app.isActive {
                 // 在前台 → 收起
                 _ = app.hide()
+                onPrimaryAction?()
             } else {
                 // 未激活 / 隐藏 / 窗口已关 → 唤出
                 guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
                 _ = app?.unhide()
                 NSWorkspace.shared.openApplication(at: appURL, configuration: .init(), completionHandler: nil)
+                onPrimaryAction?()
             }
         } else {
             guard !isLaunching else { return }
-            launch()
+            launch()   // onPrimaryAction fired inside launch() after URL guard
         }
     }
 
@@ -149,6 +155,7 @@ struct LauncherChip: View {
 
         isLaunching = true
         onLaunch()
+        onPrimaryAction?()
 
         // 8s timeout backstop（对 menubar-only app 无窗口回调的情况兜底）
         Task { @MainActor in

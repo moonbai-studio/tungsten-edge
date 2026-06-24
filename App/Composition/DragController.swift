@@ -56,6 +56,9 @@ final class DragController: ObservableObject {
     /// 成功松手落定（converted 态）时回调，组合层接到后 `stripOrderStore.commitExternalBlock()`。
     /// 唯一收到 mouseUp 的是 `endDrag`，commit 必须由它触发，不靠 DockStripView 推断 payload 变 nil。
     var onDrawerToStripCommitted: ((String) -> Void)?
+    /// 抽屉图标松手落进任务条时回调（精确落点路径 + 降级路径都会触发）。
+    /// PanelCoordinator 用它关闭抽屉；与 onDrawerToStripCommitted 独立，互不替代。
+    var onDrawerToStripCompleted: ((String) -> Void)?
 
     private let drawerStore: DrawerStore
     /// 按来源给投放候选区（屏幕坐标，已 inset+容错）：strip→胶囊(+抽屉)；drawer→任务条 dock 面板。
@@ -178,11 +181,14 @@ final class DragController: ObservableObject {
             if converted {
                 // 已转正进任务条（成员已 remove、窗口卡已落子）→ 视为落定，不再据 external 动成员。
                 // 撤销已在实时离区时发生；这里只通知顺序层 commit（清暂存追踪）。
-                onDrawerToStripCommitted?(convertedBid ?? p.bundleID)
+                let bid = convertedBid ?? p.bundleID
+                onDrawerToStripCommitted?(bid)
+                onDrawerToStripCompleted?(bid)
             } else {
                 // 没转正（没运行 / app-fallback / 消息应用走旧路）：落任务条 → 移回；否则留抽屉。
                 guard external else { return }
                 drawerStore.remove(p.bundleID)
+                onDrawerToStripCompleted?(p.bundleID)
             }
         }
     }
