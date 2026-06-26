@@ -14,8 +14,8 @@ struct DrawerView: View {
     /// 抽屉内容区最大高度（胶囊上方锚点 → 屏幕上沿可用高度，PanelCoordinator 开抽屉时算好传入）。
     /// 内容超过它就内部滚动,绝不靠下压底边塞下（防与下方胶囊/任务条重叠）。
     let maxContentHeight: CGFloat
-    /// 点击 app 图标的主操作（唤出/收起/启动）成功发出后回调。由 PanelCoordinator 注入，用于关闭抽屉。
-    /// 右键菜单、拖动操作不触发此回调。
+    /// 点击 app 图标执行「唤出」或「启动」后回调。由 PanelCoordinator 注入，用于关闭抽屉。
+    /// 「最小化（前台 → 收起）」不触发——抽屉保持打开。右键菜单、拖动操作同样不触发。
     var onPrimaryAction: () -> Void = {}
 
     @EnvironmentObject var runtime: AppRuntime

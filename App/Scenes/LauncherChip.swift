@@ -29,9 +29,9 @@ struct LauncherChip: View {
     /// The drawer wires it to `runtime.beginLaunch` for the 窗口出现门控 (keeps the
     /// app bouncing in the launch zone until its window shows, not just its process).
     var onLaunch: () -> Void = {}
-    /// Fired after a primary tap action has been successfully dispatched (hide / unhide+activate / launch).
+    /// Fired when the tap dispatches an "open" action: unhide+activate (running but not active) or launch (not running).
+    /// Hide taps (app is active → minimize) do NOT fire this — the drawer stays open for those.
     /// Only set by DrawerView; strip messaging chips leave it nil.
-    /// Guard failures (missing URL, isLaunching already) do NOT fire this — it means "action went out".
     var onPrimaryAction: (() -> Void)? = nil
 
     private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "LauncherChip")
@@ -127,11 +127,10 @@ struct LauncherChip: View {
         if isRunning {
             let app = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
             if let app, app.isActive {
-                // 在前台 → 收起
+                // 在前台 → 收起（最小化）：抽屉保持打开
                 _ = app.hide()
-                onPrimaryAction?()
             } else {
-                // 未激活 / 隐藏 / 窗口已关 → 唤出
+                // 未激活 / 隐藏 / 窗口已关 → 唤出：关闭抽屉
                 guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
                 _ = app?.unhide()
                 NSWorkspace.shared.openApplication(at: appURL, configuration: .init(), completionHandler: nil)
