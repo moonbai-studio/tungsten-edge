@@ -620,7 +620,11 @@ struct ChipView: View {
             } else {
                 menu.addItem(ClosureMenuItem("最小化") { runtime.minimize(windowID: item.actionWindowID) })
             }
-            menu.addItem(ClosureMenuItem("隐藏 App") { runtime.hide(windowID: item.actionWindowID) })
+            if effectiveStatus == "hidden" {
+                menu.addItem(ClosureMenuItem("显示") { runtime.activate(windowID: item.actionWindowID) })
+            } else {
+                menu.addItem(ClosureMenuItem("隐藏 App") { runtime.hide(windowID: item.actionWindowID) })
+            }
             appendMembershipItems(to: menu)
             menu.addItem(.separator())
             // 整组关闭（2026-06-14）：标签组的「关闭窗口」关掉组内每个标签；

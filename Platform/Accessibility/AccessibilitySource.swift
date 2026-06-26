@@ -450,23 +450,39 @@ struct PlatformActionExecutor {
         }
 
         let isFinderWindow = FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier)
-        if isFinderWindow,
-           request.kind == .activateWindow,
-           NSRunningApplication(processIdentifier: record.pid)?.isHidden == true {
-            return false
+        // If Finder is hidden, unhide it first so its AX windows become accessible.
+        // Then fall through to the normal window-level capture path — avoids regressing
+        // to app-level activate, which can raise the wrong window (guardrail in AGENTS.md).
+        var justUnhid = false
+        if isFinderWindow {
+            let finderApp = NSRunningApplication(processIdentifier: record.pid)
+            if finderApp?.isHidden == true {
+                finderApp?.unhide()
+                // Poll until the app transitions out of hidden (max ~200ms) so the AX
+                // element is accessible before the handle-capture below runs.
+                let deadline = Date().addingTimeInterval(0.2)
+                while finderApp?.isHidden == true, Date() < deadline {
+                    usleep(20_000)
+                }
+                justUnhid = true
+            }
         }
 
+        let target = AccessibilityWindowActionExecutor.WindowTarget(
+            pid: record.pid, title: record.title, bounds: record.bounds)
+        // After unhide, skip the fast cgWindowID path — it may return a handle whose AX
+        // element is still transitioning. Use the retry-capable captureHandle instead.
         let handle: AccessibilityWindowActionExecutor.WindowHandle?
-        if let cgWindowID = record.cgWindowID {
+        if let cgWindowID = record.cgWindowID, !justUnhid {
             handle = windowExecutor.captureHandleByCGWindowID(cgWindowID, pid: record.pid)
                 ?? windowExecutor.captureHandle(
-                    for: AccessibilityWindowActionExecutor.WindowTarget(pid: record.pid, title: record.title, bounds: record.bounds),
+                    for: target,
                     attempts: isFinderWindow ? 3 : 1,
                     retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
                 )
         } else {
             handle = windowExecutor.captureHandle(
-                for: AccessibilityWindowActionExecutor.WindowTarget(pid: record.pid, title: record.title, bounds: record.bounds),
+                for: target,
                 attempts: isFinderWindow ? 3 : 1,
                 retryIntervalMicroseconds: isFinderWindow ? 150_000 : 0
             )
@@ -483,9 +499,23 @@ struct PlatformActionExecutor {
         case .minimizeWindow:
             let minExec = windowExecutor.minimize(handle)
             Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
-            return minExec.success
+            if minExec.success { return true }
+            if justUnhid {
+                usleep(100_000)
+                if let h = windowExecutor.captureHandle(for: target, attempts: 2, retryIntervalMicroseconds: 100_000) {
+                    return windowExecutor.minimize(h).success
+                }
+            }
+            return false
         case .closeWindow:
-            return windowExecutor.close(handle)
+            if windowExecutor.close(handle) { return true }
+            if justUnhid {
+                usleep(100_000)
+                if let h = windowExecutor.captureHandle(for: target, attempts: 2, retryIntervalMicroseconds: 100_000) {
+                    return windowExecutor.close(h)
+                }
+            }
+            return false
         case .hideApp, .quitApp:
             return executeAppFallback(request: request, record: record)
         case .newWindow:

@@ -90,6 +90,19 @@ final class FinderP0Tests: XCTestCase {
         )
     }
 
+    // hidden 状态 toggle 应规划 activateWindow，而非其他动作（确保 unhide 路径
+    // 对应正确的 intent，不因 hidden 状态退化成 minimizeWindow 等）。
+    func testToggleOnHiddenWindowPlansActivate() {
+        let id = WindowID(rawValue: "cg-hidden")
+        let planner = LifecycleActionPlanner()
+        let hiddenSnapshot = snapshot(windowID: id, status: .hidden)
+
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: hiddenSnapshot).kind,
+            .activateWindow
+        )
+    }
+
     func testMinimizeFeedbackAcceptsTemporaryDisappearance() {
         let id = WindowID(rawValue: "cg-2")
         var feedback = IntentFeedbackState()
