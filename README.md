@@ -4,7 +4,7 @@
 
 # Tungsten Edge
 
-**The ultra-lightweight, unprecedented ultimate window management solution for macOS.**
+**A per-window taskbar for macOS — switch to any window in one click, Windows-style clarity without the clutter.**
 
 English · [中文](README.zh-CN.md)
 
@@ -33,7 +33,9 @@ English · [中文](README.zh-CN.md)
 
 ## What it is
 
-Manage your windows from the Tungsten Edge dock bar.
+Tungsten Edge puts a **per-window taskbar** at the bottom of your screen. Every open window gets its own card — just like a Windows taskbar — so you can switch directly to any window with a single click. No more hunting through stacked windows, no Mission Control, no extra gestures.
+
+Unlike a plain Windows-style task switcher, single-window apps stay collapsed as compact icons, so the strip never gets cluttered. Multi-window apps (four Finder folders, multiple browser windows) expand into individual labeled cards. The result: the compactness of the macOS Dock combined with the per-window clarity of a Windows taskbar — without inheriting its problems.
 
 ## Features
 
