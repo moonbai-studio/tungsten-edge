@@ -598,7 +598,7 @@ struct ChipView: View {
         if isFinderChip {
             AppMenuBuilder.appendFinderRecentFolders(to: menu)
         } else {
-            AppMenuBuilder.appendRecentDocumentsSubmenu(to: menu, bundleID: bid)
+            AppMenuBuilder.appendRecentDocuments(to: menu, bundleID: bid)
         }
         if item.isAppLevelFallback {
             if isFinderChip { AppMenuBuilder.appendFinderItems(to: menu) }

@@ -96,28 +96,32 @@ enum AppMenuBuilder {
         menu.addItem(force)
     }
 
-    /// Top「最近使用的文件 ▶」submenu for an app (best-effort). Opens each doc in its
-    /// owning app. Adds nothing when there's no readable data, so callers needn't check.
-    static func appendRecentDocumentsSubmenu(to menu: NSMenu, bundleID: String?) {
+    /// Top recent-files section for an app (best-effort), inline at the menu top.
+    /// Opens each doc in its owning app. Adds nothing when there's no readable data.
+    static func appendRecentDocuments(to menu: NSMenu, bundleID: String?) {
         guard let bid = bundleID else { return }
         let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid)
         let entries = RecentDocumentsReader.recentDocuments(for: bid)
             .map { RecentMenuEntry(title: $0.lastPathComponent, url: $0) }
-        appendRecentSubmenu(to: menu, title: "最近使用的文件", entries: entries) { openRecent($0, appURL: appURL) }
+        appendRecentItems(to: menu, title: "最近使用的文件", entries: entries) { openRecent($0, appURL: appURL) }
     }
 
-    /// Top「最近使用的文件夹 ▶」submenu for the Finder chip. Opens each folder in Finder.
+    /// Top recent-folders section for the Finder chip, inline. Opens each folder in Finder.
     static func appendFinderRecentFolders(to menu: NSMenu) {
-        appendRecentSubmenu(to: menu, title: "最近使用的文件夹",
-                            entries: RecentDocumentsReader.recentFinderFolders()) { NSWorkspace.shared.open($0) }
+        appendRecentItems(to: menu, title: "最近使用的文件夹",
+                          entries: RecentDocumentsReader.recentFinderFolders()) { NSWorkspace.shared.open($0) }
     }
 
-    /// Shared builder: a parent item with a submenu of file/folder rows (16pt icon).
-    private static func appendRecentSubmenu(to menu: NSMenu, title: String,
-                                            entries: [RecentMenuEntry], open: @escaping (URL) -> Void) {
+    /// Shared builder: a grayed section header + the file/folder rows (16pt icon) added
+    /// inline to `menu` (no submenu), then a separator.
+    private static func appendRecentItems(to menu: NSMenu, title: String,
+                                          entries: [RecentMenuEntry], open: @escaping (URL) -> Void) {
         guard !entries.isEmpty else { return }
-        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        let sub = NSMenu()
+        // Grayed, non-clickable section header (action == nil auto-disables it; macOS 12
+        // compatible — not the macOS 14 NSMenuItem.sectionHeader).
+        let header = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
         for entry in entries {
             let it = ClosureMenuItem(entry.title) { open(entry.url) }
             // copy() before resizing: icon(forFile:) returns a shared cached NSImage;
@@ -125,10 +129,8 @@ enum AppMenuBuilder {
             let icon = NSWorkspace.shared.icon(forFile: entry.url.path).copy() as? NSImage
             icon?.size = NSSize(width: 16, height: 16)
             it.image = icon
-            sub.addItem(it)
+            menu.addItem(it)
         }
-        parent.submenu = sub
-        menu.addItem(parent)
         menu.addItem(.separator())
     }
 

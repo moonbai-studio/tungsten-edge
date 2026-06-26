@@ -103,7 +103,7 @@ struct LauncherChip: View {
         // 守沉淀原则「纯固定启动按钮无右键菜单」：该项菜单本就为空（未运行 + 无「移回」项）时
         // 不加最近文件；只给运行中或已收纳（removeMenuLabel 非 nil）的项置顶最近文件。
         if runningApp != nil || removeMenuLabel != nil {
-            AppMenuBuilder.appendRecentDocumentsSubmenu(to: menu, bundleID: bundleID)
+            AppMenuBuilder.appendRecentDocuments(to: menu, bundleID: bundleID)
         }
         if let app = runningApp {
             if app.isHidden {
