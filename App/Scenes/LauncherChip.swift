@@ -88,7 +88,7 @@ struct LauncherChip: View {
         .onTapGesture {
             if let onTap { onTap() } else { handleTap() }
         }
-        .contextMenu { contextMenu }
+        .nativeContextMenu { buildLauncherMenu() }
         .help(displayName)
         .onDisappear { stopBounce() }
         .onChange(of: isRunning) { newValue in
@@ -97,23 +97,24 @@ struct LauncherChip: View {
         .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
 
-    @ViewBuilder
-    private var contextMenu: some View {
+    private func buildLauncherMenu() -> NSMenu {
+        let menu = NSMenu()
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
             if app.isHidden {
-                Button("显示") {
+                menu.addItem(ClosureMenuItem("显示") {
                     _ = app.unhide()
                     app.activate(options: .activateIgnoringOtherApps)
-                }
+                })
             } else {
-                Button("隐藏") { _ = app.hide() }
+                menu.addItem(ClosureMenuItem("隐藏") { _ = app.hide() })
             }
-            Button("退出 App") { _ = app.terminate() }
-            if removeMenuLabel != nil { Divider() }
+            AppMenuBuilder.appendQuitItems(to: menu, bundleID: bundleID) { _ = app.terminate() }
+            if removeMenuLabel != nil { menu.addItem(.separator()) }
         }
         if let removeMenuLabel {
-            Button(removeMenuLabel) { onRemove() }
+            menu.addItem(ClosureMenuItem(removeMenuLabel) { onRemove() })
         }
+        return menu
     }
 
     private func handleTap() {

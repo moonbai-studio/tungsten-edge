@@ -503,7 +503,7 @@ struct ChipView: View {
         .onTapGesture {
             if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
         }
-        .contextMenu { chipContextMenu }
+        .nativeContextMenu { buildChipMenu() }
         .help(displayTitle)
         .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
@@ -565,7 +565,7 @@ struct ChipView: View {
         .onTapGesture {
             if let drawerTap { drawerTap() } else { runtime.toggle(windowID: item.actionWindowID) }
         }
-        .contextMenu { chipContextMenu }
+        .nativeContextMenu { buildChipMenu() }
         .help(displayTitle)
         .animation(.easeInOut(duration: 0.18), value: isHovering)
     }
@@ -587,34 +587,46 @@ struct ChipView: View {
     // 可打断（2026-06-13）：菜单项不再按 pending 置灰；显隐类动作随时可点
     //（乐观 overlay 保证一致性），close / quit 的防重入由 runtime.trigger 兜底。
     // 状态分支读 effectiveStatus，刚点过最小化立刻右键也能看到「还原」。
-    @ViewBuilder
-    private var chipContextMenu: some View {
+    private var isFinderChip: Bool { item.bundleIdentifier == "com.apple.finder" }
+
+    /// Native AppKit menu rebuilt fresh on each right-click (captures live runtime
+    /// + store + optimistic state). See AppMenuFragments for why this isn't SwiftUI.
+    private func buildChipMenu() -> NSMenu {
+        let menu = NSMenu()
+        let bid = item.bundleIdentifier
         if item.isAppLevelFallback {
+            if isFinderChip { AppMenuBuilder.appendFinderItems(to: menu) }
             if effectiveStatus == "hidden" {
-                Button("显示") { runtime.activate(windowID: item.actionWindowID) }
+                menu.addItem(ClosureMenuItem("显示") { runtime.activate(windowID: item.actionWindowID) })
             } else {
-                Button("隐藏") { runtime.hide(windowID: item.actionWindowID) }
+                menu.addItem(ClosureMenuItem("隐藏") { runtime.hide(windowID: item.actionWindowID) })
             }
-            Divider()
-            Button("退出 App") { runtime.quit(windowID: item.actionWindowID) }
-            membershipMenuItems
+            menu.addItem(.separator())
+            AppMenuBuilder.appendQuitItems(to: menu, bundleID: bid) {
+                runtime.quit(windowID: item.actionWindowID)
+            }
+            appendMembershipItems(to: menu)
         } else {
-            Button("新建窗口") { runtime.newWindow(windowID: item.actionWindowID) }
+            if isFinderChip { AppMenuBuilder.appendFinderItems(to: menu) }
+            menu.addItem(ClosureMenuItem("新建窗口") { runtime.newWindow(windowID: item.actionWindowID) })
             if effectiveStatus == "minimized" {
-                Button("还原") { runtime.activate(windowID: item.actionWindowID) }
+                menu.addItem(ClosureMenuItem("还原") { runtime.activate(windowID: item.actionWindowID) })
             } else {
-                Button("最小化") { runtime.minimize(windowID: item.actionWindowID) }
+                menu.addItem(ClosureMenuItem("最小化") { runtime.minimize(windowID: item.actionWindowID) })
             }
-            Button("隐藏 App") { runtime.hide(windowID: item.actionWindowID) }
-            membershipMenuItems
-            Divider()
+            menu.addItem(ClosureMenuItem("隐藏 App") { runtime.hide(windowID: item.actionWindowID) })
+            appendMembershipItems(to: menu)
+            menu.addItem(.separator())
             // 整组关闭（2026-06-14）：标签组的「关闭窗口」关掉组内每个标签；
             // 普通窗口 memberWindowIDs == [id]，行为不变。
-            Button("关闭窗口") {
+            menu.addItem(ClosureMenuItem("关闭窗口") {
                 for wid in item.memberWindowIDs { runtime.close(windowID: wid) }
+            })
+            AppMenuBuilder.appendQuitItems(to: menu, bundleID: bid) {
+                runtime.quit(windowID: item.actionWindowID)
             }
-            Button("退出 App") { runtime.quit(windowID: item.actionWindowID) }
         }
+        return menu
     }
 
     /// Drawer + launch-favorite toggles are independent since 2026-06-16 (reversed
@@ -623,35 +635,35 @@ struct ChipView: View {
     /// Messaging stays mutually exclusive with both. The messaging flag itself is
     /// permanent across drawer moves — moving to the drawer only changes where the
     /// app shows (drawer wins display) and must NOT clear the flag.
-    @ViewBuilder
-    private var membershipMenuItems: some View {
-        if let bid = item.bundleIdentifier {
-            Divider()
-            if drawerStore.contains(bid) {
-                Button("移回任务栏") { drawerStore.remove(bid) }
+    private func appendMembershipItems(to menu: NSMenu) {
+        guard let bid = item.bundleIdentifier else { return }
+        menu.addItem(.separator())
+        if drawerStore.contains(bid) {
+            menu.addItem(ClosureMenuItem("移回任务栏") { drawerStore.remove(bid) })
+        } else {
+            // 不清固定标志：收纳与固定可共存（2026-06-16）。旧代码在此 remove 固定，
+            // 导致「固定→收进抽屉→移回任务栏」后固定丢失（2026-06-18 owner 报告）。
+            menu.addItem(ClosureMenuItem("收进抽屉") { drawerStore.add(bid) })
+        }
+        // 「固定到启动台」只对**不在抽屉**的 app 有意义（给它在任务条留常驻启动位）。
+        // 已收进抽屉的 app 本就常驻抽屉，这个开关对它没有可见效果、只会造成「我已经
+        // 固定了为啥还让我固定」的困惑（2026-06-18 owner 拍板：抽屉里不再显示）。
+        if !drawerStore.contains(bid) {
+            if launchFavoriteStore.contains(bid) {
+                menu.addItem(ClosureMenuItem("取消固定") { launchFavoriteStore.remove(bid) })
             } else {
-                // 不清固定标志：收纳与固定可共存（2026-06-16）。旧代码在此 remove 固定，
-                // 导致「固定→收进抽屉→移回任务栏」后固定丢失（2026-06-18 owner 报告）。
-                Button("收进抽屉") { drawerStore.add(bid) }
+                menu.addItem(ClosureMenuItem("固定到启动台") {
+                    launchFavoriteStore.add(bid)
+                    if messagingStore.contains(bid) { messagingStore.unmark(bid) }
+                })
             }
-            // 「固定到启动台」只对**不在抽屉**的 app 有意义（给它在任务条留常驻启动位）。
-            // 已收进抽屉的 app 本就常驻抽屉，这个开关对它没有可见效果、只会造成「我已经
-            // 固定了为啥还让我固定」的困惑（2026-06-18 owner 拍板：抽屉里不再显示）。
-            if !drawerStore.contains(bid) {
-                if launchFavoriteStore.contains(bid) {
-                    Button("取消固定") { launchFavoriteStore.remove(bid) }
-                } else {
-                    Button("固定到启动台") {
-                        launchFavoriteStore.add(bid)
-                        if messagingStore.contains(bid) { messagingStore.unmark(bid) }
-                    }
-                }
-            }
-            if messagingStore.contains(bid) {
-                Button("取消标记消息应用") { messagingStore.unmark(bid) }
-            } else {
-                Button("标记为消息应用") { messagingStore.mark(bid); drawerStore.remove(bid); launchFavoriteStore.remove(bid) }
-            }
+        }
+        if messagingStore.contains(bid) {
+            menu.addItem(ClosureMenuItem("取消标记消息应用") { messagingStore.unmark(bid) })
+        } else {
+            menu.addItem(ClosureMenuItem("标记为消息应用") {
+                messagingStore.mark(bid); drawerStore.remove(bid); launchFavoriteStore.remove(bid)
+            })
         }
     }
 
