@@ -48,7 +48,7 @@ final class MenuHostNSView: NSView {
     }
 
     private func popUp(_ event: NSEvent) {
-        guard let menu = builder?() else { return }
+        guard let menu = builder?(), !menu.items.isEmpty else { return }
         NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 }
@@ -94,6 +94,51 @@ enum AppMenuBuilder {
         force.keyEquivalentModifierMask = [.option]
         force.isAlternate = true
         menu.addItem(force)
+    }
+
+    /// Top「最近使用的文件 ▶」submenu for an app (best-effort). Opens each doc in its
+    /// owning app. Adds nothing when there's no readable data, so callers needn't check.
+    static func appendRecentDocumentsSubmenu(to menu: NSMenu, bundleID: String?) {
+        guard let bid = bundleID else { return }
+        let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid)
+        let entries = RecentDocumentsReader.recentDocuments(for: bid)
+            .map { RecentMenuEntry(title: $0.lastPathComponent, url: $0) }
+        appendRecentSubmenu(to: menu, title: "最近使用的文件", entries: entries) { openRecent($0, appURL: appURL) }
+    }
+
+    /// Top「最近使用的文件夹 ▶」submenu for the Finder chip. Opens each folder in Finder.
+    static func appendFinderRecentFolders(to menu: NSMenu) {
+        appendRecentSubmenu(to: menu, title: "最近使用的文件夹",
+                            entries: RecentDocumentsReader.recentFinderFolders()) { NSWorkspace.shared.open($0) }
+    }
+
+    /// Shared builder: a parent item with a submenu of file/folder rows (16pt icon).
+    private static func appendRecentSubmenu(to menu: NSMenu, title: String,
+                                            entries: [RecentMenuEntry], open: @escaping (URL) -> Void) {
+        guard !entries.isEmpty else { return }
+        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let sub = NSMenu()
+        for entry in entries {
+            let it = ClosureMenuItem(entry.title) { open(entry.url) }
+            // copy() before resizing: icon(forFile:) returns a shared cached NSImage;
+            // mutating its size in place would shrink it everywhere else too.
+            let icon = NSWorkspace.shared.icon(forFile: entry.url.path).copy() as? NSImage
+            icon?.size = NSSize(width: 16, height: 16)
+            it.image = icon
+            sub.addItem(it)
+        }
+        parent.submenu = sub
+        menu.addItem(parent)
+        menu.addItem(.separator())
+    }
+
+    /// Open a recent doc in its owning app (matches the native Dock); fall back to
+    /// the default app if the owner can't be resolved or refuses to open it.
+    private static func openRecent(_ url: URL, appURL: URL?) {
+        guard let appURL else { NSWorkspace.shared.open(url); return }
+        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: .init()) { _, error in
+            if error != nil { DispatchQueue.main.async { NSWorkspace.shared.open(url) } }
+        }
     }
 
     /// Finder-only shortcuts at the top of the Finder chip menu, plus a separator.

@@ -19,6 +19,7 @@
 		A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B4 /* LaunchFavoriteStore.swift */; };
 		A000000000000000000019A1 /* LauncherChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B1 /* LauncherChip.swift */; };
 		A000000000000000000019D1 /* AppMenuFragments.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019C1 /* AppMenuFragments.swift */; };
+		A000000000000000000019D2 /* RecentDocumentsReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019C2 /* RecentDocumentsReader.swift */; };
 		A000000000000000000019A2 /* BadgeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B2 /* BadgeStore.swift */; };
 		A000000000000000000019A3 /* DockBadgeReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B3 /* DockBadgeReader.swift */; };
 		A00000000000000000001001 /* MacOSDockCCV2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* MacOSDockCCV2App.swift */; };
@@ -95,6 +96,7 @@
 		A000000000000000000019B4 /* LaunchFavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFavoriteStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B1 /* LauncherChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChip.swift; sourceTree = "<group>"; };
 		A000000000000000000019C1 /* AppMenuFragments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMenuFragments.swift; sourceTree = "<group>"; };
+		A000000000000000000019C2 /* RecentDocumentsReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentDocumentsReader.swift; sourceTree = "<group>"; };
 		A000000000000000000019B2 /* BadgeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B3 /* DockBadgeReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockBadgeReader.swift; sourceTree = "<group>"; };
 		A00000000000000000000001 /* MacOSDockCCV2App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSDockCCV2App.swift; sourceTree = "<group>"; };
@@ -252,8 +254,17 @@
 				A0000000000000000000002B /* Identity */,
 				A0000000000000000000002C /* Placement */,
 				A0000000000000000000002D /* Lifecycle */,
+				A000000000000000000019E2 /* Support */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		A000000000000000000019E2 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				A000000000000000000019C2 /* RecentDocumentsReader.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000029 /* Model */ = {
@@ -595,6 +606,7 @@
 					A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */,
 					A000000000000000000019A1 /* LauncherChip.swift in Sources */,
 					A000000000000000000019D1 /* AppMenuFragments.swift in Sources */,
+					A000000000000000000019D2 /* RecentDocumentsReader.swift in Sources */,
 					A000000000000000000019A2 /* BadgeStore.swift in Sources */,
 					A000000000000000000019A3 /* DockBadgeReader.swift in Sources */,
 					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,

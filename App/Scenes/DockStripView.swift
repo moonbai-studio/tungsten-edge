@@ -594,6 +594,12 @@ struct ChipView: View {
     private func buildChipMenu() -> NSMenu {
         let menu = NSMenu()
         let bid = item.bundleIdentifier
+        // 最近项置顶：Finder 显示「最近使用的文件夹」（FXRecentFolders），其余 app 显示「最近使用的文件」。
+        if isFinderChip {
+            AppMenuBuilder.appendFinderRecentFolders(to: menu)
+        } else {
+            AppMenuBuilder.appendRecentDocumentsSubmenu(to: menu, bundleID: bid)
+        }
         if item.isAppLevelFallback {
             if isFinderChip { AppMenuBuilder.appendFinderItems(to: menu) }
             if effectiveStatus == "hidden" {
