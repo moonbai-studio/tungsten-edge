@@ -168,6 +168,10 @@ struct DockStripView: View {
                         .frame(width: Style.edgeFadeWidth)
                 }
             }
+            .overlay(alignment: .topLeading) {
+                WheelScrollInterceptorRepresentable()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         // 抽屉图标拖到任务条上方 = 移回任务栏的投放反馈：整条任务条高亮描边（对称于胶囊的收纳高亮）。
         .overlay {
@@ -824,6 +828,109 @@ struct DockVisualEffectView: NSViewRepresentable {
         return view
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+// MARK: - Mouse wheel horizontal strip scrolling
+
+private struct WheelScrollInterceptorRepresentable: NSViewRepresentable {
+    func makeNSView(context: Context) -> WheelScrollInterceptorView {
+        WheelScrollInterceptorView()
+    }
+
+    func updateNSView(_ nsView: WheelScrollInterceptorView, context: Context) {
+        nsView.resolveScrollViewIfNeeded()
+    }
+}
+
+private final class WheelScrollInterceptorView: NSView {
+    private static let wheelSpeed: CGFloat = 56
+    private static let maxStep: CGFloat = 120
+
+    private weak var scrollView: NSScrollView?
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+    }
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        resolveScrollViewIfNeeded()
+    }
+
+    override func layout() {
+        super.layout()
+        resolveScrollViewIfNeeded()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard bounds.contains(point),
+              let event = NSApp.currentEvent,
+              event.type == .scrollWheel,
+              !event.hasPreciseScrollingDeltas,
+              event.scrollingDeltaY != 0,
+              resolveScrollViewIfNeeded() != nil else {
+            return nil
+        }
+        return self
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        guard !event.hasPreciseScrollingDeltas,
+              event.scrollingDeltaY != 0,
+              let scrollView = resolveScrollViewIfNeeded(),
+              let documentView = scrollView.documentView else {
+            super.scrollWheel(with: event)
+            return
+        }
+
+        let clipView = scrollView.contentView
+        let maxX = max(0, documentView.bounds.width - clipView.bounds.width)
+        guard maxX > 0 else { return }
+
+        let naturalScrolling = UserDefaults.standard.bool(forKey: "com.apple.swipescrolldirection")
+        let sign: CGFloat = naturalScrolling ? -1 : 1
+        let rawDelta = sign * event.scrollingDeltaY * Self.wheelSpeed
+        let delta = min(max(rawDelta, -Self.maxStep), Self.maxStep)
+        guard delta != 0 else { return }
+
+        let currentX = clipView.bounds.origin.x
+        let nextX = min(max(currentX + delta, 0), maxX)
+        guard nextX != currentX else { return }
+
+        clipView.scroll(to: NSPoint(x: nextX, y: clipView.bounds.origin.y))
+        scrollView.reflectScrolledClipView(clipView)
+    }
+
+    @discardableResult
+    func resolveScrollViewIfNeeded() -> NSScrollView? {
+        if let scrollView, scrollView.window != nil {
+            return scrollView
+        }
+
+        var ancestor = superview
+        while let candidate = ancestor {
+            if let found = findScrollView(in: candidate) {
+                scrollView = found
+                return found
+            }
+            ancestor = candidate.superview
+        }
+        scrollView = nil
+        return nil
+    }
+
+    private func findScrollView(in root: NSView) -> NSScrollView? {
+        guard root !== self else { return nil }
+        if let scrollView = root as? NSScrollView {
+            return scrollView
+        }
+        for subview in root.subviews {
+            if let found = findScrollView(in: subview) {
+                return found
+            }
+        }
+        return nil
+    }
 }
 
 // MARK: - Drag-reorder preference (任务条拖动重排 路线 A 自绘拖动)
