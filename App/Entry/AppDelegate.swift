@@ -11,19 +11,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let badgeStore = BadgeStore()
     let stripOrderStore = StripOrderStore()
     let drawerOrderStore = DrawerOrderStore()
+    let settingsStore = AppSettingsStore()
     private var panelCoordinator: PanelCoordinator?
     private var debugWindow: NSWindow?
-    private var statusItem: NSStatusItem?
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
     private var permissionModel: AccessibilityPermissionModel?
+    private lazy var statusMenuController = StatusMenuController(
+        store: settingsStore,
+        onShowDebugConsole: { [weak self] in self?.showDebugConsole() },
+        onExportDebugSnapshot: { [weak self] in self?.exportDebugSnapshot() },
+        onQuit: { NSApp.terminate(nil) }
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 行缓冲 stdout：从命令行/后台启动时，print() 输出到文件默认是块缓冲，
         // 日志要攒满缓冲区才落盘。改成行缓冲后每条 print 立即写出，便于实时读日志。
         setvbuf(stdout, nil, _IOLBF, 0)
         NSApp.setActivationPolicy(.accessory)
-        setupStatusBarItem()
+        _ = statusMenuController
 
         // 调试旗：本地签名的开发版无法用 tccutil 可靠撤销辅助功能权限，
         // 设 DOCK_FORCE_ONBOARDING=1 可强制展示权限引导窗口（演示/截图用），
@@ -99,20 +105,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         debugWindow = window
     }
 
-    private func setupStatusBarItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem?.button?.image = NSImage(systemSymbolName: "rectangle.3.offgrid.fill", accessibilityDescription: "Dock")
-
-        let menu = NSMenu()
-        menu.addItem(withTitle: "显示调试台", action: #selector(showDebugConsoleFromMenu), keyEquivalent: "")
-            .target = self
-        menu.addItem(withTitle: "导出任务条快照", action: #selector(exportDebugSnapshotFromMenu), keyEquivalent: "")
-            .target = self
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "退出", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        statusItem?.menu = menu
-    }
-
-    @objc private func showDebugConsoleFromMenu() { showDebugConsole() }
-    @objc private func exportDebugSnapshotFromMenu() { exportDebugSnapshot() }
 }

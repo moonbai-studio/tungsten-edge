@@ -16,6 +16,10 @@
 		A00000000000000000005011 /* StripOrderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000005010 /* StripOrderStore.swift */; };
 		A00000000000000000006011 /* DragController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000006010 /* DragController.swift */; };
 		A00000000000000000007011 /* DrawerOrderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000007010 /* DrawerOrderStore.swift */; };
+		A00000000000000000008011 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008010 /* AppSettingsStore.swift */; };
+		A00000000000000000008021 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008020 /* StatusMenuController.swift */; };
+		A00000000000000000008031 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008010 /* AppSettingsStore.swift */; };
+		A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008040 /* AppSettingsStoreTests.swift */; };
 		A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B4 /* LaunchFavoriteStore.swift */; };
 		A000000000000000000019A1 /* LauncherChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B1 /* LauncherChip.swift */; };
 		A000000000000000000019D1 /* AppMenuFragments.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019C1 /* AppMenuFragments.swift */; };
@@ -93,6 +97,8 @@
 		A00000000000000000005010 /* StripOrderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripOrderStore.swift; sourceTree = "<group>"; };
 		A00000000000000000006010 /* DragController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragController.swift; sourceTree = "<group>"; };
 		A00000000000000000007010 /* DrawerOrderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerOrderStore.swift; sourceTree = "<group>"; };
+		A00000000000000000008010 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		A00000000000000000008020 /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
 		A000000000000000000019B4 /* LaunchFavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFavoriteStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B1 /* LauncherChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChip.swift; sourceTree = "<group>"; };
 		A000000000000000000019C1 /* AppMenuFragments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMenuFragments.swift; sourceTree = "<group>"; };
@@ -136,6 +142,7 @@
 		A00000000000000000000018 /* macos-dock-cc-v2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "macos-dock-cc-v2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000019 /* window-lab */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "window-lab"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000058 /* FinderP0Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinderP0Tests.swift; sourceTree = "<group>"; };
+		A00000000000000000008040 /* AppSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStoreTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-dock-cc-v2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -193,6 +200,7 @@
 			children = (
 				A00000000000000000000001 /* MacOSDockCCV2App.swift */,
 				A00000000000000000000066 /* AppDelegate.swift */,
+				A00000000000000000008020 /* StatusMenuController.swift */,
 				A0000000000000000000006C /* PanelCoordinator.swift */,
 			);
 			path = Entry;
@@ -207,6 +215,7 @@
 				A00000000000000000005010 /* StripOrderStore.swift */,
 				A00000000000000000006010 /* DragController.swift */,
 				A00000000000000000007010 /* DrawerOrderStore.swift */,
+				A00000000000000000008010 /* AppSettingsStore.swift */,
 				A000000000000000000019B4 /* LaunchFavoriteStore.swift */,
 				A000000000000000000019B2 /* BadgeStore.swift */,
 				A00000000000000000000027 /* ObservationPipeline */,
@@ -467,6 +476,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000058 /* FinderP0Tests.swift */,
+				A00000000000000000008040 /* AppSettingsStoreTests.swift */,
 			);
 			path = Unit;
 			sourceTree = "<group>";
@@ -603,6 +613,8 @@
 					A00000000000000000005011 /* StripOrderStore.swift in Sources */,
 					A00000000000000000006011 /* DragController.swift in Sources */,
 					A00000000000000000007011 /* DrawerOrderStore.swift in Sources */,
+					A00000000000000000008011 /* AppSettingsStore.swift in Sources */,
+					A00000000000000000008021 /* StatusMenuController.swift in Sources */,
 					A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */,
 					A000000000000000000019A1 /* LauncherChip.swift in Sources */,
 					A000000000000000000019D1 /* AppMenuFragments.swift in Sources */,
@@ -677,6 +689,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0000000000000000000101F /* FinderP0Tests.swift in Sources */,
+				A00000000000000000008031 /* AppSettingsStore.swift in Sources */,
+				A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */,
 				A00000000000000000001020 /* Identifiers.swift in Sources */,
 				A00000000000000000001021 /* WindowModels.swift in Sources */,
 					A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */,
