@@ -9,9 +9,9 @@ import Foundation
 ///
 /// 落盘（slice 4）：**只为抗任务条 App 自身重启**把活窗口顺序洗掉，**不做**仿 Dock 的跨关闭/
 /// 重启布局恢复。机制：
-/// - 主键 = chip id 里的 `cgw-*`（内嵌 cgWindowID，开机周期内对同一窗口稳定）；**只落 `cgw-*`，
+/// - 主键 = chip id 里的 `tabgrp-*` 稳定座位 token；**只落 `tabgrp-*`，
 ///   app-* 占位是临时键、只活在内存**。
-/// - `kern.boottime` 守卫：开机时间变了（=重启过机器，旧 cgWindowID 已重排/复用）整份丢弃。
+/// - `kern.boottime` 守卫：开机时间变了（=重启过机器，旧窗口/token 不再可信）整份丢弃。
 /// - 启动只把存档当"记忆"喂给 reconcile，仍活着的窗口接回原序、其余自然丢——不复活已关窗口。
 @MainActor
 final class StripOrderStore: ObservableObject {
@@ -119,7 +119,7 @@ final class StripOrderStore: ObservableObject {
         if next != liveOrder { liveOrder = next; persist() }
     }
 
-    /// 落盘当前顺序：只存 `cgw-*`（真实窗口键）+ 本次开机时间。app-* 临时键不落。
+    /// 落盘当前顺序：只存 `tabgrp-*`（真实窗口座位键）+ 本次开机时间。app-* 临时键不落。
     private func persist() {
         UserDefaults.standard.set(StripOrdering.persistableLiveOrder(liveOrder), forKey: orderKey)
         UserDefaults.standard.set(bootTime, forKey: bootKey)

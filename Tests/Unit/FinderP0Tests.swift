@@ -1260,7 +1260,8 @@ final class FinderP0Tests: XCTestCase {
             title: "ob 协作",
             bounds: frame,
             status: .inactive,
-            cgWindowID: 240522
+            cgWindowID: 240522,
+            groupID: "tabgrp-30201-s1"
         )
         let tabB = WindowRecord(
             id: WindowID(rawValue: "cgw-249469"),
@@ -1270,7 +1271,8 @@ final class FinderP0Tests: XCTestCase {
             title: "程序坞-规划",
             bounds: frame,
             status: .active,
-            cgWindowID: 249469
+            cgWindowID: 249469,
+            groupID: "tabgrp-30201-s1"
         )
 
         let items = StripItem.items(from: retainedSnapshot(tabA, tabB))
@@ -1281,8 +1283,8 @@ final class FinderP0Tests: XCTestCase {
         // 单个标签组 → 图标-only（与单窗口一致），sameAppCardCount 按合并后的卡计数
         XCTAssertFalse(chip.showsTitle)
         XCTAssertEqual(chip.sameAppCardCount, 1)
-        // SwiftUI 身份锚 = 最小 cgWindowID（稳定，不随聚焦切换 → 不抖）
-        XCTAssertEqual(chip.id, "cgw-240522")
+        // SwiftUI 身份锚 = AppTracker 分配的稳定座位 token（不随 active cgID 切换 → 不抖）
+        XCTAssertEqual(chip.id, "tabgrp-30201-s1")
         // 动作落点 + 标题 = 聚焦（active）标签
         XCTAssertEqual(chip.actionWindowID, "cgw-249469")
         XCTAssertEqual(chip.title, "程序坞-规划")
@@ -1302,7 +1304,8 @@ final class FinderP0Tests: XCTestCase {
             title: "程序坞-规划",
             bounds: frame,
             status: .minimized,
-            cgWindowID: 249469
+            cgWindowID: 249469,
+            groupID: "tabgrp-30201-s1"
         )
         let visible = WindowRecord(  // 唯一可见标签（min=0 → .inactive，因 app 非前台）
             id: WindowID(rawValue: "cgw-254022"),
@@ -1312,7 +1315,8 @@ final class FinderP0Tests: XCTestCase {
             title: "发生的",
             bounds: frame,
             status: .inactive,
-            cgWindowID: 254022
+            cgWindowID: 254022,
+            groupID: "tabgrp-30201-s1"
         )
         let bgHigh = WindowRecord(
             id: WindowID(rawValue: "cgw-253982"),
@@ -1322,15 +1326,16 @@ final class FinderP0Tests: XCTestCase {
             title: "阿方索的",
             bounds: frame,
             status: .minimized,
-            cgWindowID: 253982
+            cgWindowID: 253982,
+            groupID: "tabgrp-30201-s1"
         )
 
         let items = StripItem.items(from: retainedSnapshot(bgLow, visible, bgHigh))
 
         XCTAssertEqual(items.count, 1)
         let chip = items[0]
-        // 身份锚仍是最小 cgID（稳定不抖）
-        XCTAssertEqual(chip.id, "cgw-249469")
+        // 身份锚仍是稳定座位 token（稳定不抖）
+        XCTAssertEqual(chip.id, "tabgrp-30201-s1")
         // 但标题/动作落点 = 可见标签，不是 anchor
         XCTAssertEqual(chip.title, "发生的")
         XCTAssertEqual(chip.actionWindowID, "cgw-254022")
@@ -1605,10 +1610,10 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(StripOrdering.reordering(["A", "B"], move: "A", relativeTo: "Z", after: false), ["A", "B"])
     }
 
-    /// 落盘只留真实窗口键（cgw-*），app-* 临时键不写盘，且保持相对顺序。
+    /// 落盘只留真实窗口座位键（tabgrp-*），app-* / cgw-* 临时键不写盘，且保持相对顺序。
     func testPersistableLiveOrderKeepsOnlyWindowChips() {
-        let order = ["cgw-1", "app-com.x", "cgw-2", "app-com.y"]
-        XCTAssertEqual(StripOrdering.persistableLiveOrder(order), ["cgw-1", "cgw-2"])
+        let order = ["tabgrp-1-s1", "app-com.x", "cgw-legacy", "tabgrp-2-s1", "app-com.y"]
+        XCTAssertEqual(StripOrdering.persistableLiveOrder(order), ["tabgrp-1-s1", "tabgrp-2-s1"])
     }
 
     /// app-* 升级成真窗口：新 id 顶替旧 id，继承原位置（rank）。

@@ -20,6 +20,22 @@
 - 同一个真实窗口在恢复或跨屏状态变化后，frame 可能发生较大偏移；如果同进程同应用下标题唯一，可以用唯一标题认回旧座位。多个同名候选时不能猜。
 - 浏览器、Illustrator、Photoshop、Finder、WeChat、Terminal、Codex 等应用会暴露不同粒度的标题或位置变化；这些应作为通用身份规则的验收样本，不应变成应用白名单。
 
+## 状态栏菜单与 macOS 集成限制（2026-06-30）
+
+- `SMAppService.mainApp` 登录项接入只在 macOS 13+ 可用；macOS 12 菜单里应显示为不支持，不要无保护调用 13+ API。
+- 登录项状态不是二态。除了 `unsupported` / `off` / `on`，还必须处理 `requiresApproval`：注册成功但仍需用户到系统设置批准，这不是失败。
+- 本机 SDK 已确认 `SMAppService.openSystemSettingsLoginItems()` 标注 `macOS 13.0+`，仍必须用 `#available(macOS 13.0, *)` 包住，因为项目最低部署目标是 macOS 12。
+- 沙箱 App 不能直接修改系统 Dock 偏好或重启 Dock。`NativeDockPreferencesService` 必须通过 `SecTaskCopyValueForEntitlement("com.apple.security.app-sandbox")` 检测沙箱；沙箱为 true 时不要执行 `defaults write com.apple.dock` 或 `killall Dock`。
+- 当前系统 Dock 写入面向非沙箱 GitHub/Homebrew 分发。菜单里的系统 Dock 滑杆只在鼠标松手且数值实际变化后应用，不能在拖动过程中连续写系统 Dock 或连续重启 Dock。
+
+## Tungsten Edge 自动隐藏与多屏底边探测（2026-06-30）
+
+- Tungsten Edge 的自动隐藏滑杆语义是“底边唤醒等待时间”，不是“鼠标离开后多久隐藏”。有限值范围为 `0.1s...3.0s`；`不唤醒` 表示会隐藏，但底边不启动唤醒计时。
+- 鼠标离开 Dock / 胶囊 / 抽屉后，idle hide 延迟固定为 `0.2s`。不要把它重新绑回滑杆值。
+- 隐藏态也必须持续做底边探测；不能依赖 Dock 面板可见或鼠标进入面板区域才启动唤醒。
+- 底边热区与多屏切换共用同一探测入口：当前屏底边直接走唤醒逻辑；另一块屏幕底边先经过约 `0.35s` 驻留切屏，切屏后再从 0 开始计算唤醒延迟。
+- 多显示器策略 UI 已移除，运行时固定为多屏自动切换语义。不要重新读取旧的 `displayMode` defaults key 来决定底边行为。
+
 ## 原生标签组（NSWindow tabbing）与“哪个标签可见”的判定（2026-06-14 实测，Ghostty）
 
 > 这是“同 app 多标签合并”功能里反复踩坑后挖出来的平台事实。Obsidian 那份是产品/设计视角，这份是工程视角，写代码时按这条来。

@@ -44,8 +44,10 @@ Unlike a plain Windows-style task switcher, single-window apps stay collapsed as
 - **Pinned messaging apps + badges** — messaging apps (WeChat, Feishu, …) get a persistent pinned entry and mirror the Dock's red unread badge.
 - **App drawer** — stash rarely-used apps into a drawer on the right to keep the strip clean; pin favorites in the drawer to use it as a launcher.
 - **Drag to organize** — reorder cards by dragging; drag a card into the drawer to stash it; drag it back out and it lands exactly where you drop it.
+- **Menu bar controls** — the status menu controls launch at login, native Dock wake timing, and Tungsten Edge wake timing.
+- **Edge auto-hide** — Tungsten Edge can hide itself and wake from the bottom edge after the delay you choose; moving away hides it again after about 0.2s.
 - **Frosted-glass look** — native-grade translucency that blends into the desktop.
-- **Multi-display follow** — the taskbar follows your cursor to whichever screen it's on.
+- **Multi-display follow** — resting the pointer on another screen's bottom edge moves the taskbar there automatically.
 
 > **Note:** the app's interface is currently **Chinese only**. An English/localized UI is planned but not yet available — see [Roadmap](#roadmap).
 
@@ -101,15 +103,27 @@ Tungsten Edge needs **Accessibility** permission to read and manage your windows
 
 - Open **System Settings → Privacy & Security → Accessibility**, find **Tungsten Edge**, and **turn on its switch**.
 
+## Status menu
+
+Tungsten Edge lives in the macOS menu bar. Its menu currently includes:
+
+- **Launch at login** — available on macOS 13 and later. If macOS asks for approval, open Login Items in System Settings and approve Tungsten Edge there.
+- **`唤醒系统 dock栏`** — adjusts the native macOS Dock wake delay. The value is saved while dragging; when you release the slider after a real change, Tungsten Edge applies it to the system Dock and restarts the Dock so it takes effect.
+- **`唤醒 Tungsten Edge 钨极`** — controls how long the pointer must stay on the bottom edge before Tungsten Edge wakes. `常驻` keeps it visible, finite values run from `0.1s` to `3.0s`, and `不唤醒` keeps auto-hide but disables bottom-edge wake.
+
+The native Dock setting requires a non-sandboxed build because macOS sandboxed apps cannot directly write the system Dock preferences or restart Dock.
+
 ## Recommended setup (align the minimize animation to the bottom)
 
 If your native Dock lives on the **side or top** of the screen, minimizing a window flies the animation toward the native Dock — out of sync with this bottom taskbar. Move the native Dock back to the **bottom** and set it to auto-hide; the minimize animation will then shrink toward the bottom, matching Tungsten Edge:
 
 - **System Settings → Desktop & Dock → Position on screen → Bottom**, and turn on **Automatically hide and show the Dock**.
 
+You can then use Tungsten Edge's status menu to tune the native Dock wake delay.
+
 ## Roadmap
 
-This is an early public build (v0.1). Known limitations and what's next:
+This is an early public build (v0.3). Known limitations and what's next:
 
 - **Not yet signed/notarized** → first launch needs right-click → Open (above). A signed build is planned.
 - **Chinese-only UI** → localization is on the roadmap. A Chinese version of this README is available at [README.zh-CN.md](README.zh-CN.md).

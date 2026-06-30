@@ -192,6 +192,16 @@ Root cause and full fix documented in `Docs/21-long-gap-duplicate-card-fix.md`. 
 - **Hover-switch uses a dwell, not instant edge-trigger.** Cursor must stay on the target screen for `hoverSwitchDwell` (~350ms) before the strip moves, armed on entering that screen's bottom hot zone and kept alive while anywhere on it (a "must stay in the 4pt strip" dwell is unreachable when approaching an upper screen from directly below — its hot zone == the shared edge you cross through). Prevents accidental switches when clicking near a screen's bottom edge.
 - **Fullscreen hide must hide the capsule (and close the drawer) too, not just the dock** — else the capsule floats alone on screen.
 
+### Status menu + Edge auto-hide settings (2026-06-30)
+
+> The status menu now owns launch-at-login, native Dock wake delay, and Tungsten Edge wake delay. Product state and copy live in Obsidian; this section keeps only implementation guardrails.
+
+- **Do not reintroduce the multi-display strategy menu.** Runtime behavior is fixed to the multi-screen dwell model above: another screen's bottom edge can switch placement; the current screen's bottom edge can wake Tungsten Edge.
+- **The native Dock slider applies only on commit, never continuously while dragging.** Drag changes save the preference; mouse-up with a real value change writes `com.apple.dock` and restarts Dock directly. Do not bring back a separate "应用到系统 Dock…" menu item or confirmation dialog unless the owner explicitly changes the product decision.
+- **Native Dock writes remain non-sandbox only.** Keep the `SecTaskCopyValueForEntitlement("com.apple.security.app-sandbox")` gate; sandboxed builds must not attempt `defaults write com.apple.dock` or `killall Dock`.
+- **The Tungsten Edge slider is a wake-delay control, not a hide-delay control.** Finite wake delays run `0.1s...3.0s`; `不唤醒` may still hide but must not arm the bottom-edge wake timer. Idle hide after leaving the dock/capsule/drawer is fixed at `0.2s`.
+- **Hidden-state bottom-edge detection is load-bearing.** Edge wake must keep probing while the dock panel is hidden and flow through the same bottom-edge detector as multi-screen switching.
+
 ### Minimum deployment target = macOS 12 (Monterey) — gate newer APIs
 
 > 2026-06-22. Lowered from 14.0 to 12.0 so older Macs can install (a Monterey user hit "can't be used with this version of macOS"). `MACOSX_DEPLOYMENT_TARGET` = 12.0 in all configs; `LSMinimumSystemVersion` = 12.0.
