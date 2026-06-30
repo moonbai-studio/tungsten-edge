@@ -20,6 +20,13 @@
 		A00000000000000000008021 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008020 /* StatusMenuController.swift */; };
 		A00000000000000000008031 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008010 /* AppSettingsStore.swift */; };
 		A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008040 /* AppSettingsStoreTests.swift */; };
+		A00000000000000000009011 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009010 /* LaunchAtLoginService.swift */; };
+		A00000000000000000009021 /* NativeDockPreferencesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009020 /* NativeDockPreferencesService.swift */; };
+		A00000000000000000009031 /* PanelVisibilityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009030 /* PanelVisibilityState.swift */; };
+		A00000000000000000009041 /* NativeDockPreferencesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009020 /* NativeDockPreferencesService.swift */; };
+		A00000000000000000009051 /* PanelVisibilityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009030 /* PanelVisibilityState.swift */; };
+		A00000000000000000009061 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009010 /* LaunchAtLoginService.swift */; };
+		A00000000000000000009071 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008020 /* StatusMenuController.swift */; };
 		A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B4 /* LaunchFavoriteStore.swift */; };
 		A000000000000000000019A1 /* LauncherChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019B1 /* LauncherChip.swift */; };
 		A000000000000000000019D1 /* AppMenuFragments.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019C1 /* AppMenuFragments.swift */; };
@@ -99,6 +106,9 @@
 		A00000000000000000007010 /* DrawerOrderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerOrderStore.swift; sourceTree = "<group>"; };
 		A00000000000000000008010 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
 		A00000000000000000008020 /* StatusMenuController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuController.swift; sourceTree = "<group>"; };
+		A00000000000000000009010 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
+		A00000000000000000009020 /* NativeDockPreferencesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeDockPreferencesService.swift; sourceTree = "<group>"; };
+		A00000000000000000009030 /* PanelVisibilityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelVisibilityState.swift; sourceTree = "<group>"; };
 		A000000000000000000019B4 /* LaunchFavoriteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFavoriteStore.swift; sourceTree = "<group>"; };
 		A000000000000000000019B1 /* LauncherChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChip.swift; sourceTree = "<group>"; };
 		A000000000000000000019C1 /* AppMenuFragments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMenuFragments.swift; sourceTree = "<group>"; };
@@ -216,6 +226,9 @@
 				A00000000000000000006010 /* DragController.swift */,
 				A00000000000000000007010 /* DrawerOrderStore.swift */,
 				A00000000000000000008010 /* AppSettingsStore.swift */,
+				A00000000000000000009010 /* LaunchAtLoginService.swift */,
+				A00000000000000000009020 /* NativeDockPreferencesService.swift */,
+				A00000000000000000009030 /* PanelVisibilityState.swift */,
 				A000000000000000000019B4 /* LaunchFavoriteStore.swift */,
 				A000000000000000000019B2 /* BadgeStore.swift */,
 				A00000000000000000000027 /* ObservationPipeline */,
@@ -614,6 +627,9 @@
 					A00000000000000000006011 /* DragController.swift in Sources */,
 					A00000000000000000007011 /* DrawerOrderStore.swift in Sources */,
 					A00000000000000000008011 /* AppSettingsStore.swift in Sources */,
+					A00000000000000000009011 /* LaunchAtLoginService.swift in Sources */,
+					A00000000000000000009021 /* NativeDockPreferencesService.swift in Sources */,
+					A00000000000000000009031 /* PanelVisibilityState.swift in Sources */,
 					A00000000000000000008021 /* StatusMenuController.swift in Sources */,
 					A000000000000000000019A4 /* LaunchFavoriteStore.swift in Sources */,
 					A000000000000000000019A1 /* LauncherChip.swift in Sources */,
@@ -691,6 +707,10 @@
 				A0000000000000000000101F /* FinderP0Tests.swift in Sources */,
 				A00000000000000000008031 /* AppSettingsStore.swift in Sources */,
 				A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */,
+				A00000000000000000009071 /* StatusMenuController.swift in Sources */,
+				A00000000000000000009061 /* LaunchAtLoginService.swift in Sources */,
+				A00000000000000000009041 /* NativeDockPreferencesService.swift in Sources */,
+				A00000000000000000009051 /* PanelVisibilityState.swift in Sources */,
 				A00000000000000000001020 /* Identifiers.swift in Sources */,
 				A00000000000000000001021 /* WindowModels.swift in Sources */,
 					A00000000000000000001022 /* SystemBoundaryModels.swift in Sources */,

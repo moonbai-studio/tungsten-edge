@@ -35,6 +35,7 @@ final class PanelCoordinator: NSObject {
     private let badgeStore: BadgeStore
     private let stripOrderStore: StripOrderStore
     private let drawerOrderStore: DrawerOrderStore
+    private let settingsStore: AppSettingsStore
     private var dockPanel: NSPanel?
     private var drawerPanel: NSPanel?
     private var capsulePanel: NSPanel?
@@ -50,6 +51,8 @@ final class PanelCoordinator: NSObject {
     private var messagingStoreWidthSubscription: AnyCancellable?
     private var launchFavoriteStoreSubscription: AnyCancellable?
     private var dragSpringSubscription: AnyCancellable?
+    private var dragInhibitorSubscription: AnyCancellable?
+    private var edgeDelaySubscription: AnyCancellable?
     /// 抽屉拖回任务条·"松手才变长"：转正进行中冻结任务条宽度，转正态结束（松手落定 / 拖出还原）再 relayout。
     private var convertReleaseSubscription: AnyCancellable?
     private var springOpenTimer: Timer?
@@ -81,10 +84,16 @@ final class PanelCoordinator: NSObject {
     private var didInitialLayout = false
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "dock-panel")
 
-    private var isHiddenForFullscreen = false
     private var fullscreenReconcileTimer: Timer?
+    private var visibilityState = PanelVisibilityState()
+    private var panelsAreVisible = true
+    private var edgeIdleHideTimer: Timer?
+    private var edgeWakeTimer: Timer?
+    private var edgeWakeTargetScreen: NSScreen?
+    private var edgeWakeRequiresHotZone = true
+    private var edgeHiddenMouseMonitor: Any?
 
-    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore, stripOrderStore: StripOrderStore, drawerOrderStore: DrawerOrderStore) {
+    init(runtime: AppRuntime, drawerStore: DrawerStore, messagingStore: MessagingAppStore, launchFavoriteStore: LaunchFavoriteStore, badgeStore: BadgeStore, stripOrderStore: StripOrderStore, drawerOrderStore: DrawerOrderStore, settingsStore: AppSettingsStore) {
         self.runtime = runtime
         self.drawerStore = drawerStore
         self.messagingStore = messagingStore
@@ -92,6 +101,7 @@ final class PanelCoordinator: NSObject {
         self.badgeStore = badgeStore
         self.stripOrderStore = stripOrderStore
         self.drawerOrderStore = drawerOrderStore
+        self.settingsStore = settingsStore
         super.init()
     }
 
@@ -104,7 +114,9 @@ final class PanelCoordinator: NSObject {
         subscribeMessagingStoreWidth()
         subscribeLaunchFavoriteStore()
         subscribeDragSpringLoad()
+        subscribeDragInhibitor()
         subscribeConvertRelease()
+        subscribeSettings()
         setupFullscreenMonitor()
         setupHoverDiagnostics()
         NotificationCenter.default.addObserver(
@@ -118,6 +130,12 @@ final class PanelCoordinator: NSObject {
     deinit {
         fullscreenReconcileTimer?.invalidate()
         hoverPollTimer?.invalidate()
+        edgeIdleHideTimer?.invalidate()
+        edgeWakeTimer?.invalidate()
+        if let monitor = edgeHiddenMouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            edgeHiddenMouseMonitor = nil
+        }
         springOpenTimer?.invalidate()
         springCloseTimer?.invalidate()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
@@ -132,6 +150,7 @@ final class PanelCoordinator: NSObject {
         guard let mainPanel = dockPanel, capsulePanel != nil else { return }
         drawerActionCloseToken += 1  // 旧点击排队的 delayed close 捕获旧 token，不匹配则丢弃
         drawerWantsOpen = true
+        setAutoHideInhibitor(.drawerOpen, active: true)
         drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
         if drawerPanel == nil {
@@ -226,6 +245,7 @@ final class PanelCoordinator: NSObject {
     private func closeDrawer() {
         guard drawerWantsOpen else { return }
         drawerWantsOpen = false
+        setAutoHideInhibitor(.drawerOpen, active: false)
         drawerSpringOpened = false
         if let m = drawerLocalMonitor  { NSEvent.removeMonitor(m); drawerLocalMonitor  = nil }
         if let m = drawerGlobalMonitor { NSEvent.removeMonitor(m); drawerGlobalMonitor = nil }
@@ -235,8 +255,10 @@ final class PanelCoordinator: NSObject {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
-            guard let self, !self.drawerWantsOpen else { return }   // 淡出中又开了 → 别 orderOut
-            panel.orderOut(nil)
+            Task { @MainActor [weak self] in
+                guard let self, !self.drawerWantsOpen else { return }   // 淡出中又开了 → 别 orderOut
+                panel.orderOut(nil)
+            }
         })
     }
 
@@ -325,6 +347,16 @@ final class PanelCoordinator: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] location, payload in
                 self?.updateSpringLoad(location: location, payload: payload)
+            }
+    }
+
+    private func subscribeDragInhibitor() {
+        dragInhibitorSubscription = dragController.$draggingPayload
+            .map { $0 != nil }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] dragging in
+                self?.setAutoHideInhibitor(.dragging, active: dragging)
             }
     }
 
@@ -551,6 +583,15 @@ final class PanelCoordinator: NSObject {
             }
     }
 
+    private func subscribeSettings() {
+        edgeDelaySubscription = settingsStore.$edgeAutoHideDelay
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.reconcilePanelVisibility()
+            }
+    }
+
     // MARK: - 目标 frame 驱动布局
     //
     // Codex 二审根因：动画后若"读上一个面板正在动画的 live frame 来定位下一个"，读到的是动画起点的旧值
@@ -639,11 +680,8 @@ final class PanelCoordinator: NSObject {
         cancelHoverSwitch()
         guard dockPanel != nil else { return }
         relayout(animated: false)      // 切屏瞬时,不滑
-        if NSScreen.screens.count > 1 {
-            startHoverPollTimer()
-        } else {
-            stopHoverPollTimer()
-        }
+        startHoverPollTimer()
+        reconcilePanelVisibility()
     }
 
     // MARK: - Fullscreen Monitor
@@ -712,24 +750,19 @@ final class PanelCoordinator: NSObject {
     }
 
     private func fullscreenReconcileIfNeeded() {
-        guard isHiddenForFullscreen else { return }
+        guard visibilityState.hideReasons.contains(.fullscreen) else { return }
         triggerAsyncFullscreenCheck()
     }
 
     private func applyFullscreenVisibility(_ isFullscreen: Bool) {
-        guard isFullscreen != isHiddenForFullscreen else { return }
-        isHiddenForFullscreen = isFullscreen
-        guard let panel = dockPanel else { return }
         if isFullscreen {
             closeDrawer()
-            panel.orderOut(nil)
-            capsulePanel?.orderOut(nil)
-            logger.info("[fullscreen] panels hidden")
+            visibilityState.setFullscreen(true)
         } else {
-            panel.orderFront(nil)
-            capsulePanel?.orderFront(nil)
-            logger.info("[fullscreen] panels restored")
+            visibilityState.setFullscreen(false)
         }
+        reconcilePanelVisibility()
+        logger.info("[fullscreen] active=\(isFullscreen, privacy: .public)")
     }
 
     private func panelCurrentScreen(panel: NSPanel) -> NSScreen {
@@ -798,7 +831,6 @@ final class PanelCoordinator: NSObject {
 
     private func setupHoverDiagnostics() {
         if Self.hoverVerboseLogging { logScreenMap() }
-        guard NSScreen.screens.count > 1 else { return }
         startHoverPollTimer()
     }
 
@@ -814,6 +846,32 @@ final class PanelCoordinator: NSObject {
         hoverPollTimer?.invalidate()
         hoverPollTimer = nil
         cancelHoverSwitch()
+        cancelEdgeWake()
+    }
+
+    private func installEdgeHiddenMouseMonitorIfNeeded() {
+        guard edgeHiddenMouseMonitor == nil,
+              EdgeAutoHideRuntimeRules.canArmWake(state: visibilityState, delay: settingsStore.edgeAutoHideDelay) else { return }
+        edgeHiddenMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.pollMousePosition()
+            }
+        }
+    }
+
+    private func removeEdgeHiddenMouseMonitor() {
+        guard let monitor = edgeHiddenMouseMonitor else { return }
+        NSEvent.removeMonitor(monitor)
+        edgeHiddenMouseMonitor = nil
+    }
+
+    private func syncEdgeHiddenMouseMonitor() {
+        if !panelsAreVisible,
+           EdgeAutoHideRuntimeRules.canArmWake(state: visibilityState, delay: settingsStore.edgeAutoHideDelay) {
+            installEdgeHiddenMouseMonitorIfNeeded()
+        } else {
+            removeEdgeHiddenMouseMonitor()
+        }
     }
 
     private func logScreenMap() {
@@ -845,6 +903,9 @@ final class PanelCoordinator: NSObject {
             inHotZone = false
         }
 
+        handleBottomEdgeProbe(screen: curScreen, inHotZone: inHotZone)
+        updateEdgeIdleTimerFromMouse()
+
         guard curScreenIdx != hoverLastScreenIndex || inHotZone != hoverLastInHotZone else { return }
         hoverLastScreenIndex = curScreenIdx
         hoverLastInHotZone = inHotZone
@@ -863,36 +924,6 @@ final class PanelCoordinator: NSObject {
             }
         }
 
-        // Hover switch (multi-monitor): move the strip to the screen the cursor "reaches into".
-        //
-        // Arming: the cursor enters the BOTTOM hot zone of a screen other than the panel's.
-        // Dwell:  once armed for a screen, keep counting as long as the cursor stays ANYWHERE on
-        //         that screen — NOT only within the 4pt strip. Required for vertically stacked
-        //         screens: to reach an upper screen you cross UP through its bottom edge (its hot
-        //         zone == the shared edge) and immediately move off the 4pt strip, so a "must stay
-        //         in the strip" dwell could never complete from below. Cancel if the cursor leaves
-        //         the armed screen (to another screen or back to the panel's own screen).
-        if let cur = curScreen, let panel = dockPanel, cur != panelCurrentScreen(panel: panel) {
-            if hoverSwitchTargetScreen == cur {
-                // Already armed for this screen — keep the dwell alive even after leaving the strip.
-            } else if inHotZone {
-                // Newly reached this screen's bottom hot zone → arm the dwell.
-                hoverSwitchTimer?.invalidate()
-                hoverSwitchTargetScreen = cur
-                let timer = Timer(timeInterval: Self.hoverSwitchDwell, repeats: false) { [weak self] _ in
-                    Task { @MainActor [weak self] in self?.commitHoverSwitch() }
-                }
-                RunLoop.main.add(timer, forMode: .common)
-                hoverSwitchTimer = timer
-            } else {
-                // On a different screen but never touched its bottom edge (just passing through high
-                // up, e.g. crossing the middle screen on the way to the far-left one) → don't arm.
-                cancelHoverSwitch()
-            }
-            return
-        }
-        // On the panel's own screen, or off all screens → cancel any pending switch.
-        cancelHoverSwitch()
     }
 
     private func cancelHoverSwitch() {
@@ -918,6 +949,190 @@ final class PanelCoordinator: NSObject {
         let actualWidth = max(min(lastDesiredWidth, targetScreen.visibleFrame.width - 2 * Self.outerMargin), 120)
         layoutPanels(contentWidth: lastDesiredWidth, on: targetScreen, animated: false)
         hoverLogger.info("switch toScreen=\(toIdx, privacy: .public) name=\(targetScreen.localizedName, privacy: .public) actualWidth=\(actualWidth, privacy: .public) fromScreen=\(fromIdx, privacy: .public)")
+        armEdgeWakeIfNeeded(on: targetScreen, requiresHotZone: false)
+    }
+
+    private func handleBottomEdgeProbe(screen: NSScreen?, inHotZone: Bool) {
+        guard let screen, let panel = dockPanel else {
+            cancelHoverSwitch()
+            cancelEdgeWake()
+            return
+        }
+
+        let panelScreen = panelCurrentScreen(panel: panel)
+        if screen != panelScreen {
+            cancelEdgeWake()
+            if hoverSwitchTargetScreen == screen {
+                return
+            }
+            if inHotZone {
+                hoverSwitchTimer?.invalidate()
+                hoverSwitchTargetScreen = screen
+                let timer = Timer(timeInterval: Self.hoverSwitchDwell, repeats: false) { [weak self] _ in
+                    Task { @MainActor [weak self] in self?.commitHoverSwitch() }
+                }
+                RunLoop.main.add(timer, forMode: .common)
+                hoverSwitchTimer = timer
+            } else {
+                cancelHoverSwitch()
+            }
+            return
+        }
+
+        cancelHoverSwitch()
+        if inHotZone {
+            armEdgeWakeIfNeeded(on: screen)
+        } else if edgeWakeTargetScreen == screen, edgeWakeRequiresHotZone {
+            cancelEdgeWake()
+        }
+    }
+
+    private func setAutoHideInhibitor(_ inhibitor: EdgeAutoHideInhibitor, active: Bool) {
+        let before = visibilityState
+        visibilityState.setInhibitor(inhibitor, active: active)
+        if visibilityState != before { reconcilePanelVisibility() }
+    }
+
+    private func reconcilePanelVisibility() {
+        edgeIdleHideTimer?.invalidate()
+        edgeIdleHideTimer = nil
+
+        let edgeDelay = settingsStore.edgeAutoHideDelay
+        let edgeEnabled = edgeDelay != AppSettingsStore.neverHideDelay
+        visibilityState.reconcileEdgeAutoHide(isEnabled: edgeEnabled)
+
+        if edgeDelay == AppSettingsStore.neverHideDelay {
+            cancelEdgeWake()
+        } else if visibilityState.autoHideInhibitors.isEmpty, !visibilityState.hideReasons.contains(.fullscreen) {
+            if visibilityState.hideReasons.contains(.edgeAutoHide) {
+                if EdgeAutoHideRuntimeRules.canArmWake(state: visibilityState, delay: edgeDelay),
+                   let screen = screenContainingMouse(),
+                   isMouseInBottomHotZone(on: screen) {
+                    armEdgeWakeIfNeeded(on: screen)
+                }
+            } else if EdgeAutoHideRuntimeRules.canArmIdleHide(state: visibilityState, delay: edgeDelay),
+                      isMouseOutsideInteractivePanels() {
+                armEdgeIdleHideTimer()
+            }
+        } else {
+            cancelEdgeWake()
+        }
+
+        applyPanelVisibility()
+        syncEdgeHiddenMouseMonitor()
+    }
+
+    private func updateEdgeIdleTimerFromMouse() {
+        guard EdgeAutoHideRuntimeRules.canArmIdleHide(state: visibilityState, delay: settingsStore.edgeAutoHideDelay) else { return }
+
+        if isMouseOutsideInteractivePanels() {
+            if edgeIdleHideTimer == nil {
+                armEdgeIdleHideTimer()
+            }
+        } else {
+            edgeIdleHideTimer?.invalidate()
+            edgeIdleHideTimer = nil
+        }
+    }
+
+    private func armEdgeIdleHideTimer() {
+        guard let interval = EdgeAutoHideRuntimeRules.idleHideInterval(for: settingsStore.edgeAutoHideDelay) else { return }
+        let timer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.edgeIdleHideTimerFired() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        edgeIdleHideTimer = timer
+    }
+
+    private func edgeIdleHideTimerFired() {
+        edgeIdleHideTimer = nil
+        guard EdgeAutoHideRuntimeRules.canArmIdleHide(state: visibilityState, delay: settingsStore.edgeAutoHideDelay),
+              isMouseOutsideInteractivePanels() else { return }
+        visibilityState.setEdgeAutoHidden(true)
+        reconcilePanelVisibility()
+    }
+
+    private func armEdgeWakeIfNeeded(on screen: NSScreen, requiresHotZone: Bool = true) {
+        guard EdgeAutoHideRuntimeRules.canArmWake(state: visibilityState, delay: settingsStore.edgeAutoHideDelay) else { return }
+        if edgeWakeTargetScreen == screen,
+           edgeWakeTimer != nil,
+           edgeWakeRequiresHotZone == requiresHotZone { return }
+        cancelEdgeWake()
+        edgeWakeTargetScreen = screen
+        edgeWakeRequiresHotZone = requiresHotZone
+        let timer = Timer(timeInterval: settingsStore.edgeAutoHideDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.edgeWakeTimerFired() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        edgeWakeTimer = timer
+    }
+
+    private func edgeWakeTimerFired() {
+        edgeWakeTimer = nil
+        guard let screen = edgeWakeTargetScreen,
+              edgeWakeShouldStillFire(on: screen),
+              EdgeAutoHideRuntimeRules.canArmWake(state: visibilityState, delay: settingsStore.edgeAutoHideDelay) else {
+            edgeWakeTargetScreen = nil
+            edgeWakeRequiresHotZone = true
+            return
+        }
+        edgeWakeTargetScreen = nil
+        edgeWakeRequiresHotZone = true
+        if let panel = dockPanel, panelCurrentScreen(panel: panel) != screen {
+            layoutPanels(contentWidth: lastDesiredWidth, on: screen, animated: false)
+        }
+        visibilityState.setEdgeAutoHidden(false)
+        reconcilePanelVisibility()
+    }
+
+    private func cancelEdgeWake() {
+        edgeWakeTimer?.invalidate()
+        edgeWakeTimer = nil
+        edgeWakeTargetScreen = nil
+        edgeWakeRequiresHotZone = true
+    }
+
+    private func edgeWakeShouldStillFire(on screen: NSScreen) -> Bool {
+        if edgeWakeRequiresHotZone {
+            return isMouseInBottomHotZone(on: screen)
+        }
+        return screen.frame.contains(NSEvent.mouseLocation)
+    }
+
+    private func applyPanelVisibility() {
+        let shouldShow = visibilityState.isVisible
+        guard shouldShow != panelsAreVisible else { return }
+        panelsAreVisible = shouldShow
+        if shouldShow {
+            removeEdgeHiddenMouseMonitor()
+            dockPanel?.orderFrontRegardless()
+            capsulePanel?.orderFrontRegardless()
+            if drawerWantsOpen { drawerPanel?.orderFrontRegardless() }
+        } else {
+            if visibilityState.hideReasons.contains(.fullscreen) { closeDrawer() }
+            installEdgeHiddenMouseMonitorIfNeeded()
+            dockPanel?.orderOut(nil)
+            capsulePanel?.orderOut(nil)
+        }
+    }
+
+    private func screenContainingMouse() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first { $0.frame.contains(mouse) }
+    }
+
+    private func isMouseInBottomHotZone(on screen: NSScreen) -> Bool {
+        let mouse = NSEvent.mouseLocation
+        guard screen.frame.contains(mouse) else { return false }
+        return mouse.y - screen.frame.minY <= Self.hoverHotZone
+    }
+
+    private func isMouseOutsideInteractivePanels() -> Bool {
+        let mouse = NSEvent.mouseLocation
+        if let dock = dockPanel, dock.frame.contains(mouse) { return false }
+        if let capsule = capsulePanel, capsule.frame.contains(mouse) { return false }
+        if drawerWantsOpen, let drawer = drawerPanel, drawer.frame.contains(mouse) { return false }
+        return true
     }
 
     // MARK: - Frame Helpers

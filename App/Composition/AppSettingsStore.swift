@@ -1,22 +1,16 @@
 import Combine
 import Foundation
 
-enum DisplayMode: String {
-    case single
-    case multiple
-}
-
 @MainActor
 final class AppSettingsStore: ObservableObject {
     static let delayStep: Double = 0.1
-    static let finiteDelayMin: Double = 0.5
+    static let finiteDelayMin: Double = 0.1
     static let finiteDelayMax: Double = 3.0
     static let neverHideDelay: Double = -1.0
     static let neverWakeDelay: Double = 999.0
-    static let sliderIndexMax = 27
+    static let sliderIndexMax = 31
 
     @Published private(set) var launchAtLogin: Bool
-    @Published private(set) var displayMode: DisplayMode
     @Published private(set) var nativeDockAutoHideDelay: Double
     @Published private(set) var edgeAutoHideDelay: Double
 
@@ -39,13 +33,11 @@ final class AppSettingsStore: ObservableObject {
         )
         defaults.register(defaults: [
             Keys.launchAtLogin: false,
-            Keys.displayMode: DisplayMode.multiple.rawValue,
             Keys.nativeDockAutoHideDelay: 1.0,
-            Keys.edgeAutoHideDelay: 0.5,
+            Keys.edgeAutoHideDelay: 0.1,
         ])
 
         launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
-        displayMode = DisplayMode(rawValue: defaults.string(forKey: Keys.displayMode) ?? "") ?? .multiple
         nativeDockAutoHideDelay = Self.snapDelay(defaults.double(forKey: Keys.nativeDockAutoHideDelay))
         edgeAutoHideDelay = Self.snapDelay(defaults.double(forKey: Keys.edgeAutoHideDelay))
     }
@@ -54,12 +46,6 @@ final class AppSettingsStore: ObservableObject {
         guard launchAtLogin != value else { return }
         launchAtLogin = value
         defaults.set(value, forKey: Keys.launchAtLogin)
-    }
-
-    func setDisplayMode(_ value: DisplayMode) {
-        guard displayMode != value else { return }
-        displayMode = value
-        defaults.set(value.rawValue, forKey: Keys.displayMode)
     }
 
     func setNativeDockAutoHideDelay(_ value: Double) {
@@ -114,7 +100,6 @@ final class AppSettingsStore: ObservableObject {
 
 private enum Keys {
     static let launchAtLogin = "com.tungsten.edge.launchAtLogin"
-    static let displayMode = "com.tungsten.edge.displayMode"
     static let nativeDockAutoHideEnabled = "com.tungsten.edge.autoHide.nativeDock.enabled"
     static let nativeDockAutoHideDelay = "com.tungsten.edge.autoHide.nativeDock.delay"
     static let edgeAutoHideEnabled = "com.tungsten.edge.autoHide.edge.enabled"

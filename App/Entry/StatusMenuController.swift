@@ -3,6 +3,8 @@ import AppKit
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
     private let store: AppSettingsStore
+    private let launchAtLoginService: LaunchAtLoginServicing
+    private let nativeDockPreferencesService: NativeDockPreferencesServicing
     private let onShowDebugConsole: () -> Void
     private let onExportDebugSnapshot: () -> Void
     private let onQuit: () -> Void
@@ -10,21 +12,24 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
     private let launchAtLoginItem = NSMenuItem(title: "登录时启动", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
-    private let singleDisplayItem = NSMenuItem(title: "单屏显示", action: #selector(selectSingleDisplay), keyEquivalent: "")
-    private let multipleDisplayItem = NSMenuItem(title: "多屏显示", action: #selector(selectMultipleDisplay), keyEquivalent: "")
+    private let openLoginItemsSettingsItem = NSMenuItem(title: "打开登录项设置…", action: #selector(openLoginItemsSettings), keyEquivalent: "")
     private let nativeDockSliderView: PreferenceSliderMenuItemView
     private let edgeSliderView: PreferenceSliderMenuItemView
 
     init(store: AppSettingsStore,
+         launchAtLoginService: LaunchAtLoginServicing,
+         nativeDockPreferencesService: NativeDockPreferencesServicing,
          onShowDebugConsole: @escaping () -> Void,
          onExportDebugSnapshot: @escaping () -> Void,
          onQuit: @escaping () -> Void) {
         self.store = store
+        self.launchAtLoginService = launchAtLoginService
+        self.nativeDockPreferencesService = nativeDockPreferencesService
         self.onShowDebugConsole = onShowDebugConsole
         self.onExportDebugSnapshot = onExportDebugSnapshot
         self.onQuit = onQuit
-        nativeDockSliderView = PreferenceSliderMenuItemView(title: "自动隐藏系统 dock 栏")
-        edgeSliderView = PreferenceSliderMenuItemView(title: "自动隐藏 Tungsten Edge 钨极")
+        nativeDockSliderView = PreferenceSliderMenuItemView(title: "唤醒系统 dock栏", titleVerticalOffset: -2)
+        edgeSliderView = PreferenceSliderMenuItemView(title: "唤醒 Tungsten Edge 钨极")
         super.init()
         configureStatusItem()
         configureMenu()
@@ -43,20 +48,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         launchAtLoginItem.target = self
         menu.addItem(launchAtLoginItem)
-        menu.addItem(.separator())
-
-        let displayMenu = NSMenu()
-        singleDisplayItem.target = self
-        multipleDisplayItem.target = self
-        displayMenu.addItem(singleDisplayItem)
-        displayMenu.addItem(multipleDisplayItem)
-        let displayItem = NSMenuItem(title: "多显示器策略", action: nil, keyEquivalent: "")
-        displayItem.submenu = displayMenu
-        menu.addItem(displayItem)
+        openLoginItemsSettingsItem.target = self
+        menu.addItem(openLoginItemsSettingsItem)
         menu.addItem(.separator())
 
         nativeDockSliderView.onDelayChange = { [weak store] delay in
             store?.setNativeDockAutoHideDelay(delay)
+        }
+        nativeDockSliderView.onDelayCommit = { [weak self] _ in
+            self?.scheduleNativeDockPreferencesConfirmation()
         }
         let nativeDockItem = NSMenuItem()
         nativeDockItem.view = nativeDockSliderView
@@ -96,24 +96,59 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private func refreshCheckmarks() {
-        launchAtLoginItem.state = store.launchAtLogin ? .on : .off
-        singleDisplayItem.state = store.displayMode == .single ? .on : .off
-        multipleDisplayItem.state = store.displayMode == .multiple ? .on : .off
+        refreshLaunchAtLoginState()
+    }
+
+    private func refreshLaunchAtLoginState() {
+        let presentation = LaunchAtLoginMenuPresentation(state: launchAtLoginService.state)
+        launchAtLoginItem.title = presentation.title
+        launchAtLoginItem.state = presentation.isChecked ? .on : .off
+        launchAtLoginItem.isEnabled = presentation.isEnabled
+        openLoginItemsSettingsItem.isHidden = !presentation.showsSettingsItem
     }
 
     @objc private func toggleLaunchAtLogin() {
-        store.setLaunchAtLogin(!store.launchAtLogin)
+        guard let enable = LaunchAtLoginMenuModel.requestedEnabledValue(afterSelecting: launchAtLoginService.state) else { return }
+        do {
+            try launchAtLoginService.setEnabled(enable)
+            store.setLaunchAtLogin(enable)
+        } catch {
+            presentError(title: "登录时启动设置失败", message: error.localizedDescription)
+        }
         refreshCheckmarks()
     }
 
-    @objc private func selectSingleDisplay() {
-        store.setDisplayMode(.single)
-        refreshCheckmarks()
+    @objc private func openLoginItemsSettings() {
+        launchAtLoginService.openSystemSettings()
     }
 
-    @objc private func selectMultipleDisplay() {
-        store.setDisplayMode(.multiple)
-        refreshCheckmarks()
+    private func scheduleNativeDockPreferencesConfirmation() {
+        menu.cancelTrackingWithoutAnimation()
+        DispatchQueue.main.async { [weak self] in
+            self?.confirmAndApplyNativeDockPreferences()
+        }
+    }
+
+    private func confirmAndApplyNativeDockPreferences() {
+        guard nativeDockPreferencesService.isAvailable else {
+            presentError(title: "系统 Dock 设置失败", message: NativeDockPreferencesError.sandboxed.localizedDescription)
+            return
+        }
+
+        do {
+            try nativeDockPreferencesService.apply(delay: store.nativeDockAutoHideDelay)
+        } catch {
+            presentError(title: "系统 Dock 设置失败", message: error.localizedDescription)
+        }
+    }
+
+    private func presentError(title: String, message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: "好")
+        alert.runModal()
     }
 
     @objc private func showDebugConsole() { onShowDebugConsole() }
@@ -124,9 +159,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 @MainActor
 final class PreferenceSliderMenuItemView: NSView {
     var onDelayChange: ((Double) -> Void)?
+    var onDelayCommit: ((Double) -> Void)?
 
     private let title: String
+    private let titleVerticalOffset: CGFloat
     private var delay = 0.0
+    private var commitTracker = PreferenceSliderCommitTracker()
     private var displayString = "0.0s"
     private let leftEndpointDot = EndpointDotView()
     private let rightEndpointDot = EndpointDotView()
@@ -134,9 +172,10 @@ final class PreferenceSliderMenuItemView: NSView {
     private let delayLabel = NSTextField(labelWithString: "")
     private let slider = MenuTrackingSlider()
 
-    init(title: String) {
+    init(title: String, titleVerticalOffset: CGFloat = 0) {
         self.title = title
-        super.init(frame: NSRect(x: 0, y: 0, width: 300, height: 72))
+        self.titleVerticalOffset = titleVerticalOffset
+        super.init(frame: NSRect(x: 0, y: 0, width: 300, height: 82))
         autoresizingMask = [.width]
         configureSubviews()
         updateDisplay()
@@ -189,6 +228,13 @@ final class PreferenceSliderMenuItemView: NSView {
         slider.isContinuous = true
         slider.target = self
         slider.action = #selector(sliderChanged)
+        slider.onTrackingStarted = { [weak self] in
+            guard let self else { return }
+            self.commitTracker.begin(currentDelay: self.delay)
+        }
+        slider.onTrackingEnded = { [weak self] in
+            self?.commitDelayIfChanged()
+        }
         addSubview(slider)
 
         setAccessibilityRole(.group)
@@ -198,8 +244,8 @@ final class PreferenceSliderMenuItemView: NSView {
         super.layout()
         let marginX: CGFloat = 14
         let dotSize: CGFloat = 8
-        let titleY = bounds.height - 28
-        let labelY = bounds.height - 48
+        let titleY = bounds.height - 30 + titleVerticalOffset
+        let labelY = bounds.height - 54
         let sliderY: CGFloat = 10
         titleLabel.frame = NSRect(x: marginX, y: titleY, width: bounds.width - marginX * 2, height: 20)
 
@@ -219,6 +265,11 @@ final class PreferenceSliderMenuItemView: NSView {
         delay = AppSettingsStore.delayFromSliderIndex(index)
         updateDisplay()
         onDelayChange?(delay)
+    }
+
+    private func commitDelayIfChanged() {
+        guard let committedDelay = commitTracker.commitIfChanged(currentDelay: delay) else { return }
+        onDelayCommit?(committedDelay)
     }
 
     private func updateDisplay() {
@@ -267,10 +318,32 @@ final class EndpointDotView: NSView {
 
 final class MenuTrackingSlider: NSSlider {
     var displayString = "0.0s"
+    var onTrackingStarted: (() -> Void)?
+    var onTrackingEnded: (() -> Void)?
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    override func mouseDown(with event: NSEvent) {
+        onTrackingStarted?()
+        super.mouseDown(with: event)
+        onTrackingEnded?()
+    }
+
     override func accessibilityValue() -> Any? {
         displayString
+    }
+}
+
+struct PreferenceSliderCommitTracker {
+    private var startDelay: Double?
+
+    mutating func begin(currentDelay: Double) {
+        startDelay = currentDelay
+    }
+
+    mutating func commitIfChanged(currentDelay: Double) -> Double? {
+        defer { startDelay = nil }
+        guard let startDelay, startDelay != currentDelay else { return nil }
+        return currentDelay
     }
 }
