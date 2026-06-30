@@ -336,7 +336,10 @@ struct AccessibilityWindowActionExecutor {
         }
 
         let raised = AXUIElementPerformAction(handle.element, kAXRaiseAction as CFString) == .success
-        if runningApp?.isActive != true {
+        // Trial focus patch: target the concrete window first so standard app activation
+        // does not briefly restore a sibling/previous key window over the requested one.
+        let focusedViaSkyLight = focusWindowViaSkyLight(pid: handle.pid, element: handle.element)
+        if !focusedViaSkyLight, runningApp?.isActive != true {
             _ = runningApp?.activate(options: [.activateIgnoringOtherApps])
         }
 
@@ -348,7 +351,7 @@ struct AccessibilityWindowActionExecutor {
             )
         }
 
-        return raised || runningApp?.isActive == true
+        return focusedViaSkyLight || raised || runningApp?.isActive == true
     }
 
     func close(_ handle: WindowHandle) -> Bool {
@@ -395,6 +398,165 @@ struct AccessibilityWindowActionExecutor {
         return CFEqual(focusedWindow, handle.element)
     }
 
+    /// Finds the previous regular app to return to before minimizing the current
+    /// frontmost focused window. Only fires when this specific handle is focused,
+    /// so right-click minimizing a background sibling does not steal focus.
+    func findBackgroundActivationTarget(for handle: WindowHandle) -> pid_t? {
+        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == handle.pid else { return nil }
+
+        let appElement = AXUIElementCreateApplication(handle.pid)
+        AXUIElementSetMessagingTimeout(appElement, 0.2)
+        guard let focused = axElementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement),
+              CFEqual(focused, handle.element) else { return nil }
+
+        let ourPID = pid_t(ProcessInfo.processInfo.processIdentifier)
+        let policy = DockWindowEligibilityPolicy()
+        guard let list = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else { return nil }
+
+        for info in list {
+            guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
+            guard let ownerPID = info[kCGWindowOwnerPID as String] as? pid_t else { continue }
+            guard ownerPID != handle.pid, ownerPID != ourPID else { continue }
+
+            let app = NSRunningApplication(processIdentifier: ownerPID)
+            guard app?.activationPolicy == .regular else { continue }
+            let appName = (info[kCGWindowOwnerName as String] as? String) ?? ""
+            let rawTitle = (info[kCGWindowName as String] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let title = rawTitle.flatMap { $0.isEmpty ? nil : $0 }
+            let bounds = (info[kCGWindowBounds as String] as? [String: Any])
+                .flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) }
+            let alpha = (info[kCGWindowAlpha as String] as? NSNumber)?.doubleValue
+
+            let candidate = DockWindowEligibilityPolicy.Candidate(
+                bundleIdentifier: app?.bundleIdentifier,
+                appName: appName,
+                title: title,
+                bounds: bounds,
+                alpha: alpha,
+                activationPolicy: app?.activationPolicy ?? .prohibited,
+                executablePath: app?.executableURL?.path
+            )
+            guard policy.evaluate(candidate) == .keep else { continue }
+
+            Self.chipProbeLogger.info(
+                "postactivate-target candidate=\(app?.localizedName ?? "(unknown)", privacy: .public) pid=\(ownerPID, privacy: .public)"
+            )
+            return ownerPID
+        }
+
+        Self.chipProbeLogger.info("postactivate-target no-eligible-candidate pid=\(handle.pid, privacy: .public)")
+        return nil
+    }
+
+    // MARK: - Front process and window-targeted focus helpers
+
+    private typealias GetProcessForPIDFunc =
+        @convention(c) (pid_t, UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus
+    private typealias SetFrontProcessFunc =
+        @convention(c) (UnsafePointer<ProcessSerialNumber>, UInt32) -> OSStatus
+
+    private static let frontProcessSwitch: (get: GetProcessForPIDFunc, setFront: SetFrontProcessFunc)? = {
+        let paths = [
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices",
+            "/System/Library/Frameworks/CoreServices.framework/CoreServices"
+        ]
+        for path in paths {
+            guard let handle = dlopen(path, RTLD_LAZY) else { continue }
+            guard let get = dlsym(handle, "GetProcessForPID"),
+                  let setFront = dlsym(handle, "SetFrontProcessWithOptions") else { continue }
+            return (
+                unsafeBitCast(get, to: GetProcessForPIDFunc.self),
+                unsafeBitCast(setFront, to: SetFrontProcessFunc.self)
+            )
+        }
+        return nil
+    }()
+
+    /// Makes the previous app active before minimizing, preventing macOS from
+    /// promoting a sibling window in the minimized app. Deprecated-but-public API,
+    /// dlsym-loaded so failure degrades to the post-activate fallback.
+    func switchFrontmostWithoutReorder(toPID pid: pid_t) -> Bool {
+        guard let api = Self.frontProcessSwitch else {
+            Self.chipProbeLogger.info("switch-frontmost-noreorder unavailable (symbols missing)")
+            return false
+        }
+        var psn = ProcessSerialNumber()
+        guard api.get(pid, &psn) == noErr else {
+            Self.chipProbeLogger.info("switch-frontmost-noreorder GetProcessForPID failed pid=\(pid, privacy: .public)")
+            return false
+        }
+        let kSetFrontProcessFrontWindowOnly: UInt32 = 1
+        let result = withUnsafePointer(to: &psn) { api.setFront($0, kSetFrontProcessFrontWindowOnly) }
+        Self.chipProbeLogger.info("switch-frontmost-noreorder pid=\(pid, privacy: .public) result=\(result, privacy: .public)")
+        return result == noErr
+    }
+
+    private typealias SLPSSetFrontWindowFunc =
+        @convention(c) (UnsafePointer<ProcessSerialNumber>, UInt32, UInt32) -> Int32
+    private typealias SLPSPostEventFunc =
+        @convention(c) (UnsafePointer<ProcessSerialNumber>, UnsafePointer<UInt8>) -> Int32
+
+    private static let skyLightFocus: (slps: SLPSSetFrontWindowFunc, post: SLPSPostEventFunc)? = {
+        guard let handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY),
+              let slps = dlsym(handle, "_SLPSSetFrontProcessWithOptions"),
+              let post = dlsym(handle, "SLPSPostEventRecordTo") else { return nil }
+        return (
+            unsafeBitCast(slps, to: SLPSSetFrontWindowFunc.self),
+            unsafeBitCast(post, to: SLPSPostEventFunc.self)
+        )
+    }()
+
+    private static let skyLightFocusEnabled =
+        ProcessInfo.processInfo.environment["DOCK_SKYLIGHT_FOCUS"] != "0"
+
+    /// Best-effort windowID-targeted focus. Return false only when we cannot even
+    /// attempt the route; SkyLight return codes are not a fallback signal.
+    @discardableResult
+    func focusWindowViaSkyLight(pid: pid_t, element: AXUIElement) -> Bool {
+        guard Self.skyLightFocusEnabled else { return false }
+        guard let focus = Self.skyLightFocus,
+              let getPSN = Self.frontProcessSwitch?.get,
+              let windowID = reader.cgWindowID(for: element) else {
+            Self.chipProbeLogger.info("skylight-focus unavailable pid=\(pid, privacy: .public)")
+            return false
+        }
+        var psn = ProcessSerialNumber()
+        guard getPSN(pid, &psn) == noErr else {
+            Self.chipProbeLogger.info("skylight-focus GetProcessForPID failed pid=\(pid, privacy: .public)")
+            return false
+        }
+
+        let kCPSUserGenerated: UInt32 = 0x200
+        _ = withUnsafePointer(to: &psn) { focus.slps($0, windowID, kCPSUserGenerated) }
+
+        var firstEvent = [UInt8](repeating: 0, count: 0xf8)
+        var secondEvent = [UInt8](repeating: 0, count: 0xf8)
+        firstEvent[0x04] = 0xf8
+        firstEvent[0x08] = 0x0d
+        firstEvent[0x8a] = 0x02
+        secondEvent[0x04] = 0xf8
+        secondEvent[0x08] = 0x0d
+        secondEvent[0x8a] = 0x01
+
+        var wid = windowID
+        withUnsafeBytes(of: &wid) { bytes in
+            for index in 0..<4 {
+                firstEvent[0x3c + index] = bytes[index]
+                secondEvent[0x3c + index] = bytes[index]
+            }
+        }
+        withUnsafePointer(to: &psn) { pointer in
+            firstEvent.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
+            secondEvent.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
+        }
+        _ = AXUIElementPerformAction(element, kAXRaiseAction as CFString)
+        return true
+    }
+
     private func setMinimized(_ minimized: Bool, for handle: WindowHandle) -> Bool {
         reader.setMinimized(
             minimized,
@@ -428,6 +590,7 @@ struct AccessibilityWindowActionExecutor {
 struct PlatformActionExecutor {
     private let windowExecutor = AccessibilityWindowActionExecutor()
     private static let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
+    private static let postMinimizeActivateDelayMicroseconds: useconds_t = 50_000
 
     @discardableResult
     func execute(_ request: PlatformActionRequest, snapshot: DockSnapshot) -> Bool {
@@ -497,15 +660,32 @@ struct PlatformActionExecutor {
         case .activateWindow:
             return windowExecutor.activate(handle, requiresFocusedConfirmation: isFinderWindow)
         case .minimizeWindow:
+            let targetPID = windowExecutor.findBackgroundActivationTarget(for: handle)
+            var preSwitched = false
+            if let targetPID {
+                preSwitched = windowExecutor.switchFrontmostWithoutReorder(toPID: targetPID)
+            }
+
             let minExec = windowExecutor.minimize(handle)
-            Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
-            if minExec.success { return true }
+            if minExec.success {
+                if !preSwitched, let targetPID {
+                    usleep(Self.postMinimizeActivateDelayMicroseconds)
+                    let activated = NSRunningApplication(processIdentifier: targetPID)?
+                        .activate(options: [.activateIgnoringOtherApps]) ?? false
+                    Self.chipProbeLogger.info("postactivate-background-fallback pid=\(targetPID, privacy: .public) activated=\(activated, privacy: .public)")
+                }
+                Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
+                return true
+            }
             if justUnhid {
                 usleep(100_000)
                 if let h = windowExecutor.captureHandle(for: target, attempts: 2, retryIntervalMicroseconds: 100_000) {
-                    return windowExecutor.minimize(h).success
+                    let retryExec = windowExecutor.minimize(h)
+                    Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(retryExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(retryExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: retryExec.verifiedMinimized), privacy: .public)")
+                    return retryExec.success
                 }
             }
+            Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
             return false
         case .closeWindow:
             if windowExecutor.close(handle) { return true }
