@@ -39,7 +39,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private func configureStatusItem() {
-        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.3.offgrid.fill", accessibilityDescription: "Tungsten Edge")
+        let image = NSImage(named: "MenuBarIcon")
+            ?? NSImage(systemSymbolName: "rectangle.3.offgrid.fill", accessibilityDescription: "Tungsten Edge")
+        image?.isTemplate = true
+        image?.accessibilityDescription = "Tungsten Edge"
+        statusItem.button?.image = image
         statusItem.menu = menu
     }
 
