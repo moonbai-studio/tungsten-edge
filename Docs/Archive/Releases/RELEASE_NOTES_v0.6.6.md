@@ -1,6 +1,7 @@
 # Tungsten Edge v0.6.6 - Release preparation
 
 > Do not publish these artifacts until Developer ID signing, notarization, stapling, and Gatekeeper validation all pass.
+> This document covers the final v0.6.6 release, not the separately labeled self-signed beta.
 
 ## What changed
 
@@ -18,6 +19,7 @@ v0.6.5 and earlier public builds used ad-hoc signatures. The first upgrade to v0
 # 中文
 
 > Developer ID 签名、公证、装订票据和 Gatekeeper 验证全部通过前，不得发布本版本产物。
+> 本文描述正式 v0.6.6，不适用于单独标记的自签名 beta 试用包。
 
 ## 改了什么
 

@@ -12,8 +12,39 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(AppVersion(""))
         XCTAssertNil(AppVersion("v"))
         XCTAssertNil(AppVersion("1..2"))
-        XCTAssertNil(AppVersion("1.2-beta"))
         XCTAssertNil(AppVersion("1.2+3"))
+        XCTAssertNil(AppVersion("1.2-"))
+        XCTAssertNil(AppVersion("1.2-beta..1"))
+        XCTAssertNil(AppVersion("1.2-beta.01"))
+    }
+
+    func testVersionComparisonOrdersPrereleasesBeforeStableVersion() {
+        XCTAssertLessThan(AppVersion("0.6.6-beta.1")!, AppVersion("0.6.6-beta.2")!)
+        XCTAssertLessThan(AppVersion("0.6.6-beta.2")!, AppVersion("0.6.6-beta.10")!)
+        XCTAssertLessThan(AppVersion("0.6.6-beta.2")!, AppVersion("0.6.6-rc.1")!)
+        XCTAssertLessThan(AppVersion("0.6.6-1")!, AppVersion("0.6.6-alpha")!)
+        XCTAssertLessThan(AppVersion("0.6.6-alpha")!, AppVersion("0.6.6-alpha.1")!)
+        XCTAssertLessThan(AppVersion("v0.6.6-rc.1")!, AppVersion("0.6.6")!)
+        XCTAssertGreaterThan(AppVersion("0.6.6")!, AppVersion("0.6.6-beta.99")!)
+    }
+
+    func testStableReleaseIsOfferedToMatchingPrerelease() async throws {
+        let expectedURL = URL(string: "https://github.com/moonbai-studio/tungsten-edge/releases/tag/v0.6.6")!
+        let checker = makeChecker(
+            statusCode: 200,
+            json: #"{"tag_name":"v0.6.6","html_url":"https://github.com/moonbai-studio/tungsten-edge/releases/tag/v0.6.6"}"#
+        )
+
+        let outcome = try await checker.check(currentVersion: "0.6.6-beta.1")
+
+        XCTAssertEqual(
+            outcome,
+            .updateAvailable(
+                currentVersion: "0.6.6-beta.1",
+                latestVersion: "v0.6.6",
+                releaseURL: expectedURL
+            )
+        )
     }
 
     func testNewerReleaseUsesGitHubReleaseURL() async throws {
@@ -83,7 +114,7 @@ final class UpdateCheckerTests: XCTestCase {
         let invalidJSON = makeChecker(statusCode: 200, json: "not-json")
         let invalidTag = makeChecker(
             statusCode: 200,
-            json: #"{"tag_name":"v0.6.0-beta","html_url":"https://github.com/moonbai-studio/tungsten-edge/releases/tag/v0.6.0-beta"}"#
+            json: #"{"tag_name":"v0.6.0-beta..1","html_url":"https://github.com/moonbai-studio/tungsten-edge/releases/tag/v0.6.0-beta..1"}"#
         )
 
         await XCTAssertThrowsErrorAsync(try await invalidJSON.check(currentVersion: "0.5.0")) { error in

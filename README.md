@@ -63,7 +63,7 @@ Unlike a plain Windows-style task switcher, single-window apps stay collapsed as
 
 1. Download the latest `.dmg` from [Releases](../../releases).
 2. Open it and drag **Tungsten Edge** into your **Applications** folder.
-3. Launch Tungsten Edge from **Applications** and grant Accessibility permission when prompted. Do not run the temporary copy inside the DMG.
+3. Launch Tungsten Edge from **Applications** and grant Accessibility permission when prompted. Do not run the temporary copy inside the DMG. Self-signed beta builds also require the Gatekeeper step in their release notes.
 
 ### Option 2 — Homebrew (for technical users)
 
@@ -77,7 +77,7 @@ brew install --cask tungsten-edge
 
 ## First launch and Accessibility permission
 
-Starting with v0.6.6, public packages are signed with Developer ID and notarized by Apple. After moving the app into Applications, it opens normally without right-clicking or using Open Anyway.
+The final v0.6.6 package will be signed with Developer ID and notarized by Apple. The separately labeled `v0.6.6-beta.1` trial is self-signed and still requires Right-click → Open or Open Anyway; see its GitHub Pre-release notes.
 
 Tungsten Edge needs Accessibility permission to read and manage windows. On first launch it opens **System Settings → Privacy & Security → Accessibility**:
 

@@ -2,6 +2,30 @@ import Foundation
 
 struct AppVersion: Comparable, Equatable {
     private let components: [Int]
+    private let preRelease: [PreReleaseIdentifier]?
+
+    private enum PreReleaseIdentifier: Equatable {
+        case numeric(Int)
+        case text(String)
+
+        init?(_ rawValue: Substring) {
+            guard !rawValue.isEmpty,
+                  rawValue.utf8.allSatisfy({ byte in
+                      (48...57).contains(byte)
+                          || (65...90).contains(byte)
+                          || (97...122).contains(byte)
+                          || byte == 45
+                  }) else { return nil }
+
+            if rawValue.utf8.allSatisfy({ (48...57).contains($0) }) {
+                guard rawValue.count == 1 || rawValue.first != "0" else { return nil }
+                guard let value = Int(rawValue) else { return nil }
+                self = .numeric(value)
+            } else {
+                self = .text(String(rawValue))
+            }
+        }
+    }
 
     init?(_ rawValue: String) {
         var value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -9,7 +33,10 @@ struct AppVersion: Comparable, Equatable {
             value.removeFirst()
         }
 
-        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        let versionParts = value.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+        guard !versionParts.isEmpty, !versionParts[0].isEmpty else { return nil }
+
+        let parts = versionParts[0].split(separator: ".", omittingEmptySubsequences: false)
         guard !parts.isEmpty else { return nil }
 
         var parsed: [Int] = []
@@ -25,6 +52,20 @@ struct AppVersion: Comparable, Equatable {
             parsed.removeLast()
         }
         components = parsed
+
+        if versionParts.count == 2 {
+            let identifiers = versionParts[1].split(separator: ".", omittingEmptySubsequences: false)
+            guard !identifiers.isEmpty else { return nil }
+            var parsedIdentifiers: [PreReleaseIdentifier] = []
+            parsedIdentifiers.reserveCapacity(identifiers.count)
+            for identifier in identifiers {
+                guard let parsedIdentifier = PreReleaseIdentifier(identifier) else { return nil }
+                parsedIdentifiers.append(parsedIdentifier)
+            }
+            preRelease = parsedIdentifiers
+        } else {
+            preRelease = nil
+        }
     }
 
     static func < (lhs: AppVersion, rhs: AppVersion) -> Bool {
@@ -34,7 +75,30 @@ struct AppVersion: Comparable, Equatable {
             let right = index < rhs.components.count ? rhs.components[index] : 0
             if left != right { return left < right }
         }
-        return false
+
+        switch (lhs.preRelease, rhs.preRelease) {
+        case (nil, nil):
+            return false
+        case (nil, .some):
+            return false
+        case (.some, nil):
+            return true
+        case let (.some(left), .some(right)):
+            for index in 0..<min(left.count, right.count) {
+                if left[index] == right[index] { continue }
+                switch (left[index], right[index]) {
+                case let (.numeric(lhs), .numeric(rhs)):
+                    return lhs < rhs
+                case (.numeric, .text):
+                    return true
+                case (.text, .numeric):
+                    return false
+                case let (.text(lhs), .text(rhs)):
+                    return lhs < rhs
+                }
+            }
+            return left.count < right.count
+        }
     }
 }
 

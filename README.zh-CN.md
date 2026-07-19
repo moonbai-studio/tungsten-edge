@@ -61,7 +61,7 @@
 
 1. 从 [Releases](../../releases) 下载最新的 `.dmg`。
 2. 打开后把 **Tungsten Edge** 拖进「应用程序」文件夹。
-3. 从「应用程序」启动 Tungsten Edge，并按引导开启辅助功能权限。不要直接运行 DMG 里的临时副本。
+3. 从「应用程序」启动 Tungsten Edge，并按引导开启辅助功能权限。不要直接运行 DMG 里的临时副本；自签名 beta 还需要按对应发布说明手动通过 Gatekeeper。
 
 ### 方式二：Homebrew（技术用户）
 
@@ -75,7 +75,7 @@ brew install --cask tungsten-edge
 
 ## 首次启动与辅助功能权限
 
-从 v0.6.6 起，公开安装包使用 Developer ID 签名并经过 Apple 公证。把 App 移入「应用程序」后可正常双击启动，不再需要右键打开或「仍要打开」。
+正式 v0.6.6 将使用 Developer ID 签名并经过 Apple 公证。单独标记的 `v0.6.6-beta.1` 试用包是自签名版本，仍需右键打开或使用「仍要打开」，具体步骤见 GitHub Pre-release 说明。
 
 钨极需要辅助功能权限来读取和管理窗口。第一次运行时，应用会打开「系统设置 → 隐私与安全性 → 辅助功能」：
 
