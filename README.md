@@ -63,7 +63,7 @@ Unlike a plain Windows-style task switcher, single-window apps stay collapsed as
 
 1. Download the latest `.dmg` from [Releases](../../releases).
 2. Open it and drag **Tungsten Edge** into your **Applications** folder.
-3. **First launch needs to be allowed once** (this is an early, unsigned build, so macOS blocks it by default — it's not malware) — follow [First launch](#first-launch) below, then grant Accessibility permission.
+3. Launch Tungsten Edge from **Applications** and grant Accessibility permission when prompted. Do not run the temporary copy inside the DMG.
 
 ### Option 2 — Homebrew (for technical users)
 
@@ -73,35 +73,37 @@ brew trust moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
-> The `brew trust` step is required for any third-party tap. If the first launch is blocked by macOS, allow it as described in [First launch](#first-launch) below.
+> The `brew trust` step is required for any third-party tap.
 
-## First launch
+## First launch and Accessibility permission
 
-Because this is an early build that isn't Apple-notarized yet, macOS blocks it the first time with a message like "cannot be opened because it is from an unidentified developer". **This isn't malware — it's macOS's default block for any unsigned app.** Allow it once and double-clicking works normally afterward. Pick the method for your macOS version:
+Starting with v0.6.6, public packages are signed with Developer ID and notarized by Apple. After moving the app into Applications, it opens normally without right-clicking or using Open Anyway.
 
-### Method A — right-click to open (macOS 14 and earlier)
+Tungsten Edge needs Accessibility permission to read and manage windows. On first launch it opens **System Settings → Privacy & Security → Accessibility**:
 
-1. Open your **Applications** folder and find **Tungsten Edge**.
-2. **Right-click its icon** (or Control-click it) and choose **Open** from the menu.
-3. The dialog this time has an extra **Open** button — click it.
-4. Done. Double-click works from now on.
+On macOS 12 Monterey, the same pane is under **System Preferences → Security & Privacy → Privacy → Accessibility**.
 
-> The trick is to go through **right-click → Open**, not a plain double-click — a plain double-click only gets blocked, with no allow button.
+1. Find **Tungsten Edge** and turn on its switch.
+2. The onboarding window closes automatically and the taskbar finishes starting.
+3. If the app is running from a DMG or App Translocation path, onboarding first asks you to move it into Applications and relaunch, avoiding permission for a temporary copy.
 
-### Method B — allow it in System Settings (macOS 15 Sequoia and newer)
+### Upgrading from v0.6.5 or earlier
 
-Newer macOS removed right-click-to-open, so do this instead:
+Earlier public builds used ad-hoc signatures. After an upgrade, the old switch may still look enabled even though macOS has not granted the current build access. The first move to the Developer ID-signed v0.6.6 requires one final permission reset:
 
-1. **Double-click** Tungsten Edge once; when it's blocked, **click "Done"** to dismiss the prompt (this lets the system record the attempt).
-2. Open **System Settings → Privacy & Security** and scroll down to the **Security** section.
-3. You'll see a line saying "Tungsten Edge was blocked…" with an **"Open Anyway"** button next to it — click it.
-4. Confirm once more (you may need your login password or Touch ID). Done — double-click works from now on.
+1. Quit every Tungsten Edge copy, eject the DMG, and keep only `/Applications/Tungsten Edge.app`.
+2. Select the old Tungsten Edge entry in Accessibility settings and remove it with the minus button; toggling the old switch is not enough.
+3. Relaunch from Applications and enable the newly registered entry.
 
-### One more step after opening: grant Accessibility permission
+If permission still does not take effect, reset this app's Accessibility record and try again:
 
-Tungsten Edge needs **Accessibility** permission to read and manage your windows; it guides you through this on first run:
+```bash
+tccutil reset Accessibility com.caye.macosdockcc.v2
+```
 
-- Open **System Settings → Privacy & Security → Accessibility**, find **Tungsten Edge**, and **turn on its switch**.
+If a clean reauthorization still fails, include the actual app launch path, any duplicate copies, macOS version, Mac architecture, and recent `tccd` log lines in the bug report. Avoid posting unrelated private paths publicly.
+
+After this one-time identity migration, later releases signed by the same Developer ID retain the permission.
 
 ## Status menu
 
@@ -124,9 +126,8 @@ Use System Settings for the native Dock's own wake behavior; Tungsten Edge's sta
 
 ## Roadmap
 
-This is an early public build (v0.3). Known limitations and what's next:
+Known limitations and what's next:
 
-- **Not yet signed/notarized** → first launch needs right-click → Open (above). A signed build is planned.
 - **Chinese-only UI** → localization is on the roadmap. A Chinese version of this README is available at [README.zh-CN.md](README.zh-CN.md).
 - Feedback and issues are very welcome.
 
