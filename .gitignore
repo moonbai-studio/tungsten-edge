@@ -13,3 +13,8 @@ DemoVideo/
 .trae/
 .trae-html-share-packages/
 project-analysis/
+
+# Local build/coverage artifacts and scratch output
+default.profraw
+output/
+tmp/
