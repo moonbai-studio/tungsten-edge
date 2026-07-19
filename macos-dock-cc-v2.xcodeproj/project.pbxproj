@@ -179,6 +179,9 @@
 		A00000000000000000009810 /* CGWindowSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009800 /* CGWindowSnapshot.swift */; };
 		A00000000000000000009811 /* CGWindowSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009800 /* CGWindowSnapshot.swift */; };
 		A00000000000000000009812 /* CGWindowSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009801 /* CGWindowSnapshotTests.swift */; };
+		B06600000000000000000003 /* PermissionOnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B06600000000000000000002 /* PermissionOnboardingTests.swift */; };
+		B06600000000000000000004 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* PermissionService.swift */; };
+		B06600000000000000000005 /* PermissionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000000F1 /* PermissionOnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -313,6 +316,7 @@
 		A000000000000000000090B0 /* FullscreenClassificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenClassificationTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009C00 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		A00000000000000000009C10 /* UpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckerTests.swift; sourceTree = "<group>"; };
+		B06600000000000000000002 /* PermissionOnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionOnboardingTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-dock-cc-v2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -672,6 +676,7 @@
 		A00000000000000000000057 /* Unit */ = {
 			isa = PBXGroup;
 			children = (
+				B06600000000000000000002 /* PermissionOnboardingTests.swift */,
 				A00000000000000000000058 /* FinderP0Tests.swift */,
 				A00000000000000000000F04 /* FinderAppleEventMatcherTests.swift */,
 				A00000000000000000008040 /* AppSettingsStoreTests.swift */,
@@ -949,6 +954,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B06600000000000000000004 /* PermissionService.swift in Sources */,
+				B06600000000000000000005 /* PermissionOnboardingView.swift in Sources */,
+				B06600000000000000000003 /* PermissionOnboardingTests.swift in Sources */,
 				A0000000000000000000101F /* FinderP0Tests.swift in Sources */,
 				A00000000000000000008031 /* AppSettingsStore.swift in Sources */,
 				A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */,

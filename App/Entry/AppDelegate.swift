@@ -36,12 +36,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
     private var permissionModel: AccessibilityPermissionModel?
+    private let permissionService = PermissionService()
+    private let permissionLogger = Logger(
+        subsystem: "com.caye.macosdockcc.v2",
+        category: "permissions"
+    )
+    private var hasStartedApp = false
     private lazy var statusMenuController = StatusMenuController(
         store: settingsStore,
         launchAtLoginService: LaunchAtLoginService(),
         nativeDockPreferencesService: NativeDockPreferencesService(),
         updateChecker: GitHubUpdateChecker(),
-        isAccessibilityTrusted: { PermissionService().hasRequiredPermissions() },
+        isAccessibilityTrusted: { [permissionService] in permissionService.hasRequiredPermissions() },
         onShowDebugConsole: { [weak self] in self?.showDebugConsole() },
         onExportDebugSnapshot: { [weak self] in self?.exportDebugSnapshot() },
         onQuit: { NSApp.terminate(nil) },
@@ -68,15 +74,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         _ = statusMenuController
 
-        if AXIsProcessTrusted() {
+        let installLocation = AppInstallLocation(bundleURL: Bundle.main.bundleURL)
+        let isTrusted = permissionService.hasRequiredPermissions()
+        logPermissionLaunch(installLocation: installLocation, isTrusted: isTrusted)
+
+        if installLocation.allowsAccessibilityPrompt, isTrusted {
             NSApp.setActivationPolicy(.accessory)
             startApp()
         } else {
             // 没有权限时任务条不会创建任何面板，保持 accessory 会让用户只能看到一个
             // 不一定明显的状态栏图标；先用普通应用策略把权限引导窗口带到前台。
             NSApp.setActivationPolicy(.regular)
-            requestAccessibilityPermission()
+            requestAccessibilityPermission(
+                installLocation: installLocation,
+                initialTrusted: isTrusted
+            )
         }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        permissionModel?.applicationDidBecomeActive()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -95,22 +112,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         edgeToggleHotKey?.stop()
+        permissionModel?.stop()
         windowLiftAvoidanceController?.stop()
         runtime.stop()
     }
 
-    private func requestAccessibilityPermission() {
-        showPermissionWindow()
-        // 系统原生提示框：把本应用注册进辅助功能列表，并在首次请求时提示用户打开设置。
-        AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-
-        let model = AccessibilityPermissionModel()
+    private func requestAccessibilityPermission(
+        installLocation: AppInstallLocation,
+        initialTrusted: Bool
+    ) {
+        let model = AccessibilityPermissionModel(
+            permissionService: permissionService,
+            installLocation: installLocation,
+            initialTrusted: initialTrusted
+        )
         model.onGranted = { [weak self] in self?.handlePermissionGranted() }
+        model.onTrustStatusChanged = { [weak self] isTrusted in
+            self?.permissionLogger.info(
+                "accessibility trust changed trusted=\(isTrusted, privacy: .public)"
+            )
+        }
         permissionModel = model
+        showPermissionWindow(model: model)
         model.startPolling()
+        // 临时挂载或 App Translocation 分支由 model 拒绝，不会向 TCC 注册该副本。
+        model.requestSystemPromptIfNeeded()
     }
 
     private func handlePermissionGranted() {
+        guard !hasStartedApp else { return }
         permissionModel?.stop()
         permissionModel = nil
         permissionWindow?.orderOut(nil)
@@ -120,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startApp()
     }
 
-    private func showPermissionWindow() {
+    private func showPermissionWindow(model: AccessibilityPermissionModel) {
         if let permissionWindow {
             permissionWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -128,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 250),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 300),
             styleMask: [.titled, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -136,13 +166,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Tungsten Edge 钨极"
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: PermissionOnboardingView(
+            model: model,
             onOpenSettings: { [weak self] in self?.openAccessibilitySettings() },
+            onOpenApplications: { [weak self] in self?.openApplicationsFolder() },
             onQuit: { NSApp.terminate(nil) }
         ))
         window.center()
+        permissionWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        permissionWindow = window
     }
 
     private func openAccessibilitySettings() {
@@ -150,7 +182,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(url)
     }
 
+    private func openApplicationsFolder() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications", isDirectory: true))
+    }
+
+    private func logPermissionLaunch(
+        installLocation: AppInstallLocation,
+        isTrusted: Bool
+    ) {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let build = info?["CFBundleVersion"] as? String ?? "unknown"
+        permissionLogger.info(
+            "permission launch version=\(version, privacy: .public) build=\(build, privacy: .public) location=\(installLocation.rawValue, privacy: .public) trusted=\(isTrusted, privacy: .public) bundlePath=\(Bundle.main.bundleURL.path, privacy: .private(mask: .hash))"
+        )
+    }
+
     private func startApp() {
+        guard !hasStartedApp else { return }
+        hasStartedApp = true
         appMembershipController.reconcileInvalidMemberships()
         runningApplicationStore.start()
         runtime.start()
