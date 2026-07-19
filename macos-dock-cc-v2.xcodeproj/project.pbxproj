@@ -47,6 +47,9 @@
 		A00000000000000000009401 /* LauncherMenuPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009400 /* LauncherMenuPlan.swift */; };
 		A00000000000000000009402 /* LauncherMenuPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009400 /* LauncherMenuPlan.swift */; };
 		A00000000000000000009411 /* LauncherMenuPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009410 /* LauncherMenuPlanTests.swift */; };
+		A0000000000000000000FA01 /* LauncherChipVisualPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FA00 /* LauncherChipVisualPlan.swift */; };
+		A0000000000000000000FA02 /* LauncherChipVisualPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FA00 /* LauncherChipVisualPlan.swift */; };
+		A0000000000000000000FA11 /* LauncherChipVisualPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FA10 /* LauncherChipVisualPlanTests.swift */; };
 		A00000000000000000009591 /* AppMembershipMenuPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */; };
 		A00000000000000000009581 /* AppMembershipMenuPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009580 /* AppMembershipMenuPlan.swift */; };
 		A00000000000000000009582 /* AppMembershipMenuPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009580 /* AppMembershipMenuPlan.swift */; };
@@ -300,8 +303,10 @@
 		A00000000000000000009920 /* FolderDropPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDropPlanTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009930 /* FileMoverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMoverTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009400 /* LauncherMenuPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherMenuPlan.swift; sourceTree = "<group>"; };
+		A0000000000000000000FA00 /* LauncherChipVisualPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChipVisualPlan.swift; sourceTree = "<group>"; };
 		A00000000000000000009580 /* AppMembershipMenuPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMembershipMenuPlan.swift; sourceTree = "<group>"; };
 		A00000000000000000009410 /* LauncherMenuPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherMenuPlanTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000FA10 /* LauncherChipVisualPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherChipVisualPlanTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMembershipMenuPlanTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009310 /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
 		A00000000000000000009500 /* KeptAppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeptAppStore.swift; sourceTree = "<group>"; };
@@ -483,6 +488,7 @@
 				A00000000000000000009300 /* StripDropRouting.swift */,
 				A00000000000000000009900 /* FolderDropPlan.swift */,
 				A00000000000000000009400 /* LauncherMenuPlan.swift */,
+				A0000000000000000000FA00 /* LauncherChipVisualPlan.swift */,
 				A00000000000000000009580 /* AppMembershipMenuPlan.swift */,
 				A00000000000000000009700 /* DragConversionPlan.swift */,
 				A00000000000000000009A00 /* WindowLiftAvoidance.swift */,
@@ -703,6 +709,7 @@
 				A00000000000000000009920 /* FolderDropPlanTests.swift */,
 				A00000000000000000009930 /* FileMoverTests.swift */,
 				A00000000000000000009410 /* LauncherMenuPlanTests.swift */,
+				A0000000000000000000FA10 /* LauncherChipVisualPlanTests.swift */,
 				A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */,
 				A00000000000000000009350 /* ShelfLogicTests.swift */,
 				A00000000000000000009370 /* FolderChipDropZoneTests.swift */,
@@ -883,6 +890,7 @@
 					A00000000000000000009901 /* FolderDropPlan.swift in Sources */,
 					A00000000000000000009911 /* FileMover.swift in Sources */,
 					A00000000000000000009401 /* LauncherMenuPlan.swift in Sources */,
+					A0000000000000000000FA01 /* LauncherChipVisualPlan.swift in Sources */,
 					A00000000000000000009581 /* AppMembershipMenuPlan.swift in Sources */,
 					A00000000000000000009701 /* DragConversionPlan.swift in Sources */,
 					A00000000000000000009361 /* FolderChipDropZone.swift in Sources */,
@@ -996,6 +1004,7 @@
 				A00000000000000000009902 /* FolderDropPlan.swift in Sources */,
 				A00000000000000000009912 /* FileMover.swift in Sources */,
 				A00000000000000000009402 /* LauncherMenuPlan.swift in Sources */,
+				A0000000000000000000FA02 /* LauncherChipVisualPlan.swift in Sources */,
 				A00000000000000000009582 /* AppMembershipMenuPlan.swift in Sources */,
 				A00000000000000000009362 /* FolderChipDropZone.swift in Sources */,
 				A00000000000000000009312 /* ShelfStore.swift in Sources */,
@@ -1003,6 +1012,7 @@
 				A00000000000000000009921 /* FolderDropPlanTests.swift in Sources */,
 				A00000000000000000009931 /* FileMoverTests.swift in Sources */,
 				A00000000000000000009411 /* LauncherMenuPlanTests.swift in Sources */,
+				A0000000000000000000FA11 /* LauncherChipVisualPlanTests.swift in Sources */,
 				A00000000000000000009591 /* AppMembershipMenuPlanTests.swift in Sources */,
 				A00000000000000000009351 /* ShelfLogicTests.swift in Sources */,
 				A00000000000000000009371 /* FolderChipDropZoneTests.swift in Sources */,

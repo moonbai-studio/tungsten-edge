@@ -13,14 +13,14 @@ final class LauncherMenuPlanTests: XCTestCase {
         XCTAssertEqual(kinds, [.recentDocuments, .show, .quit])
     }
 
-    func testNotRunningNoMembershipIsEmpty() {
+    func testNotRunningNoMembershipShowsOpenOnly() {
         let kinds = LauncherMenuPlan.itemKinds(isRunning: false, isHidden: false, hasMembership: false)
-        XCTAssertTrue(kinds.isEmpty)
+        XCTAssertEqual(kinds, [.open])
     }
 
-    func testNotRunningWithMembershipOnlyShowsMembership() {
+    func testNotRunningWithMembershipShowsOpenRecentAndMembership() {
         let kinds = LauncherMenuPlan.itemKinds(isRunning: false, isHidden: false, hasMembership: true)
-        XCTAssertEqual(kinds, [.recentDocuments, .membership])
+        XCTAssertEqual(kinds, [.open, .recentDocuments, .membership])
     }
 
     func testRunningWithMembershipShowsAll() {

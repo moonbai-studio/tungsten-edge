@@ -874,7 +874,7 @@ struct DockStripView: View {
                                  isRunning: running,
                                  isHidden: running && isHiddenInSnapshot(bundleID: bid),
                                  scale: 1.0,
-                                 dimsWhenInactive: false,
+                                 dimsWhenHidden: false,
                                  membershipItems: LauncherMembershipItem.items(
                                     surface: .strip,
                                     bundleID: bid,

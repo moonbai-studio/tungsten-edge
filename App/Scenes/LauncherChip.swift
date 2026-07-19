@@ -59,9 +59,10 @@ struct LauncherChip: View {
     let isRunning: Bool   // supplied by the displayed zone's runtime/process projection
     let isHidden: Bool    // supplied by the displayed zone's runtime/process projection
     var scale: CGFloat = 0.7
-    /// Drawer chips dim by run/hidden state; pinned messaging chips on the strip
-    /// stay full-opacity (product decision: "always reachable", not degraded).
-    var dimsWhenInactive: Bool = true
+    /// 只控制「运行但隐藏」要不要降级变暗（抽屉 / 普通 kept 传 true → 0.45；消息区传 false → 保持全亮）。
+    /// **未运行恒定灰显（0.35）与本标志无关**——消息区退出态因此也会变灰，与所有退出应用统一
+    /// （owner 2026-07-19，反转了旧的「消息图标常亮、随时可点」决策）。决策见 `LauncherChipVisualPlan`。
+    var dimsWhenHidden: Bool = true
     /// 成员 / 管理菜单项（右键菜单末尾），如「在程序坞中保留」「取消标记消息应用」。
     /// 空数组 = 无成员项。
     var membershipItems: [LauncherMembershipItem] = []
@@ -100,7 +101,10 @@ struct LauncherChip: View {
 
     var body: some View {
         let iconSize: CGFloat = isHovering ? 24 * scale : 36 * scale
-        let iconOpacity: Double = dimsWhenInactive ? (!isRunning ? 0.35 : (isHidden ? 0.45 : 1.0)) : 1.0
+        let visual = LauncherChipVisualPlan.visual(isRunning: isRunning,
+                                                   isHidden: isHidden,
+                                                   dimsWhenHidden: dimsWhenHidden)
+        let iconOpacity: Double = visual.opacity
         return VStack(spacing: 2) {
             Spacer(minLength: 0)
             Image(nsImage: AppIconResolver.icon(for: bundleID))
@@ -124,7 +128,7 @@ struct LauncherChip: View {
         }
         .frame(width: 44 * scale, height: 52 * scale)
         .overlay(alignment: .bottom) {
-            if isRunning {
+            if visual.showsRunningDot {
                 Circle()
                     .fill(.white.opacity(0.85))
                     .frame(width: 4, height: 4)
@@ -157,9 +161,12 @@ struct LauncherChip: View {
                                                hasMembership: !membershipItems.isEmpty)
         // 仅在真要执行 显示/隐藏/退出 时才取 app 对象；取不到就跳过该项（快照短暂陈旧的兜底）。
         let runningApps = Self.regularRunningApplications(bundleID: bundleID)
-        var didAppendAppActions = false
         for kind in kinds {
             switch kind {
+            case .open:
+                // 右键「打开」：复用启动路径（弹跳 / 窗口出现门控 / 8s 兜底 / 防重复启动都在 launch()），
+                // 但不触发 onPrimaryAction——否则抽屉图标右键打开会顺手关掉抽屉。
+                menu.addItem(ClosureMenuItem("打开") { launch(firePrimaryAction: false) })
             case .recentDocuments:
                 AppMenuBuilder.appendRecentDocuments(to: menu, bundleID: bundleID)
             case .show:
@@ -168,14 +175,12 @@ struct LauncherChip: View {
                         for app in runningApps { _ = app.unhide() }
                         runningApps.first?.activate(options: .activateIgnoringOtherApps)
                     })
-                    didAppendAppActions = true
                 }
             case .hide:
                 if !runningApps.isEmpty {
                     menu.addItem(ClosureMenuItem("隐藏") {
                         for app in runningApps { _ = app.hide() }
                     })
-                    didAppendAppActions = true
                 }
             case .quit:
                 if !runningApps.isEmpty {
@@ -186,12 +191,13 @@ struct LauncherChip: View {
                     ) {
                         for app in runningApps { _ = app.terminate() }
                     }
-                    didAppendAppActions = true
                 }
             case .membership:
-                // 分隔线按**实际渲染态**判断：真加过 app 动作项且菜单非空才补，避免 isRunning 为真但
-                // NSWorkspace 竞态取不到 app、动作被跳过时多出一条空分隔线。
-                if didAppendAppActions && !menu.items.isEmpty { menu.addItem(.separator()) }
+                // 成员区前只在「菜单非空且末项不是分隔线」时补线：既给 打开/最近文件 与成员项之间补上
+                // 分隔线，又避免最近文件区已自带尾部分隔线时出现双线（也兜住运行态动作被竞态跳过的情况）。
+                if !menu.items.isEmpty, menu.items.last?.isSeparatorItem == false {
+                    menu.addItem(.separator())
+                }
                 for item in membershipItems {
                     menu.addItem(AppMenuBuilder.membershipItem(item))
                 }
@@ -214,8 +220,7 @@ struct LauncherChip: View {
                 onPrimaryAction?()
             }
         } else {
-            guard !isLaunching else { return }
-            launch()   // onPrimaryAction fired inside launch() after URL guard
+            launch()   // onPrimaryAction fired inside launch() after URL guard；防重复启动也在 launch()
         }
     }
 
@@ -235,7 +240,11 @@ struct LauncherChip: View {
         isLaunching = false
     }
 
-    private func launch() {
+    /// - Parameter firePrimaryAction: 左键点击传 true（保持原行为：抽屉图标启动后关抽屉）；
+    ///   右键「打开」传 false，只弹跳启动、不关抽屉。防重复启动的 `!isLaunching` 门控集中在此，
+    ///   左键 `handleTap` 与右键「打开」共用同一路径，不另写启动逻辑。
+    private func launch(firePrimaryAction: Bool = true) {
+        guard !isLaunching else { return }
         Self.logger.info("launch() 入口，bundleID=\(bundleID, privacy: .public)")
         guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
             Self.logger.warning("launch()：找不到 app URL，bundleID=\(bundleID, privacy: .public)")
@@ -245,7 +254,7 @@ struct LauncherChip: View {
         isLaunching = true
         let usesExternalLaunchGate = launchReady != nil
         onLaunch()
-        onPrimaryAction?()
+        if firePrimaryAction { onPrimaryAction?() }
 
         // 8s timeout backstop（对 menubar-only app 无窗口回调的情况兜底）
         Task { @MainActor in

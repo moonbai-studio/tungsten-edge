@@ -8,6 +8,8 @@ import Foundation
 /// 但它按「未运行」显示，菜单也必须按未运行处理——否则会冒出与外观矛盾的「隐藏 / 退出」。
 
 enum LauncherMenuItemKind: Equatable {
+    /// 「打开」——仅未运行时出现，严格排在最近文件与成员项之前。运行态用 显示/隐藏/退出 代替。
+    case open
     case recentDocuments
     case show
     case hide
@@ -25,6 +27,7 @@ enum LauncherMenuPlan {
                           isHidden: Bool,
                           hasMembership: Bool) -> [LauncherMenuItemKind] {
         var kinds: [LauncherMenuItemKind] = []
+        if !isRunning { kinds.append(.open) }
         if isRunning || hasMembership { kinds.append(.recentDocuments) }
         if isRunning {
             kinds.append(isHidden ? .show : .hide)
