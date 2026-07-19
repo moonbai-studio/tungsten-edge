@@ -1,5 +1,14 @@
 # Known Platform Quirks
 
+## Accessibility TCC 身份与发布签名（2026-07-19）
+
+- macOS 的辅助功能开关绑定的是应用代码身份，不只看显示名称或 bundle ID。ad-hoc 签名的 designated requirement 会绑定当前二进制的 `cdhash`；每次重新构建都可能成为一个新身份。
+- v0.6.5 及更早公开包曾在 `Scripts/package_release.sh` 中移除原签名并重新 ad-hoc 签名。覆盖升级后，系统设置可能保留一个仍显示开启的旧条目，但当前进程的 `AXIsProcessTrusted()` 仍返回 `false`。
+- 从旧 ad-hoc 包迁移到首个 Developer ID 包时需要删除旧辅助功能条目并重新授权一次。之后必须保持 bundle ID、Team ID 和 Developer ID 身份稳定，跨版本验收要验证授权不会再次丢失。
+- 公开发布脚本必须 fail closed：缺少 Developer ID 或 notarization 凭据时不得生成可发布的 ZIP/DMG，也不得回退到 ad-hoc 或本机自签名。
+- 不要从 DMG 或 App Translocation 临时路径请求辅助功能权限。应先移入 `/Applications` 再注册，避免 TCC 记录指向临时副本。
+- Gatekeeper 放行、公证状态与 Accessibility 授权是两套独立机制；清除 quarantine 不能修复旧 TCC 身份。
+
 - `CGWindowID` 在最小化后会从默认窗口列表里消失。
 - Accessibility 通知在某些应用中不可靠，尤其微信、飞书。
 - Finder 进程长期存在，不等价于“有 Finder 窗口”。
