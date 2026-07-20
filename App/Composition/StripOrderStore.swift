@@ -59,12 +59,45 @@ final class StripOrderStore: ObservableObject {
     /// 显示顺序 = 记住的顺序与当前活着的 chip id 对账后的结果（不改自身状态，可在 body 里读）。
     /// `appKeyOf`（chip id → 所属 app 键）让新窗口插到同 app 同伴旁，而非任务条最右。
     /// 粘性 appKey 在此处非破坏合并：传入的优先，记忆的兜底。
+    ///
+    /// **纯读，绝不写 `absentSince`**（body 求值期禁副作用）：本帧缺席 anchor 由 `absentRankAnchors`
+    /// 从 `liveOrder` + 只读 `absentSince` + 当前时间现算，与 `sync` 共用同一套计算。渲染发生在
+    /// `sync` 打戳之前，此刻刚缺席的旧条目 `absentSince` 还是 nil，`absentRankAnchors` 把它按 grace
+    /// 内 anchor 参与定位——否则退出/重开的新 `app-*`/`tabgrp-*` 首帧尾插、被 spring 拉回 = 影子滑动。
+    /// anchor 只用于把新 id 定位到同 app 同伴旁，算完即从可见输出滤除（用户只看到真实 current）。
     func reconciled(current: [String], appKeyOf: [String: String] = [:],
                     headPreferred: Set<String> = []) -> [String] {
         var merged = stickyAppKeys
         merged.merge(appKeyOf) { _, new in new }
-        return StripOrdering.reconcile(remembered: liveOrder, current: current, appKeyOf: merged,
-                                       headPreferredKeys: headPreferred)
+        let currentSet = Set(current)
+        let anchors = absentRankAnchors(current: currentSet, now: now())
+        let effectiveCurrent = current + anchors
+        backfillPlaceholderAppKeys(&merged, ids: effectiveCurrent)
+        let ordered = StripOrdering.reconcile(remembered: liveOrder, current: effectiveCurrent,
+                                              appKeyOf: merged, headPreferredKeys: headPreferred)
+        let anchorSet = Set(anchors)
+        return ordered.filter { !anchorSet.contains($0) }
+    }
+
+    /// 缺席 rank-anchor（`reconciled` 渲染路径与 `sync` 副作用路径**共用**）：`liveOrder` 里本帧不在
+    /// `current`、但仍应保住位置的旧条目。**全集取自 `liveOrder`，不是 `absentSince.keys`**——渲染
+    /// 首帧发生在 `sync` 打戳之前，刚缺席的条目 `absentSince` 还是 nil，必须按 elapsed=0 视作 grace
+    /// 内 anchor；已打戳且仍在 grace 内继续作为 anchor；grace 过期不再作为 anchor。**纯读**，不写 `absentSince`。
+    private func absentRankAnchors(current: Set<String>, now: Date) -> [String] {
+        liveOrder.filter { id in
+            guard !current.contains(id) else { return false }
+            guard let t = absentSince[id] else { return true }   // 刚缺席（sync 尚未打戳）→ elapsed=0
+            return now.timeIntervalSince(t) <= Self.rankRetentionGrace
+        }
+    }
+
+    /// `app-*` 占位 id 自带 bundleID；映射缺失时从 id 现补（`app-com.foo` → `com.foo`），保证首帧
+    /// 「同 app 同伴」定位不落空——kept 退出（`tabgrp-*` → `app-*`）与重开（`app-*` → `tabgrp-*`）
+    /// 首帧都靠占位与真窗口共享同一 app 键。已有映射不覆盖。
+    private func backfillPlaceholderAppKeys(_ map: inout [String: String], ids: [String]) {
+        for id in ids where id.hasPrefix("app-") && map[id] == nil {
+            map[id] = String(id.dropFirst(4))
+        }
     }
 
     /// 把记住的顺序与当前 live 集合收敛（丢掉真关闭的、新窗口插到同 app 同伴旁），保留手动排好的相对序。
@@ -79,16 +112,16 @@ final class StripOrderStore: ObservableObject {
 
         // 返场的 id：清掉缺席戳。
         for id in current { absentSince.removeValue(forKey: id) }
-        // 刚从记忆顺序里消失的 id：打上缺席戳（已在册的才记）。
+        // 刚从记忆顺序里消失的 id：打上缺席戳（已在册的才记）。**打戳只在 sync**。
         for id in liveOrder where !currentSet.contains(id) && absentSince[id] == nil {
             absentSince[id] = now
         }
         // grace 内的缺席 id 视作「仍在场」→ 保住 rank；过期的不再保留 → 交给 reconcile 丢弃。
-        let retainedAbsent = liveOrder.filter { id in
-            guard !currentSet.contains(id), let t = absentSince[id] else { return false }
-            return now.timeIntervalSince(t) <= Self.rankRetentionGrace
-        }
-        let effectiveCurrent = current + retainedAbsent
+        // 复用与 reconciled 同一套 anchor helper → pre-sync render 与 post-sync visible order 一致。
+        // 此处打戳已完成，故每个 anchor 都已有 absentSince（helper 的 nil 分支只在渲染路径生效）。
+        let anchors = absentRankAnchors(current: currentSet, now: now)
+        let effectiveCurrent = current + anchors
+        backfillPlaceholderAppKeys(&stickyAppKeys, ids: effectiveCurrent)
         var next = StripOrdering.reconcile(remembered: liveOrder, current: effectiveCurrent, appKeyOf: stickyAppKeys,
                                            headPreferredKeys: headPreferred)
         absentSince = absentSince.filter { now.timeIntervalSince($0.value) <= Self.rankRetentionGrace }

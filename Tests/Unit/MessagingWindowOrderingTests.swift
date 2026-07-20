@@ -133,4 +133,31 @@ final class MessagingWindowOrderingTests: XCTestCase {
         XCTAssertEqual(rendered, ["m1", "n1"])
         XCTAssertEqual(store.liveOrder, rendered)
     }
+
+    /// 影子滑动修复对消息区的边界：已记住位置（拖过）的消息窗口在 grace 内关闭后换**新** seat，
+    /// 首帧就继承旧 rank，不因 headPreferred 重新提头（pre-sync 与 post-sync 一致）。
+    /// 全新、无记忆的消息窗口仍走 head，由 `testStoreNewMessagingWindowLandsHead` /
+    /// `testReconciledMatchesSyncForNewMessagingWindow` 覆盖。
+    func testMessagingNewWindowWithinGraceInheritsRankNotReHead() {
+        let timeBox = TimeBox(Date())
+        let store = makeStore(timeBox: timeBox)
+        let keys = ["n1": "com.normal", "m1": "com.msg"]
+        store.sync(current: ["n1", "m1"], appKeyOf: keys, headPreferred: msg)
+        XCTAssertEqual(store.liveOrder, ["m1", "n1"])
+        // 用户把 m1 拖到 n1 右边 → 记住 [n1, m1]
+        store.reorder(draggedID: "m1", relativeTo: "n1", after: true, current: ["m1", "n1"])
+        XCTAssertEqual(store.liveOrder, ["n1", "m1"])
+        // m1 关闭（grace 内打戳）
+        timeBox.time = timeBox.time.addingTimeInterval(1)
+        store.sync(current: ["n1"], appKeyOf: ["n1": "com.normal"], headPreferred: msg)
+        XCTAssertEqual(store.liveOrder, ["n1", "m1"])
+        // grace 内换新窗口 m2：首帧 render（sync 未跑）→ 继承 m1 旧位（n1 右），不提头
+        timeBox.time = timeBox.time.addingTimeInterval(1)
+        let newKeys = ["n1": "com.normal", "m2": "com.msg"]
+        let firstFrame = store.reconciled(current: ["n1", "m2"], appKeyOf: newKeys, headPreferred: msg)
+        XCTAssertEqual(firstFrame, ["n1", "m2"])   // 不是 ["m2", "n1"]
+        store.sync(current: ["n1", "m2"], appKeyOf: newKeys, headPreferred: msg)
+        let postSync = store.reconciled(current: ["n1", "m2"], appKeyOf: newKeys, headPreferred: msg)
+        XCTAssertEqual(firstFrame, postSync)
+    }
 }
