@@ -532,7 +532,8 @@ struct AccessibilityWindowActionExecutor {
 
     /// Shared SkyLight focus core: front-process switch + the two make-key events for a
     /// known cgWindowID. Pure event posts — no AX round-trips, so it never blocks on a
-    /// napping target app. Byte layout is load-bearing (see AGENTS.md); do not vary it.
+    /// napping target app. Record layout lives in SkyLightMakeKeyEventBuilder
+    /// (unit-tested, see AGENTS.md); do not vary it.
     @discardableResult
     fileprivate func postSkyLightWindowFocus(pid: pid_t, windowID: CGWindowID) -> Bool {
         guard Self.skyLightFocusEnabled else { return false }
@@ -548,27 +549,12 @@ struct AccessibilityWindowActionExecutor {
         }
 
         let kCPSUserGenerated: UInt32 = 0x200
+        let records = SkyLightMakeKeyEventBuilder.makeKeyRecords(windowID: windowID)
+
         _ = withUnsafePointer(to: &psn) { focus.slps($0, windowID, kCPSUserGenerated) }
-
-        var firstEvent = [UInt8](repeating: 0, count: 0xf8)
-        var secondEvent = [UInt8](repeating: 0, count: 0xf8)
-        firstEvent[0x04] = 0xf8
-        firstEvent[0x08] = 0x0d
-        firstEvent[0x8a] = 0x02
-        secondEvent[0x04] = 0xf8
-        secondEvent[0x08] = 0x0d
-        secondEvent[0x8a] = 0x01
-
-        var wid = windowID
-        withUnsafeBytes(of: &wid) { bytes in
-            for index in 0..<4 {
-                firstEvent[0x3c + index] = bytes[index]
-                secondEvent[0x3c + index] = bytes[index]
-            }
-        }
         withUnsafePointer(to: &psn) { pointer in
-            firstEvent.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
-            secondEvent.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
+            records.first.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
+            records.second.withUnsafeBufferPointer { _ = focus.post(pointer, $0.baseAddress!) }
         }
         return true
     }

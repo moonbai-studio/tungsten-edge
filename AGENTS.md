@@ -66,11 +66,12 @@
 
 - Minimizing the frontmost focused window A1 of multi-window app A should return focus to the previous other app B, not sibling A2.
 - Only fire that background activation path when the target is the frontmost app's focused AX window. Right-click-minimizing a non-focused sibling must not steal focus.
-- `postSkyLightWindowFocus` is the shared focus core. Its private byte layout is load-bearing; do not simplify or gate fallback on nonzero private return codes.
+- `postSkyLightWindowFocus` is the shared focus core; do not gate fallback on nonzero private return codes. The two SLPS records must be the **real make-key pair** built by `SkyLightMakeKeyEventBuilder` (unit-tested; yabai `window_manager_make_key_window` layout: `[0x04]=0xf8`, `[0x08]=0x01/0x02`, `[0x3a]=0x10`, `[0x20..<0x30]=0xff`, wid little-endian at `[0x3c..<0x40]`, no `0x8a`). Call order: `_SLPSSetFrontProcessWithOptions` → make-key record 1 → record 2 → `AXRaise`. The old `[0x08]=0x0d` + `[0x8a]` pair is yabai's `focus_window_without_raise` auxiliary switch notification, **not** make-key — posting only it leaves the process frontmost with no key window anywhere (keyboard limbo, Docs/22 §14); never reintroduce it as the make-key pair.
 - Early focus applies only to `.activateWindow`, cross-app, visible active/inactive windows, using snapshot `record.cgWindowID` before handle capture.
 - Minimized restore is restore-then-switch, never switch-early. Exclude `.minimized` from early focus; after restore, immediately call `postSkyLightWindowFocus` with the snapshot wid, then set `kAXMainAttribute=true`.
 - Action-decision paths must not use `NSWorkspace.frontmostApplication`; read `NSRunningApplication(processIdentifier:)?.isActive` fresh.
 - Keep kill switch `DOCK_SKYLIGHT_FOCUS=0`.
+- 2026-07-20 的「reinforceFocus 延迟双管补强 + `--activate-helper`」方案已实机证伪并整体移除（Docs/22 §14）；不要重新发明延迟补强或延迟激活任务——键盘落位靠正确的 make-key 事件本身。刚发过 `_SLPS` 的进程读一切焦点信号（系统级 kAXFocusedApplication、NSWorkspace、isActive、目标 focusedWindow）都可能朝目标方向假阳性，「是否落位」在本进程内不可作为判据。
 - Optimistic state predicts **status only** for show/hide style actions and clears on snapshot confirmation or timeout. Do not re-add predicted `isAppFrontmost`.
 - The chip tap pulse is view-local acknowledgment only. It must not feed planner state or any frontmost decision.
 

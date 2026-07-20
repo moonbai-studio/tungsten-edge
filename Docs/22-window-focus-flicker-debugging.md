@@ -343,3 +343,50 @@ owner 一度记得有个"只有 Chrome 闪、其它 App 冷激活不闪"的版�
 
 - App 被切成前台进程时若无 key 窗口（如目标窗口仍 order-out），AppKit 会自动把最上面的可见窗口提为 key 并**持久**抬到旧前台之上——`kCPSNoWindows` 也拦不住（那是 WindowServer 侧 flag，提拔发生在 App 侧）。
 - 对刚 unminimize 的窗口立即发 make-key（微秒级相邻），三类 App（访达/微信/Chromium 系）都正确落在该窗口上，不再错落兄弟——07-03 的「make-key 错落」仅限窗口仍 order-out 时。
+
+## 14. 点击 chip 激活后键盘焦点不落位（悬空焦点）— 观测态补强（2026-07-20，待真实点击验收）
+
+> 用户报告（v0.6.6-beta.1 自签包日常使用）：点任意窗口卡片，窗口到前台但**键盘打不进字**，再点一下窗口本身才行；所有 App、每次、一直如此。§10–§13 的全部验证都是**视觉**（z 序/闪），键盘落位从未被验证过——此 bug 很可能自 SkyLight 路径上线起就存在。
+
+### 14.1 复现与定性
+
+- 合成点击（CGEvent 点 chip）+ 外部探针采样系统级 `kAXFocusedApplication`，稳定复现：`_SLPSSetFrontProcessWithOptions` 生效（isActive 翻转、菜单栏切换），**两条 make-key 事件从 dock 进程发出永不落位** → 全系统无 key window（外部读 `<none>`），键盘输入无处可去。真实用户点击同症状（即本 bug）。
+- 同一字节序列从**终端 CLI 探针**发出：完美落位（focus_probe 两次、panel_click_probe 一次）。点击 dock 面板本身无污染（点空白处后探针 make-key 照常落位；borderless 面板不可成 key）。
+
+### 14.2 实验矩阵（全部在悬空态下）
+
+| 通道 | 发起进程 | 结果 |
+|---|---|---|
+| SLPS make-key | dock（后台/主线程都试过） | ✗ 永不落位 |
+| SLPS make-key | 终端 CLI | ✓ 落位 |
+| NSRunningApplication.activate | dock（后台/主线程） | ✗（合成点击条件下） |
+| NSRunningApplication.activate | 终端 CLI | ✓ 4 次 / ✗ 后期 2 次（状态敏感，见 14.4） |
+| CPS SetFrontProcessWithOptions | dock | ✗（返回 noErr 但键盘不落） |
+| NSApp.activate + yieldActivation 交接 | dock | ✗ |
+| /usr/bin/open -b | dock 子进程 / 终端 | ✗ 两者（reopen 对瞬态前台 App 是 no-op） |
+| kAXMain / AXFocused 写 | 外部 | ✗ 救不回悬空 |
+
+- 权限排除：dock 进程 `CGPreflightPostEventAccess`/`ListenEvent`/`AXIsProcessTrusted` 全 true。
+- 启动方式排除：`open` 启动与直接 exec（TCC 责任进程不同）**同样失败**。
+
+### 14.3 关键平台知识（新沉淀）
+
+- **SLPS 瞬态**：make-key 丢失时，`_SLPS` 造成的前台切换是幻影态——App「active」但无 key window；寿命从 ~400ms 到 >2.7s 不等（被后续 slps/AXRaise 刷新）。瞬态未沉降时，任何进程的激活请求都被当「已在前台」跳过。
+- **进程内读数谎言的方向性**：刚发过 slps 的进程读 系统级 kAXFocusedApplication / kAXFocusedUIElement / NSWorkspace.frontmostApplication / isActive / 目标 focusedWindow **全部**朝目标方向假阳性（偶尔返回真相，不可依赖）；外部进程读到真相 `<none>`。推论：「是否落位」**在本进程内不可知**；但谎言只朝目标方向 → 「读到第三方 App」必为真 → 可作让路判据。
+- **合成点击不携带真实 HID 交互凭证**：协作激活仲裁对进程内 activate 的裁决在合成/真实点击下可能不同——合成实验里的「✗」不能判真实通道死刑（uBar 等 dock 替代品全靠标准 activate 栈存活）。
+- 本机 WindowServer 状态经几十轮私有调用实验后行为漂移（同一救回序列前 4 次 ✓ 后 2 次 ✗）——此类调查要限制轮次、及早切产品方案。
+
+### 14.4 落点（本次修复）
+
+- `AccessibilitySource.swift`：`activate()` 尾部新增 `reinforceFocus(_:runningApp:)` —— SkyLight 尝试后延迟 1.2s（避开瞬态最新鲜窗口期）→ 读 `keyboardFocusPID()`：第三方持焦点 → 让路（谎言方向性判据）；否则**无条件双管补强**（健康环境全为 no-op）：① 主线程 `NSRunningApplication.activate`（赌真实点击凭证下仲裁放行）② 派生自身二进制 `--activate-helper <pid>`（CLI 形态绕过按进程类别的仲裁）→ 80ms → `kAXMain=true`（激活恢复的是 App 上一个 key 窗口，只能事后纠正键盘，§10.3/§13 同理）。
+- `MacOSDockCCV2App.swift`：`@main` 移到 `DockMainEntry` 入口 enum；`FocusActivateHelper.runIfRequested()` 在**任何 NSApplication 注册之前**处理 `--activate-helper` 分支并退出（helper 必须保持非应用进程形态）。
+- 开关：`DOCK_FOCUS_REINFORCE=0` 关补强；`DOCK_FOCUS_TRACE=1` 打印 `[focusland] cede/reinforce` 单行诊断（默认静默）。
+- **验收状态**：合成环境无法验证落位（14.3 的不可知性 + 状态漂移）；决定性验收 = 用户真实点击。若真实点击下仍需二次点击，[focusland] trace 是第一取证点。
+
+### 14.5 更正（2026-07-20 当天，推翻 14.4 的补强方案）：真根因是字节格式错误
+
+- **14.4 的 reinforceFocus 补强实机证伪**：合成验证 `VERDICT landed=false`，owner 真实点击同样失败（19 次 [focusland] reinforce + helper 均执行、无一落焦）。补强方案（1.2s 延迟、双管 activate、--activate-helper 入口）已整体移除，@main 恢复普通 SwiftUI 入口。**不要重新发明延迟补强**——延迟任务还有抢回旧焦点的风险。
+- **真根因**：`postSkyLightWindowFocus` 用的 `[0x08]=0x0d` + `[0x8a]=0x02/0x01` 事件对根本**不是 make-key**——那是 yabai `focus_window_without_raise` 里的辅助切窗通知；yabai 真正的 make-key 是随后 `window_manager_make_key_window` 发的另一对记录（v3.3.10–v7.1.25 稳定）：`[0x04]=0xf8`、`[0x08]=0x01/0x02`、`[0x3a]=0x10`、`[0x20..<0x30]=0xff`、wid 小端写 `[0x3c..<0x40]`、不写 `0x8a`。我们从上线起就只发了辅助事件、漏发了真 make-key——所以进程切了前台、窗口抬了 z 序、key window 永远没人接（§14.1 的悬空态）。上游参考：koekeishiya/yabai window_manager.c（window_manager_make_key_window）。
+- 修复落点：新增纯构造器 `SkyLightMakeKeyEventBuilder`（单元测试锁死全部字节：长度/0x04/0x08/0x3a/0xff 块/wid 字节序/0x8a=0/其余为零），`postSkyLightWindowFocus` 改用它；调用顺序保持 `_SLPS → make-key 1 → make-key 2 → AXRaise`。early focus、restore-then-switch、knownCGWindowID、Finder focused confirmation、`DOCK_SKYLIGHT_FOCUS=0` 全部保留未动。
+- 基线 A/B（改字节前，`open --env DOCK_SKYLIGHT_FOCUS=0`）：公开激活路径在**合成点击**下同样不落焦（isActive 翻转、键盘悬空）——合成点击无法验证任何进程内路径的落焦成功，最终验收只能是 owner 真实点击。
+- 为什么 §14.2 里终端探针发同样的错误字节也能落位：CLI 进程 `_SLPSSetFrontProcessWithOptions(wid)` 本身就足以完成含 key window 的完整切换（wid=0 时则悬空，见 limbo_probe），App 进程则不行——这掩盖了字节错误，误导了一整轮排查。

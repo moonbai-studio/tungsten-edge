@@ -75,3 +75,9 @@
 - **抢顶型 App（Ghostty、Chromium 系：Chrome/Dia）在自己仍是活跃 App 期间，若别的窗口被 AXRaise 盖到它上面，会在 ~+450ms 把自己的窗口浮回顶层**；良性 App（Finder/Safari/微信/飞书/PS/AI…）不会。这就是为什么"闪不闪取决于从哪个 App 切走"。
 - **对仍最小化的窗口发 SkyLight make-key 事件，App 会把键盘焦点落到它的可见兄弟窗口上**（Chrome/访达实测）。最小化恢复后必须对目标窗口 `kAXMainAttribute=true` 纠正 App 内部焦点，否则输入焦点和 AX `kAXFocusedWindow` 都停在兄弟窗口。
 - **App 被切成前台进程时若没有 key 窗口（目标窗口仍 order-out/最小化），AppKit 会自动把该 App 最上面的可见窗口提为 key 并持久抬到旧前台之上**（2026-07-05 探针，访达/微信/Dia 一致）。裸 psn 切换（不发 make-key）拦不住，`kCPSNoWindows (0x400)` 也拦不住——提拔发生在 App 侧而非 WindowServer 侧。要恢复最小化窗口且不带起兄弟：**先 unminimize、后切前台，两步微秒级相邻、中间零 AX 问询**（wid 用快照值）；对刚 unminimize 的窗口立即发 make-key 会正确落在它身上，不再错落兄弟。见 `Docs/22` §13。
+
+## SLPS make-key 事件格式（2026-07-20）
+
+- `SLPSPostEventRecordTo` 的 `[0x08]=0x0d` + `[0x8a]=0x02/0x01` 事件对**不是完整的 make-key**——它只是 yabai `focus_window_without_raise` 中的辅助切窗通知。只发它会得到「进程已前台、窗口已抬起、但全系统无 key window」的键盘悬空态（打字无处可去，系统级 kAXFocusedApplication 读不到任何 App）。
+- 真正的 make-key 记录对（yabai `window_manager_make_key_window`，v3.3.10–v7.1.25 稳定）：每条 0xf8 字节，`[0x04]=0xf8`，`[0x08]=0x01`/`0x02`，`[0x3a]=0x10`，`[0x20..<0x30]` 全 `0xff`，cgWindowID 小端写入 `[0x3c..<0x40]`，其余为零。本仓库唯一实现在 `SkyLightMakeKeyEventBuilder`（单元测试锁定）。
+- 附带教训：非应用形态的 CLI 进程仅靠 `_SLPSSetFrontProcessWithOptions(wid)` 就能完成含 key window 的切换，会掩盖 make-key 字节错误；用 CLI 探针验证此类机制时结论不能直接外推到已注册 NSApplication 的进程。

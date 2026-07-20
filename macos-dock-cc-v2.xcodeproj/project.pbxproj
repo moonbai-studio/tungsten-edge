@@ -110,6 +110,9 @@
 		A0000000000000000000100E /* LifecycleActionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* LifecycleActionPlanner.swift */; };
 		A0000000000000000000101A /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
 		A0000000000000000000100F /* AccessibilitySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000F /* AccessibilitySource.swift */; };
+		A0000000000000000000A710 /* SkyLightMakeKeyEventBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000A700 /* SkyLightMakeKeyEventBuilder.swift */; };
+		A0000000000000000000A711 /* SkyLightMakeKeyEventBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000A700 /* SkyLightMakeKeyEventBuilder.swift */; };
+		A0000000000000000000A712 /* SkyLightMakeKeyEventBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000A701 /* SkyLightMakeKeyEventBuilderTests.swift */; };
 		A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* CoreGraphicsSource.swift */; };
 		A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */; };
 		A00000000000000000001032 /* ObservationAdmissionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000062 /* ObservationAdmissionGate.swift */; };
@@ -255,6 +258,8 @@
 		A0000000000000000000000E /* LifecycleActionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleActionPlanner.swift; sourceTree = "<group>"; };
 		A00000000000000000000054 /* AXWindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXWindowReader.swift; sourceTree = "<group>"; };
 		A0000000000000000000000F /* AccessibilitySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilitySource.swift; sourceTree = "<group>"; };
+		A0000000000000000000A700 /* SkyLightMakeKeyEventBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyLightMakeKeyEventBuilder.swift; sourceTree = "<group>"; };
+		A0000000000000000000A701 /* SkyLightMakeKeyEventBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyLightMakeKeyEventBuilderTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000010 /* CoreGraphicsSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreGraphicsSource.swift; sourceTree = "<group>"; };
 		A00000000000000000000061 /* DockWindowEligibilityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockWindowEligibilityPolicy.swift; sourceTree = "<group>"; };
 		A00000000000000000000062 /* ObservationAdmissionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationAdmissionGate.swift; sourceTree = "<group>"; };
@@ -585,6 +590,7 @@
 					A00000000000000000000054 /* AXWindowReader.swift */,
 					A00000000000000000000064 /* AXWindowMatchPolicy.swift */,
 					A0000000000000000000000F /* AccessibilitySource.swift */,
+					A0000000000000000000A700 /* SkyLightMakeKeyEventBuilder.swift */,
 					A000000000000000000019B3 /* DockBadgeReader.swift */,
 				);
 			path = Accessibility;
@@ -703,6 +709,7 @@
 				A00000000000000000009540 /* AppMembershipProjectionTests.swift */,
 				A00000000000000000009550 /* AppMembershipControllerTests.swift */,
 				A00000000000000000009601 /* TabFoldDecisionTests.swift */,
+				A0000000000000000000A701 /* SkyLightMakeKeyEventBuilderTests.swift */,
 				A00000000000000000009E01 /* WindowInventoryAnomalyLogTests.swift */,
 				A00000000000000000009E02 /* AXWindowReaderResultTests.swift */,
 				A00000000000000000009A20 /* WindowLiftAvoidanceTests.swift */,
@@ -905,6 +912,7 @@
 					A0000000000000000000101A /* AXWindowReader.swift in Sources */,
 					A00000000000000000001037 /* AXWindowMatchPolicy.swift in Sources */,
 					A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
+					A0000000000000000000A710 /* SkyLightMakeKeyEventBuilder.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
 				A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */,
 				A0000000000000000000101B /* FinderWindowRules.swift in Sources */,
@@ -943,6 +951,7 @@
 					A0000000000000000000101D /* AXWindowReader.swift in Sources */,
 					A00000000000000000001038 /* AXWindowMatchPolicy.swift in Sources */,
 					A0000000000000000000100F /* AccessibilitySource.swift in Sources */,
+					A0000000000000000000A710 /* SkyLightMakeKeyEventBuilder.swift in Sources */,
 				A00000000000000000001010 /* CoreGraphicsSource.swift in Sources */,
 				A00000000000000000001030 /* DockWindowEligibilityPolicy.swift in Sources */,
 				A0000000000000000000101E /* FinderWindowRules.swift in Sources */,
@@ -1020,6 +1029,8 @@
 					A00000000000000000001105 /* FinderAppleEventMatcherTests.swift in Sources */,
 					A00000000000000000009611 /* TabFoldDecision.swift in Sources */,
 					A00000000000000000009612 /* TabFoldDecisionTests.swift in Sources */,
+					A0000000000000000000A711 /* SkyLightMakeKeyEventBuilder.swift in Sources */,
+					A0000000000000000000A712 /* SkyLightMakeKeyEventBuilderTests.swift in Sources */,
 					A00000000000000000009E11 /* WindowInventoryAnomalyLog.swift in Sources */,
 					A00000000000000000009E12 /* WindowInventoryAnomalyLogTests.swift in Sources */,
 					A00000000000000000009E13 /* AXWindowReader.swift in Sources */,
