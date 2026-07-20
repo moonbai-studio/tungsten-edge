@@ -23,6 +23,7 @@ final class AppRuntime: ObservableObject {
     private let tracker = AppTracker()
     private let intentPipeline = IntentPipeline(actionPlanning: LifecycleActionPlanner())
     private let actionExecutor = PlatformActionExecutor()
+    private let actionExecutionQueue = SerialActionExecutionQueue()
     private let permissionService = PermissionService()
     private var snapshotSubscription: AnyCancellable?
     private var feedbackTimer: Timer?
@@ -85,9 +86,9 @@ final class AppRuntime: ObservableObject {
     // MARK: - Private
 
     private func trigger(_ intent: UserIntent) {
-        // 可打断（2026-06-13）：显隐类动作不再锁 pending —— 执行本身是几十毫秒的
-        // 一次性 AX 调用，没有需要取消的并发；一致性靠乐观 overlay 驱动规划 +
-        // 真实快照最终对账。只有 close / quit（窗口会消失）保持锁到确认。
+        // 可打断（2026-06-13）：显隐类动作不再锁 pending；乐观 overlay 让下一次
+        // 点击即时规划。平台动作按提交顺序在后台串行，避免前后两次焦点写入交叉。
+        // 只有 close / quit（窗口会消失）保持锁到确认。
         switch intent.action {
         case .close, .quit:
             guard intentPipeline.canBegin(intent: intent) else { return }
@@ -100,29 +101,41 @@ final class AppRuntime: ObservableObject {
             optimisticStates: optimisticStatesByWindowID
         )
 
+        let actionID = intentPipeline.registerPending(intent: intent, request: request)
+
         // ChipProbe: log the planner's actual decision inputs at tap time (main thread, no AX).
         // freshActive = 新建实例即时读（规划用的就是它）；不打滞后的 frontmostApplication，会误导诊断。
         if case .toggle(let wid) = intent, let record = snapshot.windows[wid] {
             let runningApp = NSRunningApplication(processIdentifier: record.pid)
             let freshActive = runningApp?.isActive == true
             let optimisticStatus = optimisticStatesByWindowID[wid.rawValue]?.status.rawValue ?? "none"
-            chipProbeLogger.info("toggle-planned app=\(runningApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(record.bundleIdentifier ?? "(none)", privacy: .public) recordStatus=\(record.status.rawValue, privacy: .public) optimisticStatus=\(optimisticStatus, privacy: .public) freshActive=\(freshActive, privacy: .public) plannedAction=\(request.kind.rawValue, privacy: .public)")
+            chipProbeLogger.info("toggle-planned actionID=\(actionID.rawValue, privacy: .public) app=\(runningApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(record.bundleIdentifier ?? "(none)", privacy: .public) recordStatus=\(record.status.rawValue, privacy: .public) optimisticStatus=\(optimisticStatus, privacy: .public) freshActive=\(freshActive, privacy: .public) plannedAction=\(request.kind.rawValue, privacy: .public) forceRestore=\(request.forceRestoreBeforeFocus, privacy: .public)")
         }
 
         applyOptimisticState(for: request)
-        intentPipeline.registerPending(intent: intent, request: request)
         feedbackEntriesByWindowID = intentPipeline.feedbackState.entriesByWindowID
 
         let executor = actionExecutor
         let capturedSnapshot = snapshot
-        Task.detached { [weak self] in
-            let success = executor.execute(request, snapshot: capturedSnapshot)
-            await MainActor.run { [weak self] in
-                guard let self else { return }
-                self.intentPipeline.registerExecutionResult(intent: intent, request: request, success: success)
-                self.feedbackEntriesByWindowID = self.intentPipeline.feedbackState.entriesByWindowID
+        actionExecutionQueue.submit(
+            actionID: actionID,
+            request: request,
+            operation: {
+                executor.execute(request, snapshot: capturedSnapshot)
+            },
+            completion: { [weak self] completedActionID, success in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.intentPipeline.registerExecutionResult(
+                        intent: intent,
+                        request: request,
+                        actionID: completedActionID,
+                        success: success
+                    )
+                    self.feedbackEntriesByWindowID = self.intentPipeline.feedbackState.entriesByWindowID
+                }
             }
-        }
+        )
     }
 
     /// 登记一次用户发起的启动。窗口出现或 8s 超时（与 LauncherChip 弹跳兜底对齐）即清除。

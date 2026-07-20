@@ -62,18 +62,50 @@ final class FinderP0Tests: XCTestCase {
         let afterMinimize = [
             id.rawValue: OptimisticWindowState(status: .minimized, createdAt: Date())
         ]
-        XCTAssertEqual(
-            planner.plan(intent: .toggle(id), snapshot: staleActiveSnapshot, optimisticStates: afterMinimize).kind,
-            .activateWindow
+        let restoreRequest = planner.plan(
+            intent: .toggle(id),
+            snapshot: staleActiveSnapshot,
+            optimisticStates: afterMinimize
         )
+        XCTAssertEqual(restoreRequest.kind, .activateWindow)
+        XCTAssertTrue(restoreRequest.forceRestoreBeforeFocus)
 
         let afterActivate = [
             id.rawValue: OptimisticWindowState(status: .active, createdAt: Date())
         ]
-        XCTAssertEqual(
-            planner.plan(intent: .toggle(id), snapshot: staleActiveSnapshot, optimisticStates: afterActivate).kind,
-            .minimizeWindow
+        let minimizeRequest = planner.plan(
+            intent: .toggle(id),
+            snapshot: staleActiveSnapshot,
+            optimisticStates: afterActivate
         )
+        XCTAssertEqual(minimizeRequest.kind, .minimizeWindow)
+        XCTAssertFalse(minimizeRequest.forceRestoreBeforeFocus)
+    }
+
+    /// 显式 activate（非 toggle）同样要吃乐观 .minimized（2026-07-20）：异步最小化的 App
+    /// （Illustrator 类）同步读回还没翻面，不强制恢复就会只发聚焦、窗口留在 Dock 里。
+    func testExplicitActivateForcesRestoreWhenOptimisticallyMinimized() {
+        let id = WindowID(rawValue: "cg-explicit-activate")
+        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+        let staleActiveSnapshot = snapshot(windowID: id, status: .active)
+
+        let forced = planner.plan(
+            intent: .activate(id),
+            snapshot: staleActiveSnapshot,
+            optimisticStates: [
+                id.rawValue: OptimisticWindowState(status: .minimized, createdAt: Date())
+            ]
+        )
+        XCTAssertEqual(forced.kind, .activateWindow)
+        XCTAssertTrue(forced.forceRestoreBeforeFocus)
+
+        let plain = planner.plan(
+            intent: .activate(id),
+            snapshot: staleActiveSnapshot,
+            optimisticStates: [:]
+        )
+        XCTAssertEqual(plain.kind, .activateWindow)
+        XCTAssertFalse(plain.forceRestoreBeforeFocus)
     }
 
     /// 回归（2026-07-05）：激活 B1 后 4s 内切去别的 App，乐观 .active 残留未兑现；
@@ -124,8 +156,9 @@ final class FinderP0Tests: XCTestCase {
 
     func testMinimizeFeedbackAcceptsTemporaryDisappearance() {
         let id = WindowID(rawValue: "cg-2")
+        let actionID = IntentActionID(rawValue: 1)
         var feedback = IntentFeedbackState()
-        feedback.begin(windowID: id.rawValue, action: .minimize, at: Date())
+        feedback.begin(windowID: id.rawValue, action: .minimize, actionID: actionID, at: Date())
 
         feedback.reconcile(snapshot: snapshot(windowID: id, status: .disappeared), now: Date())
 
@@ -134,26 +167,113 @@ final class FinderP0Tests: XCTestCase {
 
     func testActivateFeedbackSucceedsImmediatelyWhenExecutionSucceeds() {
         let id = WindowID(rawValue: "cg-activate")
+        let actionID = IntentActionID(rawValue: 1)
         var feedback = IntentFeedbackState()
-        feedback.begin(windowID: id.rawValue, action: .activate, at: Date())
+        feedback.begin(windowID: id.rawValue, action: .activate, actionID: actionID, at: Date())
 
-        feedback.markSucceededImmediatelyIfNeeded(windowID: id.rawValue, action: .activate, at: Date())
+        feedback.markSucceededImmediatelyIfNeeded(
+            windowID: id.rawValue,
+            action: .activate,
+            actionID: actionID,
+            at: Date()
+        )
 
         XCTAssertEqual(feedback.entriesByWindowID[id.rawValue]?.phase, .success)
     }
 
     func testActivateFeedbackDoesNotFlipBackToFailureAfterInactiveObservation() {
         let id = WindowID(rawValue: "cg-activate")
+        let actionID = IntentActionID(rawValue: 1)
         var feedback = IntentFeedbackState()
         let now = Date()
-        feedback.begin(windowID: id.rawValue, action: .activate, at: now)
-        feedback.markSucceededImmediatelyIfNeeded(windowID: id.rawValue, action: .activate, at: now)
+        feedback.begin(windowID: id.rawValue, action: .activate, actionID: actionID, at: now)
+        feedback.markSucceededImmediatelyIfNeeded(
+            windowID: id.rawValue,
+            action: .activate,
+            actionID: actionID,
+            at: now
+        )
 
         feedback.reconcile(
             snapshot: snapshot(windowID: id, status: .inactive),
             now: now.addingTimeInterval(0.5)
         )
 
+        XCTAssertEqual(feedback.entriesByWindowID[id.rawValue]?.phase, .success)
+    }
+
+    func testActionExecutionQueuePreservesSubmissionOrderAndRunsOneAtATime() {
+        let queue = SerialActionExecutionQueue(label: "test.platform-actions.\(UUID().uuidString)")
+        let probe = ActionExecutionProbe()
+        let completed = expectation(description: "all actions completed")
+        completed.expectedFulfillmentCount = 3
+
+        for index in 0..<3 {
+            let actionID = IntentActionID(rawValue: UInt64(index + 1))
+            let request = PlatformActionRequest(
+                kind: .activateWindow,
+                windowID: WindowID(rawValue: "queue-\(index)")
+            )
+            queue.submit(
+                actionID: actionID,
+                request: request,
+                operation: {
+                    probe.begin(index)
+                    Thread.sleep(forTimeInterval: 0.025)
+                    probe.end()
+                    return true
+                },
+                completion: { completedActionID, success in
+                    probe.complete(Int(completedActionID.rawValue), success: success)
+                    completed.fulfill()
+                }
+            )
+        }
+
+        wait(for: [completed], timeout: 2.0)
+        XCTAssertEqual(probe.startedIndices, [0, 1, 2])
+        XCTAssertEqual(probe.maximumConcurrency, 1)
+        XCTAssertEqual(probe.completedActionIDs, [1, 2, 3])
+        XCTAssertTrue(probe.allSucceeded)
+    }
+
+    func testFeedbackIgnoresStaleSuccessAndFailureCompletions() {
+        let id = WindowID(rawValue: "cg-generation")
+        let oldActionID = IntentActionID(rawValue: 1)
+        let latestActionID = IntentActionID(rawValue: 2)
+        let now = Date()
+        var feedback = IntentFeedbackState()
+
+        feedback.begin(windowID: id.rawValue, action: .activate, actionID: oldActionID, at: now)
+        feedback.begin(windowID: id.rawValue, action: .activate, actionID: latestActionID, at: now)
+
+        XCTAssertFalse(
+            feedback.markSucceededImmediatelyIfNeeded(
+                windowID: id.rawValue,
+                action: .activate,
+                actionID: oldActionID,
+                at: now.addingTimeInterval(0.1)
+            )
+        )
+        XCTAssertFalse(
+            feedback.markFailed(
+                windowID: id.rawValue,
+                action: .activate,
+                actionID: oldActionID,
+                at: now.addingTimeInterval(0.2)
+            )
+        )
+        XCTAssertEqual(feedback.entriesByWindowID[id.rawValue]?.actionID, latestActionID)
+        XCTAssertEqual(feedback.entriesByWindowID[id.rawValue]?.phase, .pending)
+
+        XCTAssertTrue(
+            feedback.markSucceededImmediatelyIfNeeded(
+                windowID: id.rawValue,
+                action: .activate,
+                actionID: latestActionID,
+                at: now.addingTimeInterval(0.3)
+            )
+        )
         XCTAssertEqual(feedback.entriesByWindowID[id.rawValue]?.phase, .success)
     }
 
@@ -1651,5 +1771,59 @@ final class FinderP0Tests: XCTestCase {
     func testSubstitutingIsGuardedAgainstMissingOrDuplicate() {
         XCTAssertEqual(StripOrdering.substituting(["A", "B"], oldID: "Z", newID: "cgw-42"), ["A", "B"])
         XCTAssertEqual(StripOrdering.substituting(["A", "B"], oldID: "A", newID: "B"), ["A", "B"])
+    }
+}
+
+private final class ActionExecutionProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var activeCount = 0
+    private var storedMaximumConcurrency = 0
+    private var storedStartedIndices: [Int] = []
+    private var storedCompletedActionIDs: [Int] = []
+    private var storedSuccesses: [Bool] = []
+
+    func begin(_ index: Int) {
+        lock.lock()
+        activeCount += 1
+        storedMaximumConcurrency = max(storedMaximumConcurrency, activeCount)
+        storedStartedIndices.append(index)
+        lock.unlock()
+    }
+
+    func end() {
+        lock.lock()
+        activeCount -= 1
+        lock.unlock()
+    }
+
+    func complete(_ actionID: Int, success: Bool) {
+        lock.lock()
+        storedCompletedActionIDs.append(actionID)
+        storedSuccesses.append(success)
+        lock.unlock()
+    }
+
+    var startedIndices: [Int] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedStartedIndices
+    }
+
+    var maximumConcurrency: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedMaximumConcurrency
+    }
+
+    var completedActionIDs: [Int] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedCompletedActionIDs
+    }
+
+    var allSucceeded: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedSuccesses.allSatisfy { $0 }
     }
 }

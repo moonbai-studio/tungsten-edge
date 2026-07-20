@@ -64,6 +64,16 @@ struct SystemObservation: Hashable, Sendable {
 struct PlatformActionRequest: Hashable, Sendable {
     let kind: ActionKind
     let windowID: WindowID?
+    /// 乐观态说该窗口已最小化：既不能提前聚焦（order-out 窗口切前台会顶起可见兄弟，
+    /// Docs/22 §13），又必须无条件先提交恢复——同步 AX 读回可能还没翻面（异步最小化的
+    /// App，或最小化刚提交、快照未兑现的连点）。两件事同源，共用一个标志。
+    let forceRestoreBeforeFocus: Bool
+
+    init(kind: ActionKind, windowID: WindowID?, forceRestoreBeforeFocus: Bool = false) {
+        self.kind = kind
+        self.windowID = windowID
+        self.forceRestoreBeforeFocus = forceRestoreBeforeFocus
+    }
 
     enum ActionKind: String, Hashable, Codable, Sendable {
         case activateWindow

@@ -190,6 +190,18 @@ struct AccessibilityWindowActionExecutor {
         fileprivate let element: AXUIElement
     }
 
+    struct MinimizePreparation {
+        fileprivate let handle: WindowHandle
+        fileprivate let minimizeButton: AXUIElement?
+    }
+
+    struct BackgroundRaisePreparation {
+        fileprivate let element: AXUIElement
+        fileprivate let deadline: TimeInterval
+    }
+
+    private static let backgroundRaiseBudget: TimeInterval = 0.1
+
     func captureHandleByCGWindowID(_ cgWindowID: CGWindowID, pid: Int32) -> WindowHandle? {
         guard case .success(let snapshots) = reader.inventoryWindows(forPID: pid, messagingTimeout: 0.5) else { return nil }
         guard let snap = snapshots.first(where: { $0.cgWindowID == cgWindowID }) else { return nil }
@@ -233,11 +245,12 @@ struct AccessibilityWindowActionExecutor {
         )
     }
 
-    func minimize(_ handle: WindowHandle) -> ActionExecution {
+    func prepareMinimize(_ handle: WindowHandle) -> MinimizePreparation {
         // ChipProbe: read-only AX survey (background thread, element already has 0.5s messaging timeout)
         let role = reader.stringAttribute(kAXRoleAttribute as CFString, from: handle.element, maxAttempts: 1)
         let subrole = reader.stringAttribute(kAXSubroleAttribute as CFString, from: handle.element, maxAttempts: 1)
-        let hasMinimizeButton = axElementAttribute(kAXMinimizeButtonAttribute as CFString, from: handle.element) != nil
+        let minimizeButton = axElementAttribute(kAXMinimizeButtonAttribute as CFString, from: handle.element)
+        let hasMinimizeButton = minimizeButton != nil
         let currentMinimized = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element, maxAttempts: 1)
         var minimizedSettable: DarwinBoolean = false
         _ = AXUIElementIsAttributeSettable(handle.element, kAXMinimizedAttribute as CFString, &minimizedSettable)
@@ -251,18 +264,47 @@ struct AccessibilityWindowActionExecutor {
         }
         Self.chipProbeLogger.info("minimize-ax-probe app=\(probeApp?.localizedName ?? "(unknown)", privacy: .public) bundleID=\(probeApp?.bundleIdentifier ?? "(none)", privacy: .public) activationPolicy=\(probePolicyStr, privacy: .public) role=\(role ?? "nil", privacy: .public) subrole=\(subrole ?? "nil", privacy: .public) hasMinimizeButton=\(hasMinimizeButton, privacy: .public) currentMinimized=\(String(describing: currentMinimized), privacy: .public) minimizedSettable=\(minimizedSettable.boolValue, privacy: .public)")
 
+        return MinimizePreparation(handle: handle, minimizeButton: minimizeButton)
+    }
+
+    func minimize(_ handle: WindowHandle) -> ActionExecution {
+        minimize(prepareMinimize(handle))
+    }
+
+    /// 「命令已提交」与「状态已确认」分离（2026-07-20，Illustrator）：AX 属性写入返回
+    /// success 只代表命令被接受，不代表窗口已经最小化。Illustrator 这类异步最小化的 App
+    /// 同步读回仍是 false，把它判成失败会让上层记成失败反馈，并（在删除前的实现里）对正在
+    /// order-out 的窗口反向聚焦，直接把窗口还原回来。
+    /// `success` 从此表示「命令已提交」；`verifiedMinimized` 降级为纯诊断，最终状态一律由
+    /// AppTracker 快照确认——同步 AX 读数不再作任何成败判据（与本轮 SkyLight 落位排查
+    /// 得出的同一条结论：进程内同步读数不是状态真相，Docs/22 §14）。
+    func minimize(_ preparation: MinimizePreparation) -> ActionExecution {
+        let handle = preparation.handle
+
         if setMinimized(true, for: handle) {
-            let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
-            if verified == true {
+            let observed = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+            if observed == true {
                 return ActionExecution(
                     success: true,
                     mechanism: "set-minimized-attribute",
-                    verifiedMinimized: verified
+                    verifiedMinimized: observed
                 )
             }
+            // 写入已被接受、但同步读回还没翻面。按钮兜底照按：它覆盖的是「写入被静默忽略」
+            // 的 App，而那种情形与异步最小化在同步读数上无法区分。按钮结果不再决定成败，
+            // 于是既保住兜底覆盖，又不会把异步 App 误判成失败（本次修复只动判定、不动按钮
+            // 行为，回归时才好归因）。
+            if let button = preparation.minimizeButton {
+                _ = AXUIElementPerformAction(button, kAXPressAction as CFString)
+            }
+            return ActionExecution(
+                success: true,
+                mechanism: "set-minimized-attribute-submitted",
+                verifiedMinimized: reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+            )
         }
 
-        guard let button = axElementAttribute(kAXMinimizeButtonAttribute as CFString, from: handle.element) else {
+        guard let button = preparation.minimizeButton else {
             return ActionExecution(
                 success: false,
                 mechanism: "missing-minimize-button",
@@ -278,11 +320,11 @@ struct AccessibilityWindowActionExecutor {
             )
         }
 
-        let verified = reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
+        // 按钮按下成功同样只是「命令已提交」，不以同步读回定成败。
         return ActionExecution(
-            success: verified == true,
+            success: true,
             mechanism: "press-minimize-button",
-            verifiedMinimized: verified
+            verifiedMinimized: reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element)
         )
     }
 
@@ -329,10 +371,14 @@ struct AccessibilityWindowActionExecutor {
         requiresFocusedConfirmation: Bool,
         confirmationTimeout: TimeInterval = 0.6,
         pollIntervalMicroseconds: useconds_t = 100_000,
-        knownCGWindowID: CGWindowID? = nil
+        knownCGWindowID: CGWindowID? = nil,
+        forceRestore: Bool = false
     ) -> Bool {
         let runningApp = NSRunningApplication(processIdentifier: handle.pid)
-        if reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element) == true {
+        // forceRestore 直接 OR 进既有条件、复用同一段恢复代码，绝不新开第二条恢复路径——
+        // 下面这段 restore-then-switch 的「恢复→切换微秒相邻、中间零 AX」是硬纪律，两处
+        // 分别恢复会变成双写或两次竞争的 SkyLight 投递。短路求值同时省掉一次 AX 读。
+        if forceRestore || reader.boolAttribute(kAXMinimizedAttribute as CFString, from: handle.element) == true {
             _ = setMinimized(false, for: handle)
             // 恢复→切换必须紧贴、中间零 AX 问询（2026-07-05 探针 v3）：最小化恢复不做提前
             // 聚焦——B1 还在 order-out 时任何切前台（含 kCPSNoWindows、不发 make-key 的裸
@@ -413,59 +459,73 @@ struct AccessibilityWindowActionExecutor {
         return CFEqual(focusedWindow, handle.element)
     }
 
-    /// Finds the previous regular app to return to before minimizing the current
+    /// Finds the previous regular window to return to before minimizing the current
     /// frontmost focused window. Only fires when this specific handle is focused,
     /// so right-click minimizing a background sibling does not steal focus.
-    func findBackgroundActivationTarget(for handle: WindowHandle) -> pid_t? {
+    func findBackgroundActivationTarget(
+        for handle: WindowHandle,
+        knownCGWindowID: CGWindowID? = nil,
+        trustedWindows: Set<BackgroundWindowIdentity>
+    ) -> BackgroundActivationTarget? {
         // isActive（即时读）而非 NSWorkspace.frontmostApplication（滞后缓存）：SkyLight 激活后
         // ~1.5s 内读缓存会误判"App 不在前台"，静默跳过预切 → macOS 提拔同 App 兄弟窗口。
-        guard NSRunningApplication(processIdentifier: handle.pid)?.isActive == true else { return nil }
+        let isTargetAppActive = NSRunningApplication(processIdentifier: handle.pid)?.isActive == true
+        guard isTargetAppActive else { return nil }
 
         let appElement = AXUIElementCreateApplication(handle.pid)
         AXUIElementSetMessagingTimeout(appElement, 0.2)
-        guard let focused = axElementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement),
-              CFEqual(focused, handle.element) else { return nil }
+        guard let focused = axElementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement) else {
+            return nil
+        }
+        AXUIElementSetMessagingTimeout(focused, 0.2)
+        let targetWindowID = knownCGWindowID ?? reader.cgWindowID(for: handle.element, maxAttempts: 1)
+        let focusedWindowID = reader.cgWindowID(for: focused, maxAttempts: 1)
+        let needsElementFallback = targetWindowID == nil || focusedWindowID == nil
+        guard BackgroundActivationDecision.targetWindowIsFocused(
+            isTargetAppActive: isTargetAppActive,
+            targetWindowID: targetWindowID,
+            focusedWindowID: focusedWindowID,
+            elementsEqual: needsElementFallback && CFEqual(focused, handle.element)
+        ) else { return nil }
 
         let ourPID = pid_t(ProcessInfo.processInfo.processIdentifier)
-        let policy = DockWindowEligibilityPolicy()
         guard let list = CGWindowListCopyWindowInfo(
             [.optionOnScreenOnly, .excludeDesktopElements],
             kCGNullWindowID
         ) as? [[String: Any]] else { return nil }
 
-        for info in list {
-            guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
-            guard let ownerPID = info[kCGWindowOwnerPID as String] as? pid_t else { continue }
-            guard ownerPID != handle.pid, ownerPID != ourPID else { continue }
-
+        let candidates = list.compactMap { info -> BackgroundWindowCandidate? in
+            guard let layer = info[kCGWindowLayer as String] as? Int,
+                  let ownerPID = info[kCGWindowOwnerPID as String] as? pid_t else {
+                return nil
+            }
             let app = NSRunningApplication(processIdentifier: ownerPID)
-            guard app?.activationPolicy == .regular else { continue }
-            let appName = (info[kCGWindowOwnerName as String] as? String) ?? ""
-            let rawTitle = (info[kCGWindowName as String] as? String)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let title = rawTitle.flatMap { $0.isEmpty ? nil : $0 }
-            let bounds = (info[kCGWindowBounds as String] as? [String: Any])
-                .flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) }
-            let alpha = (info[kCGWindowAlpha as String] as? NSNumber)?.doubleValue
-
-            let candidate = DockWindowEligibilityPolicy.Candidate(
-                bundleIdentifier: app?.bundleIdentifier,
-                appName: appName,
-                title: title,
-                bounds: bounds,
-                alpha: alpha,
-                activationPolicy: app?.activationPolicy ?? .prohibited,
-                executablePath: app?.executableURL?.path
+            let rawWindowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value
+            let cgWindowID = rawWindowID.flatMap { $0 == 0 ? nil : $0 }
+            let identity = cgWindowID.map {
+                BackgroundWindowIdentity(pid: ownerPID, cgWindowID: $0)
+            }
+            return BackgroundWindowCandidate(
+                pid: ownerPID,
+                cgWindowID: cgWindowID,
+                layer: layer,
+                isRegularApplication: app?.activationPolicy == .regular,
+                isTrustedWindow: identity.map(trustedWindows.contains) ?? false
             )
-            guard policy.evaluate(candidate) == .keep else { continue }
-
-            Self.chipProbeLogger.info(
-                "postactivate-target candidate=\(app?.localizedName ?? "(unknown)", privacy: .public) pid=\(ownerPID, privacy: .public)"
-            )
-            return ownerPID
         }
 
-        Self.chipProbeLogger.info("postactivate-target no-eligible-candidate pid=\(handle.pid, privacy: .public)")
+        if let target = BackgroundActivationDecision.target(
+            frontToBack: candidates,
+            excludingPID: handle.pid,
+            dockPID: ourPID
+        ) {
+            Self.chipProbeLogger.info(
+                "postactivate-target pid=\(target.pid, privacy: .public) wid=\(target.cgWindowID, privacy: .public)"
+            )
+            return target
+        }
+
+        Self.chipProbeLogger.info("postactivate-target no-eligible-candidate pid=\(handle.pid, privacy: .public) trustedWindows=\(trustedWindows.count, privacy: .public) cgCandidates=\(candidates.count, privacy: .public)")
         return nil
     }
 
@@ -510,6 +570,62 @@ struct AccessibilityWindowActionExecutor {
         let result = withUnsafePointer(to: &psn) { api.setFront($0, kSetFrontProcessFrontWindowOnly) }
         Self.chipProbeLogger.info("switch-frontmost-noreorder pid=\(pid, privacy: .public) result=\(result, privacy: .public)")
         return result == noErr
+    }
+
+    func handoffFocusBeforeMinimizing(
+        to target: BackgroundActivationTarget,
+        raisePreparation: BackgroundRaisePreparation?
+    ) -> BackgroundFocusHandoff.Outcome {
+        let axRaise = raisePreparation.map { preparation in
+            { raiseBackgroundWindow(preparation, target: target) }
+        }
+        return BackgroundFocusHandoff.perform(
+            target: target,
+            skyLightFocus: { pid, windowID in
+                postSkyLightWindowFocus(pid: pid, windowID: windowID)
+            },
+            axRaise: axRaise,
+            carbonSwitch: { pid in
+                switchFrontmostWithoutReorder(toPID: pid)
+            }
+        )
+    }
+
+    func prepareBackgroundRaise(
+        for target: BackgroundActivationTarget
+    ) -> BackgroundRaisePreparation? {
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let deadline = startedAt + Self.backgroundRaiseBudget
+        let handle = reader.captureHandle(
+            forPID: target.pid,
+            cgWindowID: target.cgWindowID,
+            messagingTimeout: Self.backgroundRaiseBudget
+        )
+        let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
+        Self.chipProbeLogger.info("handoff-raise-capture pid=\(target.pid, privacy: .public) wid=\(target.cgWindowID, privacy: .public) available=\(handle != nil, privacy: .public) durationMs=\(elapsedMilliseconds, privacy: .public)")
+        return handle.map {
+            BackgroundRaisePreparation(element: $0.element, deadline: deadline)
+        }
+    }
+
+    private func raiseBackgroundWindow(
+        _ preparation: BackgroundRaisePreparation,
+        target: BackgroundActivationTarget
+    ) -> Bool {
+        let remaining = preparation.deadline - ProcessInfo.processInfo.systemUptime
+        guard remaining > 0 else {
+            Self.chipProbeLogger.info("handoff-raise pid=\(target.pid, privacy: .public) wid=\(target.cgWindowID, privacy: .public) success=false durationMs=0 budgetExpired=true")
+            return false
+        }
+        AXUIElementSetMessagingTimeout(preparation.element, Float(remaining))
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        let success = AXUIElementPerformAction(
+            preparation.element,
+            kAXRaiseAction as CFString
+        ) == .success
+        let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)
+        Self.chipProbeLogger.info("handoff-raise pid=\(target.pid, privacy: .public) wid=\(target.cgWindowID, privacy: .public) success=\(success, privacy: .public) durationMs=\(elapsedMilliseconds, privacy: .public) budgetExpired=false")
+        return success
     }
 
     private typealias SLPSSetFrontWindowFunc =
@@ -652,6 +768,7 @@ struct PlatformActionExecutor {
         // 让 App 把可见兄弟 B2 提拔到旧前台之上（持久 z 序 bug）；改为 activate() 里
         // unminimize 之后立即切换（见 knownCGWindowID 路径），实测同样无闪。
         if request.kind == .activateWindow,
+           !request.forceRestoreBeforeFocus,
            let cgWindowID = record.cgWindowID,
            record.status == .active || record.status == .inactive,
            NSRunningApplication(processIdentifier: record.pid)?.isActive != true {
@@ -706,35 +823,63 @@ struct PlatformActionExecutor {
             return windowExecutor.activate(
                 handle,
                 requiresFocusedConfirmation: isFinderWindow,
-                knownCGWindowID: record.cgWindowID
+                knownCGWindowID: record.cgWindowID,
+                forceRestore: request.forceRestoreBeforeFocus
             )
         case .minimizeWindow:
-            let targetPID = windowExecutor.findBackgroundActivationTarget(for: handle)
-            var preSwitched = false
-            if let targetPID {
-                preSwitched = windowExecutor.switchFrontmostWithoutReorder(toPID: targetPID)
+            // Complete every AX read before handing key-window ownership to the background
+            // target. The only optional AX operation after make-key is the bounded raise write;
+            // minimize follows immediately and never depends on whether that raise succeeds.
+            let minimizePreparation = windowExecutor.prepareMinimize(handle)
+            let backgroundTarget = windowExecutor.findBackgroundActivationTarget(
+                for: handle,
+                knownCGWindowID: record.cgWindowID,
+                trustedWindows: BackgroundActivationDecision.trustedWindowIdentities(in: snapshot)
+            )
+            let raisePreparation = backgroundTarget.flatMap {
+                windowExecutor.prepareBackgroundRaise(for: $0)
             }
-
-            let minExec = windowExecutor.minimize(handle)
+            let initialHandoff = backgroundTarget.map {
+                windowExecutor.handoffFocusBeforeMinimizing(
+                    to: $0,
+                    raisePreparation: raisePreparation
+                )
+            }
+            let minExec = windowExecutor.minimize(minimizePreparation)
+            var handoffSubmitted = initialHandoff?.focusRequestSubmitted == true
             if minExec.success {
-                if !preSwitched, let targetPID {
-                    usleep(Self.postMinimizeActivateDelayMicroseconds)
-                    let activated = NSRunningApplication(processIdentifier: targetPID)?
-                        .activate(options: [.activateIgnoringOtherApps]) ?? false
-                    Self.chipProbeLogger.info("postactivate-background-fallback pid=\(targetPID, privacy: .public) activated=\(activated, privacy: .public)")
-                }
-                Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
+                postActivateBackgroundIfNeeded(target: backgroundTarget, handoffSubmitted: handoffSubmitted)
+                Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) focusRequestSubmitted=\(handoffSubmitted, privacy: .public) handoffOutcome=\(String(describing: initialHandoff), privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
                 return true
             }
             if justUnhid {
                 usleep(100_000)
                 if let h = windowExecutor.captureHandle(for: target, attempts: 2, retryIntervalMicroseconds: 100_000) {
-                    let retryExec = windowExecutor.minimize(h)
-                    Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(retryExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(retryExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: retryExec.verifiedMinimized), privacy: .public)")
+                    let retryPreparation = windowExecutor.prepareMinimize(h)
+                    let retryHandoff = handoffSubmitted ? nil : backgroundTarget.map {
+                        windowExecutor.handoffFocusBeforeMinimizing(
+                            to: $0,
+                            raisePreparation: raisePreparation
+                        )
+                    }
+                    let retryExec = windowExecutor.minimize(retryPreparation)
+                    handoffSubmitted = handoffSubmitted || retryHandoff?.focusRequestSubmitted == true
+                    if retryExec.success {
+                        postActivateBackgroundIfNeeded(
+                            target: backgroundTarget,
+                            handoffSubmitted: handoffSubmitted
+                        )
+                    }
+                    Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(retryExec.success, privacy: .public) focusRequestSubmitted=\(handoffSubmitted, privacy: .public) handoffOutcome=\(String(describing: retryHandoff ?? initialHandoff), privacy: .public) mechanism=\(retryExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: retryExec.verifiedMinimized), privacy: .public)")
                     return retryExec.success
                 }
             }
-            Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) preSwitched=\(preSwitched, privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
+            // 最小化全通道失败时【不】把焦点还给原窗口（2026-07-20 撤销）：曾经的反向聚焦
+            // 是为了修「焦点已交接给 B、但窗口没最小化」的错位，实测却成了 Illustrator 自动
+            // 还原的直接原因——对一个可能正在 order-out 的窗口发 make-key，会把它拉回来。
+            // 已知代价：真失败时焦点留在 B、原窗口还立着。这是刻意取舍——罕见路径的焦点错位
+            // 换掉每次必现的自动还原。不要「修」回来。
+            Self.chipProbeLogger.info("minimize-exec-result windowID=\(request.windowID?.rawValue ?? "nil", privacy: .public) success=\(minExec.success, privacy: .public) focusRequestSubmitted=\(handoffSubmitted, privacy: .public) handoffOutcome=\(String(describing: initialHandoff), privacy: .public) mechanism=\(minExec.mechanism, privacy: .public) verifiedMinimized=\(String(describing: minExec.verifiedMinimized), privacy: .public)")
             return false
         case .closeWindow:
             if windowExecutor.close(handle) { return true }
@@ -750,6 +895,17 @@ struct PlatformActionExecutor {
         case .newWindow:
             return performNewWindow(record: record)
         }
+    }
+
+    private func postActivateBackgroundIfNeeded(
+        target: BackgroundActivationTarget?,
+        handoffSubmitted: Bool
+    ) {
+        guard !handoffSubmitted, let target else { return }
+        usleep(Self.postMinimizeActivateDelayMicroseconds)
+        let activated = NSRunningApplication(processIdentifier: target.pid)?
+            .activate(options: [.activateIgnoringOtherApps]) ?? false
+        Self.chipProbeLogger.info("postactivate-background-fallback pid=\(target.pid, privacy: .public) activated=\(activated, privacy: .public)")
     }
 
     private func executeAppFallback(request: PlatformActionRequest, record: WindowRecord) -> Bool {

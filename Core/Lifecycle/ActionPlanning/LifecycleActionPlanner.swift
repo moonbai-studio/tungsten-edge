@@ -86,9 +86,19 @@ final class LifecycleActionPlanner {
             if status == .active && appIsFrontmost {
                 return PlatformActionRequest(kind: .minimizeWindow, windowID: id)
             }
-            return PlatformActionRequest(kind: .activateWindow, windowID: id)
+            return PlatformActionRequest(
+                kind: .activateWindow,
+                windowID: id,
+                // The queued minimize may finish before this request starts while the
+                // captured snapshot still says active. Let activate() restore first.
+                forceRestoreBeforeFocus: optimistic?.status == .minimized
+            )
         case let .activate(id):
-            return PlatformActionRequest(kind: .activateWindow, windowID: id)
+            return PlatformActionRequest(
+                kind: .activateWindow,
+                windowID: id,
+                forceRestoreBeforeFocus: optimisticStates[id.rawValue]?.status == .minimized
+            )
         case let .minimize(id):
             return PlatformActionRequest(kind: .minimizeWindow, windowID: id)
         case let .hide(id):

@@ -365,8 +365,9 @@ func runMinimizeRestoreMode() {
     print(
         "# minimize action: mechanism=\(minimizeExecution.mechanism) verified_minimized=\(String(describing: minimizeExecution.verifiedMinimized)) success=\(minimizeExecution.success)"
     )
+    // success = 命令已提交（同步 AX 读回不是状态真相）。真实状态由下面 0.8s 后的采样确认。
     guard minimizeExecution.success else {
-        fputs("failed to minimize selected target via AX\n", stderr)
+        fputs("failed to submit minimize command for selected target via AX\n", stderr)
         exit(1)
     }
     Thread.sleep(forTimeInterval: 0.8)
