@@ -64,6 +64,13 @@ struct SettingsWindowContent: View {
                     )
                 }
 
+                settingRow(note: "关闭后，访达不再常驻任务条：没有打开任何访达窗口时，它会和普通应用一样从任务条上消失。\n点击无窗口的访达卡打开个人文件夹的行为也会一并取消。") {
+                    Toggle(
+                        "任务条常驻访达",
+                        isOn: binding(get: { store.finderAlwaysInDock }, set: store.setFinderAlwaysInDock)
+                    )
+                }
+
                 Picker("任务条大小", selection: binding(get: { store.dockSize }, set: store.setDockSize)) {
                     ForEach(DockSize.allCases, id: \.self) { size in
                         Text(size.title).tag(size)

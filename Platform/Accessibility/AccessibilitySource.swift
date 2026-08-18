@@ -757,12 +757,19 @@ enum WindowHandleCapturePlan {
 struct PlatformActionExecutor {
     private let windowExecutor: AccessibilityWindowActionExecutor
     private let switches: ActionExecutionSwitches
+    /// 访达是否常驻任务条（设置「任务条常驻访达」）。为 false 时点击无窗口的访达 app-* 卡
+    /// 不再打开个人文件夹，退回普通应用的窗口恢复路径（issue #7）。
+    private let isFinderPersistent: () -> Bool
     private static let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
     private static let postMinimizeActivateDelayMicroseconds: useconds_t = 50_000
 
-    init(switches: ActionExecutionSwitches = ActionExecutionSwitches()) {
+    init(
+        switches: ActionExecutionSwitches = ActionExecutionSwitches(),
+        isFinderPersistent: @escaping () -> Bool = { true }
+    ) {
         self.switches = switches
         windowExecutor = AccessibilityWindowActionExecutor(chipProbeEnabled: switches.chipProbeEnabled)
+        self.isFinderPersistent = isFinderPersistent
     }
 
     @discardableResult
@@ -942,8 +949,10 @@ struct PlatformActionExecutor {
         case .activateWindow:
             // Finder persistent chip (no open windows): open home directory to create a new Finder
             // window, matching system Dock behavior when clicking Finder with no windows open.
+            // 仅常驻档生效；关闭常驻时走普通应用的窗口恢复路径。
             if record.id.rawValue.hasPrefix("app-"),
-               FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier) {
+               FinderWindowRules.isFinder(bundleIdentifier: record.bundleIdentifier),
+               isFinderPersistent() {
                 NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser)
                 return true
             }

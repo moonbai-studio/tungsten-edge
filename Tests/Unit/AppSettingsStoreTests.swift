@@ -145,6 +145,28 @@ final class AppSettingsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testFinderAlwaysInDockDefaultsToOnAndPersists() {
+        let defaults = makeDefaults()
+        XCTAssertTrue(AppSettingsStore(defaults: defaults).finderAlwaysInDock, "默认常驻访达，还原系统 Dock 行为")
+
+        let store = AppSettingsStore(defaults: defaults)
+        store.setFinderAlwaysInDock(false)
+        XCTAssertFalse(store.finderAlwaysInDock)
+        XCTAssertFalse(AppSettingsStore(defaults: defaults).finderAlwaysInDock, "关掉后要跨重启保持")
+
+        store.setFinderAlwaysInDock(true)
+        XCTAssertTrue(AppSettingsStore(defaults: defaults).finderAlwaysInDock)
+    }
+
+    @MainActor
+    func testFinderAlwaysInDockStoredFalseSurvivesMissingRegister() {
+        // 显式存 false 后，即使 register 默认值仍在，读到的也必须是用户关掉的值。
+        let defaults = makeDefaults()
+        defaults.set(false, forKey: "com.tungsten.edge.finderAlwaysInDock")
+        XCTAssertFalse(AppSettingsStore(defaults: defaults).finderAlwaysInDock)
+    }
+
+    @MainActor
     func testFullscreenIntentDefaultsToOnAndPersists() {
         let defaults = makeDefaults()
         XCTAssertTrue(AppSettingsStore(defaults: defaults).fullscreenIntentEnabled)
@@ -1106,5 +1128,26 @@ final class AppSettingsStoreTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
+    }
+}
+
+@MainActor
+extension AppSettingsStoreTests {
+    /// 复现 issue：开关切换必须通过 @Published → dropFirst/removeDuplicates → sink 送达。
+    func testFinderSettingPublishesOnToggleThroughDropFirstChain() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+        var deliveries: [Bool] = []
+        let subscription = store.$finderAlwaysInDock
+            .dropFirst()
+            .removeDuplicates()
+            .sink { deliveries.append($0) }
+
+        store.setFinderAlwaysInDock(false)
+        store.setFinderAlwaysInDock(false)   // 同值去重，不应再投递
+        store.setFinderAlwaysInDock(true)
+
+        XCTAssertEqual(deliveries, [false, true], "初值被 dropFirst 丢弃，两次真实切换各投递一次")
+        withExtendedLifetime(subscription) {}
     }
 }

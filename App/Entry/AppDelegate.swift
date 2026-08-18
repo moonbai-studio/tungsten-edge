@@ -8,7 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let inventoryLog = WindowInventoryAnomalyLog()
     private(set) lazy var runtime = AppRuntime(
         inventoryLog: inventoryLog,
-        isAccessibilityTrusted: { [weak self] in self?.cachedAccessibilityTrusted ?? false }
+        isAccessibilityTrusted: { [weak self] in self?.cachedAccessibilityTrusted ?? false },
+        finderAlwaysInDock: { [weak self] in self?.settingsStore.finderAlwaysInDock ?? true }
     )
     let drawerStore = DrawerStore()
     let messagingStore = MessagingAppStore()
@@ -60,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
     private var windowLiftSettingSubscription: AnyCancellable?
+    private var finderPersistenceSubscription: AnyCancellable?
     private var appearanceSubscription: AnyCancellable?
     private let permissionService = PermissionService()
     private var installLocation: AppInstallLocation = .other
@@ -99,6 +101,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // `@Published` 订阅时先发一次当前值，所以这一句同时完成「启动时应用」和「之后跟随」。
         appearanceSubscription = settingsStore.$appearanceMode
             .sink { NSApp.appearance = $0.nsAppearance }
+
+        // 「任务条常驻访达」开关变化时主动重算快照：开关本身不产生窗口事件，tracker 的周期
+        // reconcile 不会 rebuild，不主动刷新会让旧的 Finder 常驻卡一直留在任务条上（issue #7）。
+        // 注意：@Published 在 willSet 里发值，sink 里读 store 属性拿到的是旧值（本次故障根因），
+        // 必须把发出来的 newValue 显式传下去，不能依赖闭包回读。
+        finderPersistenceSubscription = settingsStore.$finderAlwaysInDock
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] newValue in
+                self?.runtime.refreshFinderPersistence(finderAlwaysInDock: newValue)
+            }
 
         // 位置分类必须排在接管其他实例和注册热键**之前**。
         // 挂载磁盘映像双击运行时，那份临时副本一旦执行 terminateOtherInstances()，

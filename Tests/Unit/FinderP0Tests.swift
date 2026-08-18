@@ -109,6 +109,50 @@ final class FinderP0Tests: XCTestCase {
         )
     }
 
+    // MARK: - 常驻访达开关（issue #7）
+
+    /// 默认常驻档：无窗口的 Finder app-* 卡点击恒为激活（还原系统 Dock 行为）。
+    func testToggleOnPersistentFinderAppChipAlwaysActivates() {
+        let id = WindowID(rawValue: "app-com.apple.finder")
+        let persistentPlanner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+        let frontmostSnapshot = finderSnapshot(windowID: id, status: .active)
+
+        XCTAssertEqual(
+            persistentPlanner.plan(intent: .toggle(id), snapshot: frontmostSnapshot).kind,
+            .activateWindow,
+            "常驻档下即使前台点击也必须激活（不开新窗口也绝不隐藏）"
+        )
+    }
+
+    /// 关闭常驻后，Finder app-* 卡与普通应用一致：前台点击 → 隐藏，非前台点击 → 激活。
+    func testToggleOnNonPersistentFinderAppChipFollowsNormalAppBehavior() {
+        let id = WindowID(rawValue: "app-com.apple.finder")
+        let frontmostPlanner = LifecycleActionPlanner(
+            isAppFrontmost: { _ in true },
+            isFinderPersistent: { false }
+        )
+        let backgroundPlanner = LifecycleActionPlanner(
+            isAppFrontmost: { _ in false },
+            isFinderPersistent: { false }
+        )
+        let activeSnapshot = finderSnapshot(windowID: id, status: .active)
+        let inactiveSnapshot = finderSnapshot(windowID: id, status: .inactive)
+
+        XCTAssertEqual(
+            frontmostPlanner.plan(intent: .toggle(id), snapshot: activeSnapshot).kind,
+            .hideApp,
+            "关闭常驻后前台点击 Finder app-* 卡应隐藏"
+        )
+        XCTAssertEqual(
+            backgroundPlanner.plan(intent: .toggle(id), snapshot: activeSnapshot).kind,
+            .activateWindow
+        )
+        XCTAssertEqual(
+            backgroundPlanner.plan(intent: .toggle(id), snapshot: inactiveSnapshot).kind,
+            .activateWindow
+        )
+    }
+
     // hidden 状态 toggle 应规划 activateWindow，而非其他动作（确保 unhide 路径
     // 对应正确的 intent，不因 hidden 状态退化成 minimizeWindow 等）。
     func testToggleOnHiddenWindowPlansActivate() {
@@ -1648,6 +1692,24 @@ final class FinderP0Tests: XCTestCase {
                     pid: 1,
                     bundleIdentifier: nil,
                     title: "Test",
+                    bounds: nil,
+                    status: status
+                )
+            ],
+            orderedWindowIDs: [windowID]
+        )
+    }
+
+    /// Finder app-* 卡专用的快照（带 com.apple.finder 的 bundleIdentifier）。
+    private func finderSnapshot(windowID: WindowID, status: WindowStatus) -> DockSnapshot {
+        DockSnapshot(
+            windows: [
+                windowID: WindowRecord(
+                    id: windowID,
+                    appID: AppID(rawValue: "com.apple.finder"),
+                    pid: 1,
+                    bundleIdentifier: "com.apple.finder",
+                    title: "访达",
                     bounds: nil,
                     status: status
                 )

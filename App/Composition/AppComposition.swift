@@ -65,9 +65,13 @@ final class AppRuntime: ObservableObject {
     private var launchSessions = LaunchSessionTokenRegistry<LaunchSession>()
 
     private let tracker: AppTracker
-    private let intentPipeline = IntentPipeline(actionPlanning: LifecycleActionPlanner())
-    private let actionExecutor = PlatformActionExecutor()
+    private lazy var intentPipeline = IntentPipeline(
+        actionPlanning: LifecycleActionPlanner(isFinderPersistent: finderAlwaysInDock)
+    )
+    private lazy var actionExecutor = PlatformActionExecutor(isFinderPersistent: finderAlwaysInDock)
     private let isAccessibilityTrusted: () -> Bool
+    /// 访达是否常驻任务条（设置「任务条常驻访达」）。透传给 tracker / planner / executor。
+    private let finderAlwaysInDock: () -> Bool
     private var snapshotSubscription: AnyCancellable?
     private var feedbackTimer: Timer?
     private var startedAt: Date?
@@ -83,11 +87,13 @@ final class AppRuntime: ObservableObject {
     init(
         inventoryLog: WindowInventoryAnomalyLog = WindowInventoryAnomalyLog(),
         debugState: DebugRuntimeState? = nil,
-        isAccessibilityTrusted: @escaping () -> Bool = { PermissionService().hasRequiredPermissions() }
+        isAccessibilityTrusted: @escaping () -> Bool = { PermissionService().hasRequiredPermissions() },
+        finderAlwaysInDock: @escaping () -> Bool = { true }
     ) {
-        tracker = AppTracker(inventoryLog: inventoryLog)
+        tracker = AppTracker(inventoryLog: inventoryLog, isFinderPersistent: finderAlwaysInDock)
         self.debugState = debugState ?? DebugRuntimeState()
         self.isAccessibilityTrusted = isAccessibilityTrusted
+        self.finderAlwaysInDock = finderAlwaysInDock
     }
 
     func start() {
@@ -118,6 +124,15 @@ final class AppRuntime: ObservableObject {
         feedbackTimer?.invalidate()
         feedbackTimer = nil
         stopLaunchSessions()
+    }
+
+    /// 「任务条常驻访达」设置变化时主动重算快照：tracker 的周期 reconcile 只在窗口状态
+    /// 变化时重建，设置开关不产生窗口事件，不主动刷新会让旧的 Finder 常驻卡一直留着（issue #7）。
+    ///
+    /// 必须传显式值而不是回读 store：@Published 在 willSet 发值，sink 执行时属性还是旧值
+    ///（本次故障根因：sink 收到 false 但闭包读到 true，filter 放行了 Finder 卡）。
+    func refreshFinderPersistence(finderAlwaysInDock: Bool) {
+        tracker.refreshSnapshotForSettingChange(finderAlwaysInDock: finderAlwaysInDock)
     }
 
     deinit {

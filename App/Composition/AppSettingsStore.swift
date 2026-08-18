@@ -73,6 +73,9 @@ final class AppSettingsStore: ObservableObject {
     /// 最大化窗口避让任务条（菜单「最大化窗口避开任务条」）。**默认关**——
     /// 这个功能会真的去改写别人应用的窗口尺寸，没主动选过的人不该被改。
     @Published private(set) var windowLiftEnabled: Bool
+    /// 访达是否常驻任务条。**默认开**（还原系统 Dock 行为：无窗口也有入口，点击打开个人文件夹）。
+    /// 关闭后访达与普通应用一致：只在有窗口时出现，无窗口即从任务条消失（issue #7）。
+    @Published private(set) var finderAlwaysInDock: Bool
     /// 标准绿灯 / Control-Command-F 输入投递前预测隐藏任务条，默认开启。
     @Published private(set) var fullscreenIntentEnabled: Bool
     /// 这台机器上已经成功提交过邮箱订阅。只用来把设置里那段订阅区块收起来，
@@ -110,6 +113,7 @@ final class AppSettingsStore: ObservableObject {
             Keys.launchAtLogin: false,
             Keys.showShelf: true,
             Keys.fullscreenIntentEnabled: true,
+            Keys.finderAlwaysInDock: true,
             Keys.nativeDockAutoHideDelay: Self.defaultNativeDockAutoHideDelay,
             Keys.edgeAutoHideDelay: Self.defaultEdgeAutoHideDelay,
         ])
@@ -122,6 +126,7 @@ final class AppSettingsStore: ObservableObject {
         // 同样有意不进 register：缺键即 false = 还没订阅过。
         hasSubscribed = defaults.bool(forKey: Keys.hasSubscribed)
         fullscreenIntentEnabled = defaults.bool(forKey: Keys.fullscreenIntentEnabled)
+        finderAlwaysInDock = defaults.bool(forKey: Keys.finderAlwaysInDock)
         // 坏值（手改过、旧版本残留、类型不对）一律回退中档并**立刻重写**，
         // 否则每次启动都要重新走一遍回退，且 UI 上勾选的档位和存的值对不上。
         dockSize = DockSize(rawValue: defaults.string(forKey: Keys.dockSize) ?? "") ?? .default
@@ -202,6 +207,12 @@ final class AppSettingsStore: ObservableObject {
         guard fullscreenIntentEnabled != value else { return }
         fullscreenIntentEnabled = value
         defaults.set(value, forKey: Keys.fullscreenIntentEnabled)
+    }
+
+    func setFinderAlwaysInDock(_ value: Bool) {
+        guard finderAlwaysInDock != value else { return }
+        finderAlwaysInDock = value
+        defaults.set(value, forKey: Keys.finderAlwaysInDock)
     }
 
     func setLaunchAtLogin(_ value: Bool) {
@@ -326,6 +337,7 @@ private enum Keys {
     static let appearanceMode = "com.tungsten.edge.appearanceMode"
     static let windowLiftEnabled = "com.tungsten.edge.windowLiftEnabled"
     static let fullscreenIntentEnabled = "com.tungsten.edge.fullscreenIntentEnabled"
+    static let finderAlwaysInDock = "com.tungsten.edge.finderAlwaysInDock"
     /// ⚠️ 这个键名进了用户磁盘。改名 = 所有已订阅的人重新看到订阅区块。
     static let hasSubscribed = "com.tungsten.edge.hasSubscribed"
     static let nativeDockAutoHideEnabled = "com.tungsten.edge.autoHide.nativeDock.enabled"

@@ -125,6 +125,9 @@ final class AppTracker: ObservableObject {
     private let cgSnapshotProvider: @Sendable () -> AppTrackerCGWindowSnapshot
     private let onScreenWindowIDsProvider: @Sendable () -> Set<CGWindowID>
     private let eventAXAsyncEnabled: Bool
+    /// 访达是否常驻任务条（设置「任务条常驻访达」）。为 false 时访达按普通应用对待：
+    /// 无窗口不占位、退出即释放座位，不再跨 quit/relaunch 保留（issue #7）。
+    private let isFinderPersistent: () -> Bool
     private let windowEligibility = AppTrackerWindowEligibility()
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "app-tracker")
     private let inventoryLog: WindowInventoryAnomalyLog
@@ -139,7 +142,8 @@ final class AppTracker: ObservableObject {
         onScreenWindowIDsProvider: @escaping @Sendable () -> Set<CGWindowID> = {
             AppTrackerCGWindowSnapshot.captureOnScreenWindowIDs()
         },
-        eventAXAsyncEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_EVENT_AX_ASYNC"] != "0"
+        eventAXAsyncEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_EVENT_AX_ASYNC"] != "0",
+        isFinderPersistent: @escaping () -> Bool = { true }
     ) {
         self.inventoryLog = inventoryLog
         self.reader = reader
@@ -147,6 +151,7 @@ final class AppTracker: ObservableObject {
         self.cgSnapshotProvider = cgSnapshotProvider
         self.onScreenWindowIDsProvider = onScreenWindowIDsProvider
         self.eventAXAsyncEnabled = eventAXAsyncEnabled
+        self.isFinderPersistent = isFinderPersistent
     }
 
     func start() {
@@ -195,6 +200,17 @@ final class AppTracker: ObservableObject {
         mutationGenerations.removeAll()
         snapshot = .empty
         inventoryLog.flush()
+    }
+
+    /// 外部开关（如「任务条常驻访达」设置）变化时强制重算快照。
+    ///
+    /// 正常路径里 `rebuildSnapshot` 只在窗口状态真的变了（`reconcile` 的 `changed`）才跑；
+    /// 设置开关本身不产生任何窗口事件，不主动刷新的话旧的 Finder 常驻卡会一直留在任务条上
+    /// （owner 实测：取消常驻后卡仍在，右键「隐藏」恰好触发 rebuild 才消失，issue #7）。
+    ///
+    /// 必须传显式值：@Published 在 willSet 发值，此刻回读 store 拿到的还是旧值（本次故障根因）。
+    func refreshSnapshotForSettingChange(finderAlwaysInDock: Bool) {
+        rebuildSnapshot(finderPersistentEnabled: finderAlwaysInDock)
     }
 
     // MARK: - Tombstone
@@ -827,7 +843,7 @@ final class AppTracker: ObservableObject {
             }
 
             let seedVerdict: InventoryAdmissionProbeVerdict
-            if FinderWindowRules.isFinder(bundleIdentifier: bid) {
+            if FinderWindowRules.isFinder(bundleIdentifier: bid), isFinderPersistent() {
                 seedVerdict = .admitFinderPersistent
             } else if case .unread = result {
                 seedVerdict = .skipUnread
@@ -849,7 +865,7 @@ final class AppTracker: ObservableObject {
                 )
             }
 
-            if FinderWindowRules.isFinder(bundleIdentifier: bid) {
+            if FinderWindowRules.isFinder(bundleIdentifier: bid), isFinderPersistent() {
                 // Finder 始终占坑：unread 就先空窗口占位（槽位常驻，通知/reconcile 随后补）。
                 addApp(app, enumerateImmediately: false)
                 reconcileSeats(
@@ -939,7 +955,7 @@ final class AppTracker: ObservableObject {
 
     private func handleAppLaunched(_ app: NSRunningApplication) {
         guard isRegularNonSelf(app) else { return }
-        if FinderWindowRules.isFinder(bundleIdentifier: app.bundleIdentifier) {
+        if FinderWindowRules.isFinder(bundleIdentifier: app.bundleIdentifier), isFinderPersistent() {
             // Remove any stale Finder entry left over from a quit/relaunch cycle,
             // then add the fresh entry with the new pid.
             if let stalePID = appOrder.first(where: {
@@ -979,8 +995,8 @@ final class AppTracker: ObservableObject {
 
         // Finder relaunches immediately via launchd. Keep the entry (no windows) so the chip
         // stays visible during the gap. handleAppLaunched will replace this stale entry with
-        // the new pid when Finder comes back up.
-        if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier) {
+        // the new pid when Finder comes back up. 仅常驻档生效；关闭常驻时按普通应用释放座位。
+        if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier), isFinderPersistent() {
             apps[pid]?.windowsByID = [:]
             apps[pid]?.windowOrder = []
             rebuildSnapshot()
@@ -1311,8 +1327,9 @@ final class AppTracker: ObservableObject {
         for pid in appOrder {
             if !processProvider.isAlive(pid: pid) {
                 // Finder's entry is intentionally kept alive across quit/relaunch cycles
-                // (handleAppTerminated clears windows but preserves the slot).
-                if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier) { continue }
+                // (handleAppTerminated clears windows but preserves the slot). 仅常驻档生效。
+                if FinderWindowRules.isFinder(bundleIdentifier: apps[pid]?.bundleIdentifier),
+                   isFinderPersistent() { continue }
                 deadPIDs.append(pid)
                 logger.info("reconcile: pid=\(pid) no longer exists (POSIX kill(0) == ESRCH), removing stale entry")
             }
@@ -1530,7 +1547,8 @@ final class AppTracker: ObservableObject {
 
     // MARK: - Snapshot Building
 
-    private func rebuildSnapshot(onScreenCGIDs: Set<CGWindowID>? = nil) {
+    private func rebuildSnapshot(onScreenCGIDs: Set<CGWindowID>? = nil,
+                                 finderPersistentEnabled: Bool? = nil) {
         // Read frontmost PID once; passed to windowStatus to determine active highlight
         let frontmostPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
         lastOnScreenCGIDs = onScreenCGIDs ?? onScreenWindowIDsProvider()
@@ -1548,6 +1566,13 @@ final class AppTracker: ObservableObject {
                         isFrontmost: pid == frontmostPID
                     )
                 }
+            }
+            // 关闭「常驻访达」时，无窗口的访达不参与 app-* 兜底卡（无窗口即从任务条消失，issue #7）。
+            // finderPersistentEnabled 为显式值（设置开关的 willSet 窗口期闭包回读是旧值，见
+            // refreshSnapshotForSettingChange）；其余重建路径传 nil 走闭包，此时属性已就绪。
+            .filter {
+                (finderPersistentEnabled ?? isFinderPersistent())
+                    || !FinderWindowRules.isFinder(bundleIdentifier: $0.bundleID)
             }
         ).map { ($0.pid, $0) })
 

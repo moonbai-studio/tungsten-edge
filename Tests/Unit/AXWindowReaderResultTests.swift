@@ -874,6 +874,134 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         withExtendedLifetime(subscription) {}
     }
 
+    // MARK: - 常驻访达开关（issue #7）
+
+    /// 常驻档（默认）：无窗口的 Finder 进程生成 app-* 兜底卡。
+    func testPersistentFinderKeepsAppFallbackChip() {
+        let tracker = AppTracker(eventAXAsyncEnabled: true)
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 0))
+
+        tracker.rebuildSnapshotForTesting()
+
+        XCTAssertNotNil(
+            tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")],
+            "常驻档下无窗口访达也应有 app-* 兜底卡"
+        )
+    }
+
+    /// 关闭常驻后：无窗口的 Finder 进程不再生成 app-* 兜底卡（无窗口即从任务条消失）。
+    func testNonPersistentFinderHasNoAppFallbackChip() {
+        let tracker = AppTracker(eventAXAsyncEnabled: true, isFinderPersistent: { false })
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 0))
+
+        tracker.rebuildSnapshotForTesting()
+
+        XCTAssertNil(
+            tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")],
+            "关闭常驻后无窗口访达不应生成兜底卡"
+        )
+    }
+
+    /// 关闭常驻后：有真实窗口的 Finder 照常显示窗口卡（只取消常驻，不取消窗口）。
+    func testNonPersistentFinderKeepsRealWindowChip() {
+        let tracker = AppTracker(eventAXAsyncEnabled: true, isFinderPersistent: { false })
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 1))
+
+        tracker.rebuildSnapshotForTesting()
+
+        let chip = tracker.snapshot.windows.values.first { $0.bundleIdentifier == "com.apple.finder" }
+        XCTAssertNotNil(chip)
+        XCTAssertFalse(chip!.id.rawValue.hasPrefix("app-"), "真实窗口卡不是 app-* 兜底卡")
+    }
+
+    /// 复现 issue：运行中翻转开关 + refreshSnapshotForSettingChange 必须立刻移除兜底卡。
+    func testSettingFlipRemovesFinderFallbackChipOnRefresh() {
+        var persistent = true
+        let tracker = AppTracker(
+            eventAXAsyncEnabled: true,
+            isFinderPersistent: { persistent }
+        )
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 0))
+        tracker.rebuildSnapshotForTesting()
+        XCTAssertNotNil(tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")], "前置：常驻档有兜底卡")
+
+        persistent = false
+        tracker.refreshSnapshotForSettingChange(finderAlwaysInDock: false)
+
+        XCTAssertNil(
+            tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")],
+            "翻转开关后主动刷新必须立刻移除兜底卡（不等 reconcile/focus 事件）"
+        )
+    }
+
+    /// 回归（本次故障根因）：@Published 在 willSet 发值，sink 执行时 store 属性还是旧值——
+    /// 闭包回读会拿到 true，而发出来的 newValue 才是 false。显式值必须赢过闭包。
+    func testExplicitValueWinsOverStaleClosureReadInWillSetWindow() {
+        let tracker = AppTracker(
+            eventAXAsyncEnabled: true,
+            isFinderPersistent: { true }   // 模拟 willSet 窗口期：属性尚未赋值，闭包仍读旧值 true
+        )
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 0))
+        tracker.rebuildSnapshotForTesting()
+        XCTAssertNotNil(tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")])
+
+        // sink 收到的 newValue=false，必须直接决定这次重建，而不是信闭包。
+        tracker.refreshSnapshotForSettingChange(finderAlwaysInDock: false)
+
+        XCTAssertNil(
+            tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")],
+            "显式 false 必须移除兜底卡，即使闭包（旧值）说 true"
+        )
+    }
+
+    /// 反向回归：显式 true 必须能拉回兜底卡，即使闭包（willSet 窗口期的旧值）说 false。
+    func testExplicitTrueReaddsFinderFallbackChip() {
+        var persistent = false
+        let tracker = AppTracker(
+            eventAXAsyncEnabled: true,
+            isFinderPersistent: { persistent }
+        )
+        tracker.installFixtureForTesting(makeFinderApp(windowCount: 0))
+        tracker.rebuildSnapshotForTesting()
+        XCTAssertNil(tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")])
+
+        persistent = true
+        tracker.refreshSnapshotForSettingChange(finderAlwaysInDock: true)
+
+        XCTAssertNotNil(
+            tracker.snapshot.windows[WindowID(rawValue: "app-com.apple.finder")],
+            "显式 true 必须立即拉回兜底卡"
+        )
+    }
+
+    /// 无窗口访达进程 fixture（常驻开关测试用）。
+    private func makeFinderApp(windowCount: Int) -> AppEntry {
+        var windowsByID: [CGWindowID: WindowEntry] = [:]
+        var windowOrder: [CGWindowID] = []
+        for index in 0..<windowCount {
+            let cgID = CGWindowID(900 + index)
+            windowsByID[cgID] = WindowEntry(
+                cgWindowID: cgID,
+                token: "tabgrp-\(pid)-f\(index)",
+                title: "Finder Window",
+                bounds: CGRect(x: 10, y: 20, width: 500, height: 400),
+                isMinimized: false,
+                isFocused: false
+            )
+            windowOrder.append(cgID)
+        }
+        return AppEntry(
+            pid: pid,
+            bundleIdentifier: "com.apple.finder",
+            appName: "Finder",
+            activationPolicy: .regular,
+            executablePath: "/System/Library/CoreServices/Finder.app",
+            windowsByID: windowsByID,
+            windowOrder: windowOrder,
+            isHidden: false
+        )
+    }
+
     private func makeApp(
         isMinimized: Bool = false,
         minAbsentSince: Date? = nil,

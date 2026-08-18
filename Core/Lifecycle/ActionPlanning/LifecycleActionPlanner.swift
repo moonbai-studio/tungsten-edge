@@ -51,11 +51,18 @@ final class LifecycleActionPlanner {
     /// 前台轴检查，默认 = 新建 NSRunningApplication 实例的即时 isActive 读
     ///（SkyLight 切换后立即翻面，Docs/22 §11 POSTACTIVATE 实证；测试注入桩）。
     private let isAppFrontmost: (pid_t) -> Bool
+    /// 访达是否常驻任务条（设置「任务条常驻访达」）。为 false 时访达 app-* 卡与普通应用
+    /// 一致：前台点击隐藏、非前台点击激活，不再无条件激活（issue #7）。
+    private let isFinderPersistent: () -> Bool
 
-    init(isAppFrontmost: @escaping (pid_t) -> Bool = {
-        NSRunningApplication(processIdentifier: $0)?.isActive == true
-    }) {
+    init(
+        isAppFrontmost: @escaping (pid_t) -> Bool = {
+            NSRunningApplication(processIdentifier: $0)?.isActive == true
+        },
+        isFinderPersistent: @escaping () -> Bool = { true }
+    ) {
         self.isAppFrontmost = isAppFrontmost
+        self.isFinderPersistent = isFinderPersistent
     }
 
     func plan(
@@ -78,7 +85,8 @@ final class LifecycleActionPlanner {
             let appIsFrontmost = isAppFrontmost(record.pid)
             if record.id.rawValue.hasPrefix("app-") {
                 // Finder persistent chip: never hide — always open/focus to match system Dock behavior.
-                if record.bundleIdentifier == "com.apple.finder" {
+                // 仅常驻档生效；关闭常驻后与普通应用一致（前台 → 隐藏，否则激活）。
+                if record.bundleIdentifier == "com.apple.finder", isFinderPersistent() {
                     return PlatformActionRequest(kind: .activateWindow, windowID: id)
                 }
                 return PlatformActionRequest(kind: appIsFrontmost ? .hideApp : .activateWindow, windowID: id)
