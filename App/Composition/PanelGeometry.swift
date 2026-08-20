@@ -10,24 +10,33 @@ enum DockSize: String, CaseIterable {
 
     static let `default` = DockSize.medium
 
+    /// 四档相差 8pt，中档对齐原生 Dock。
+    ///
+    /// **中档 2026-08-16 由 52 改成 54，对齐原生 macOS 26 Dock 实测值**（owner 拍板）。
+    /// 同一轮里图标从 36 跟到 40（`ChipHoverVisual.bareIconSize`），两者要一起改：
+    /// 原生实测 @2x 截图为条高 108px = 54pt、图标上下留白各 21px = 10.5pt，
+    /// 而 (54 − 40) / 2 = 7pt 标称留白 + 苹果图标资源自带的约 18% 透明边距，正好还原 10.5pt。
+    /// 单改一个会让图标/条高比偏离原生的 0.741。
+    ///
+    /// 这推翻了此前「中档必须逐字节等于 2026-07-30 之前」的冻结契约。
     var panelHeight: CGFloat {
         switch self {
-        case .small: return 44
-        case .medium: return 52
-        case .large: return 60
-        case .extraLarge: return 68
+        case .small: return 46
+        case .medium: return 54
+        case .large: return 62
+        case .extraLarge: return 70
         }
     }
 
-    /// 所有随档位缩放的尺寸都乘它。中档恒为 `1.0`，也就是历史观感逐像素不变。
+    /// 所有随档位缩放的尺寸都乘它。中档恒为 `1.0`。
     var scale: CGFloat { panelHeight / DockSize.medium.panelHeight }
 
     var title: String {
         switch self {
-        case .small: return "小"
-        case .medium: return "中"
-        case .large: return "大"
-        case .extraLarge: return "特大"
+        case .small: return String(localized: "Small")
+        case .medium: return String(localized: "Medium")
+        case .large: return String(localized: "Large")
+        case .extraLarge: return String(localized: "Extra Large")
         }
     }
 
@@ -85,8 +94,9 @@ struct PanelScreenGeometry: Equatable {
 }
 
 enum PanelGeometry {
-    static let windowTitleTooltipGap: CGFloat = 8
     static let windowTitleTooltipScreenMargin: CGFloat = 8
+    /// 阴影留白**不随档位缩放**：气泡的阴影 token 本身是固定的，跟着缩会动到定稿的观感。
+    /// 视图侧和这里必须用同一个值（视图 `.padding(它)`，这里再减回去）。
     static let windowTitleTooltipShadowPadding: CGFloat = 8
 
     static func dockTargetFrame(
@@ -161,9 +171,12 @@ enum PanelGeometry {
 
     /// Window-title tooltip panel frame. The panel includes transparent padding for its SwiftUI
     /// shadow, while the visible bubble stays 8pt above the pill and 8pt inside the screen edges.
+    /// `tipGap` = 气泡**尖端**到锚点顶边的距离，随档位缩放，由调用方从
+    /// `WindowTitleTooltipStyle.tipGap` 传进来——系数只在样式那一处算，这里不再算第二遍。
     static func windowTitleTooltipTargetFrame(
         anchorVisibleRect: CGRect,
         size: CGSize,
+        tipGap: CGFloat,
         on screen: PanelScreenGeometry
     ) -> CGRect {
         let inset = windowTitleTooltipShadowPadding
@@ -173,7 +186,7 @@ enum PanelGeometry {
         let maxVisibleX = screen.frame.maxX - windowTitleTooltipScreenMargin - visibleWidth
         let desiredVisibleX = anchorVisibleRect.midX - visibleWidth / 2
         let visibleX = min(max(desiredVisibleX, minVisibleX), maxVisibleX)
-        let desiredVisibleY = anchorVisibleRect.maxY + windowTitleTooltipGap
+        let desiredVisibleY = anchorVisibleRect.maxY + tipGap
         let maxVisibleY = screen.topUsableY - visibleHeight
         let visibleY = min(desiredVisibleY, maxVisibleY)
 

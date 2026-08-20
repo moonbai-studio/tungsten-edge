@@ -6,7 +6,7 @@ enum WindowDisplayTitle {
         let title = rawTitle.flatMap { title in
             title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : title
         } ?? fallbackName
-        return title == "macos-dock-cc-v2" ? "任务条" : title
+        return title == "macos-dock-cc-v2" ? String(localized: "Taskbar") : title
     }
 }
 

@@ -20,34 +20,26 @@ enum HoverStyle: String, CaseIterable {
 
     static let `default` = HoverStyle.standard
 
-    /// 悬停是否产生视觉变化。chip 视图统一用它做判据，不各自比 case；
-    /// 菜单的勾选态也读它（`.on` ⟺ `isExpressive`）。
+    /// 悬停是否产生**表现型**变化（名字气泡、文件夹格放大）。chip 视图统一用它做判据，
+    /// 不各自比 case；菜单的勾选态也读它（`.on` ⟺ `isExpressive`）。
     var isExpressive: Bool { self == .standard }
-}
 
-/// 外观档位（设置窗口「通用 → 外观」）。作用于**整个 app**：任务条、抽屉、各弹窗、
-/// 右键菜单、状态栏菜单、设置窗口一起变（owner 2026-08-06）。
-///
-/// 实现上只翻一个开关 `NSApp.appearance`（映射见 `DockTheme.swift` 的 `nsAppearance`），
-/// 因为主题取值链路是隐式的：`DockThemeTokens.resolve` 读 SwiftUI 的 `\.colorScheme`，
-/// 而那个值和毛玻璃 `NSVisualEffectView` 的材质**都**来自窗口的 `effectiveAppearance`。
-///
-/// rawValue 会落进 UserDefaults：**改名 = 把所有老用户重置回跟随系统**（同 `DockSize`）。
-enum AppearanceMode: String, CaseIterable {
-    case system
-    case light
-    case dark
-
-    static let `default` = AppearanceMode.system
-
-    var title: String {
-        switch self {
-        case .system: return "跟随系统"
-        case .light: return "浅色"
-        case .dark: return "深色"
-        }
+    /// 安静档的悬停反馈：整块**轻微放大**。
+    ///
+    /// **标准档恒 false**——那一档的反馈是名字气泡，owner 2026-08-17 要求标准档一个像素不变。
+    /// 加这个是因为安静档原本**一点反馈都没有**：2026-08-16 把应用名挪进气泡时顺手冻结了
+    /// chip 的悬停几何（图标不缩、药丸不让位），标准档还剩气泡，安静档就归零了。
+    ///
+    /// 形式先做过「不改尺寸的淡底色」（`Docs/27` 早年预判的那条），owner 2026-08-17 实机
+    /// 看完说「一般」，改成轻微放大。**放大在今天是安全的**：当年否掉它的理由是「改尺寸会让
+    /// 整行重排」，而那说的是把应用名写在图标下方、名字一冒出来卡就变宽的老布局；
+    /// 名字挪进气泡之后两档都不再重排，且这里用的是 `scaleEffect`（纯渲染变换，不改布局）。
+    ///
+    func showsQuietHoverFeedback(isHovering: Bool) -> Bool {
+        !isExpressive && isHovering
     }
 }
+
 
 @MainActor
 final class AppSettingsStore: ObservableObject {
@@ -68,8 +60,6 @@ final class AppSettingsStore: ObservableObject {
     @Published private(set) var dockSize: DockSize
     /// 悬停效果档位。只影响条内 chip 的悬停视觉，静息布局逐像素不变（因此无需 relayout）。
     @Published private(set) var hoverStyle: HoverStyle
-    /// 浅 / 深色档位，默认跟随系统。应用方式见 `AppearanceMode`。
-    @Published private(set) var appearanceMode: AppearanceMode
     /// 最大化窗口避让任务条（菜单「最大化窗口避开任务条」）。**默认关**——
     /// 这个功能会真的去改写别人应用的窗口尺寸，没主动选过的人不该被改。
     @Published private(set) var windowLiftEnabled: Bool
@@ -82,6 +72,10 @@ final class AppSettingsStore: ObservableObject {
     /// 免得已经留过邮箱的人被同一段话反复看见。**不是**「是否为原始用户」的凭据——
     /// 那个凭据是 `InstallationRecord` 的首装时间戳，以及服务端那份名单。
     @Published private(set) var hasSubscribed: Bool
+    /// 这台机器已经看过首次运行的欢迎引导（建议隐藏系统 Dock 那一屏）。
+    /// 一次性显示状态，和「有没有真的去隐藏」无关——用户点了「以后再说」也算看过，
+    /// 不再骚扰；想改的人走状态栏菜单里那条系统 Dock 滑杆。
+    @Published private(set) var hasSeenWelcome: Bool
     @Published private(set) var nativeDockAutoHideDelay: Double
     @Published private(set) var edgeAutoHideDelay: Double
     /// 「自动隐藏」切换（菜单/全局快捷键）从常驻恢复时要回到的延迟值。
@@ -125,13 +119,14 @@ final class AppSettingsStore: ObservableObject {
         windowLiftEnabled = defaults.bool(forKey: Keys.windowLiftEnabled)
         // 同样有意不进 register：缺键即 false = 还没订阅过。
         hasSubscribed = defaults.bool(forKey: Keys.hasSubscribed)
+        // 同上：缺键即 false = 还没看过欢迎引导。
+        hasSeenWelcome = defaults.bool(forKey: Keys.hasSeenWelcome)
         fullscreenIntentEnabled = defaults.bool(forKey: Keys.fullscreenIntentEnabled)
         finderAlwaysInDock = defaults.bool(forKey: Keys.finderAlwaysInDock)
         // 坏值（手改过、旧版本残留、类型不对）一律回退中档并**立刻重写**，
         // 否则每次启动都要重新走一遍回退，且 UI 上勾选的档位和存的值对不上。
         dockSize = DockSize(rawValue: defaults.string(forKey: Keys.dockSize) ?? "") ?? .default
         hoverStyle = HoverStyle(rawValue: defaults.string(forKey: Keys.hoverStyle) ?? "") ?? .default
-        appearanceMode = AppearanceMode(rawValue: defaults.string(forKey: Keys.appearanceMode) ?? "") ?? .default
         let nativeDelay = Self.sanitizedStoredDelay(
             defaults.object(forKey: Keys.nativeDockAutoHideDelay),
             fallback: Self.defaultNativeDockAutoHideDelay
@@ -160,7 +155,6 @@ final class AppSettingsStore: ObservableObject {
         }
         defaults.set(dockSize.rawValue, forKey: Keys.dockSize)
         defaults.set(hoverStyle.rawValue, forKey: Keys.hoverStyle)
-        defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode)
         defaults.set(nativeDelay, forKey: Keys.nativeDockAutoHideDelay)
         defaults.set(lastEnabledNativeDockAutoHideDelay, forKey: Keys.nativeDockAutoHideLastEnabledDelay)
         defaults.set(edgeDelay, forKey: Keys.edgeAutoHideDelay)
@@ -179,12 +173,6 @@ final class AppSettingsStore: ObservableObject {
         defaults.set(value.rawValue, forKey: Keys.hoverStyle)
     }
 
-    func setAppearanceMode(_ value: AppearanceMode) {
-        guard appearanceMode != value else { return }
-        appearanceMode = value
-        defaults.set(value.rawValue, forKey: Keys.appearanceMode)
-    }
-
     func setShowShelf(_ value: Bool) {
         guard showShelf != value else { return }
         showShelf = value
@@ -201,6 +189,12 @@ final class AppSettingsStore: ObservableObject {
         guard hasSubscribed != value else { return }
         hasSubscribed = value
         defaults.set(value, forKey: Keys.hasSubscribed)
+    }
+
+    func setHasSeenWelcome(_ value: Bool) {
+        guard hasSeenWelcome != value else { return }
+        hasSeenWelcome = value
+        defaults.set(value, forKey: Keys.hasSeenWelcome)
     }
 
     func setFullscreenIntentEnabled(_ value: Bool) {
@@ -334,12 +328,15 @@ private enum Keys {
     static let showShelf = "com.tungsten.edge.showShelf"
     static let dockSize = "com.tungsten.edge.dockSize"
     static let hoverStyle = "com.tungsten.edge.hoverStyle"
-    static let appearanceMode = "com.tungsten.edge.appearanceMode"
+        // `com.tungsten.edge.appearanceMode` 已随深色模式一起删除（owner 2026-08-16）。
+        // **键留成孤儿，不读不写不删**——回退这轮改动时还读得回用户原来的选择。
     static let windowLiftEnabled = "com.tungsten.edge.windowLiftEnabled"
     static let fullscreenIntentEnabled = "com.tungsten.edge.fullscreenIntentEnabled"
     static let finderAlwaysInDock = "com.tungsten.edge.finderAlwaysInDock"
     /// ⚠️ 这个键名进了用户磁盘。改名 = 所有已订阅的人重新看到订阅区块。
     static let hasSubscribed = "com.tungsten.edge.hasSubscribed"
+    /// ⚠️ 同上：改名 = 所有老用户下次启动被欢迎引导再拦一次。
+    static let hasSeenWelcome = "com.tungsten.edge.hasSeenWelcome"
     static let nativeDockAutoHideEnabled = "com.tungsten.edge.autoHide.nativeDock.enabled"
     static let nativeDockAutoHideDelay = "com.tungsten.edge.autoHide.nativeDock.delay"
     static let nativeDockAutoHideLastEnabledDelay = "com.tungsten.edge.autoHide.nativeDock.lastEnabledDelay"

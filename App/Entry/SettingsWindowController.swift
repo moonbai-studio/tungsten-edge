@@ -66,7 +66,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Tungsten Edge 钨极 设置"
+        window.title = String(localized: "Tungsten Edge Settings")
         window.level = .normal
         window.hidesOnDeactivate = false
         window.isReleasedWhenClosed = false

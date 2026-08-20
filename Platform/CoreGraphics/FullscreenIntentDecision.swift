@@ -179,14 +179,21 @@ struct SpaceSwipeTracker: Equatable {
     }
 }
 
-/// 实验：Control+←/→ 切换空间的预测隐藏（`DOCK_SPACE_INTENT_EXPERIMENT=1`，默认关）。
+/// Control+←/→ 切换空间的预测隐藏。**已转正、默认开**，关掉用 `DOCK_SPACE_INTENT=0`
+///（判定在 `FullscreenIntentMonitor` 的 `spaceSwitchEnabled`）。
 ///
-/// 只回答一个问题：方向键按下比空间真正切换早约 `548–575ms`（已实测归档），这个提前量
+/// ⚠️ 本段曾长期写着「实验、`DOCK_SPACE_INTENT_EXPERIMENT=1`、默认关、不判断相邻空间」。
+/// 那是 2026-08-09 立项时的描述，**早已作废**：那个环境变量全仓库没有任何代码在读，
+/// 相邻空间闸也已经补上并成为硬性条件。2026-08-19 修正——过期成这样的注释会让下一个
+/// 来查「全屏切换闪烁」的人直接得出「这功能根本没启用」的错误结论。
+///
+/// 立项时要回答的问题：方向键按下比空间真正切换早约 `548–575ms`（已实测归档），这个提前量
 /// 够不够消掉「普通桌面 → 全屏空间」的闪烁。已实测走死的两条是 managed-space 预测
 /// （只早约 30ms）和快速 AX 探测（空间通知后 0.2–1ms），都晚于 WindowServer 的过渡快照。
 ///
-/// **刻意不判断相邻空间是不是全屏空间**——那是通过之后才补的部分，对本实验的结论没有贡献。
-/// 因此实验期在两个普通桌面之间按方向键也会先藏一下，属于预期行为。
+/// **相邻空间闸是硬性条件**：只有目标方向的相邻空间确实是全屏空间才预测，否则两个普通桌面
+/// 之间按方向键会白藏一下。这道闸在 `FullscreenIntentMonitor` 里就判掉了
+/// （`SLSCopyManagedDisplaySpaces`，按显示器 UUID 匹配，不能按数组顺序）。
 enum FullscreenSpaceSwitchDecision {
     static let leftArrowKeyCode = CGKeyCode(123)
     static let rightArrowKeyCode = CGKeyCode(124)

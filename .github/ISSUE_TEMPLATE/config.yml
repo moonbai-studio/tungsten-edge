@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Download / 下载
+    url: https://tungstenedge.app
+    about: Builds live on the official website, not on GitHub Releases. / 安装包在官网发布，GitHub 上只有源码。
+  - name: First launch & Accessibility permission / 首次启动与权限
+    url: https://github.com/moonbai-studio/tungsten-edge#one-more-step-after-opening-grant-accessibility-permission
+    about: The app is not notarized yet, and it needs Accessibility permission. Read this first. / 应用尚未公证，且需要辅助功能权限，请先看这里。

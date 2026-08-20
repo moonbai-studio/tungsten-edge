@@ -102,6 +102,70 @@ enum DockShape {
     static let panelCornerRadius: CGFloat = 16
 }
 
+/// 中转格图标的实心配色。
+///
+/// **不能用 `DockTint`**：那个只有黑 / 白两种基色，而这块要的是一张「看起来像原生应用图标」
+/// 的彩色瓷砖。三档候选放在这里而不是主题表里——它们是同一个位置的互斥选项，不是三个独立数值。
+enum DockShelfTileStyle: String, CaseIterable {
+    /// 深色收纳袋 + 露出上沿的白纸，矢量自绘（`ShelfTrayArt`）。owner 2026-08-16 指定的样子。
+    case tray
+    /// 石墨渐变 + 白托盘符号。tray 画得不像时的退路（owner 说的「先用石墨灰」）。
+    case graphite
+    /// 系统蓝渐变 + 白符号。像一枚第一方工具图标，和右边的文件夹区同色系。
+    case blue
+    /// 近白渐变 + 深灰符号。最不抢眼，浅色壁纸下靠符号和投影立住。
+    case light
+
+    static func resolve(_ raw: String?) -> DockShelfTileStyle {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              let style = DockShelfTileStyle(rawValue: raw) else { return .tray }
+        return style
+    }
+
+    /// 是不是那张自绘插画（`tray`）。其余三档都是「纯色瓷砖 + SF 符号」。
+    var isIllustration: Bool { self == .tray }
+
+    /// (上, 下) 渐变端点与符号色，全部是不透明 RGB。`tray` 不走这条路，返回它自己的近似色
+    /// 只为让「符号与底对比够」这类不变量对四档统一成立。
+    var colors: (top: DockRGB, bottom: DockRGB, glyph: DockRGB) {
+        switch self {
+        case .tray:
+            return (DockRGB(0.30, 0.30, 0.30), DockRGB(0.19, 0.19, 0.19), DockRGB(0.97, 0.97, 0.97))
+        case .graphite:
+            return (DockRGB(0.45, 0.47, 0.51), DockRGB(0.27, 0.29, 0.33), DockRGB(1, 1, 1))
+        case .blue:
+            return (DockRGB(0.36, 0.66, 0.98), DockRGB(0.13, 0.45, 0.90), DockRGB(1, 1, 1))
+        case .light:
+            return (DockRGB(0.99, 0.99, 1.00), DockRGB(0.88, 0.89, 0.92), DockRGB(0.26, 0.28, 0.32))
+        }
+    }
+
+    /// 投放命中时整块提亮（原来是"底板加浓"，实心块上要反过来）。
+    static let dropTargetLift: Double = 0.12
+}
+
+/// 不透明 RGB。故意最小化——只有中转格瓷砖用得到，别拿它去替代 `DockTint`。
+struct DockRGB: Equatable {
+    let red: Double
+    let green: Double
+    let blue: Double
+
+    init(_ red: Double, _ green: Double, _ blue: Double) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
+
+    /// 朝白色插值，用于投放命中的提亮。
+    func lightened(by amount: Double) -> DockRGB {
+        let t = min(max(amount, 0), 1)
+        return DockRGB(red + (1 - red) * t, green + (1 - green) * t, blue + (1 - blue) * t)
+    }
+
+    /// 感知亮度（Rec. 709）。只给单测用，用来断言符号和瓷砖别撞到一起。
+    var luminance: Double { 0.2126 * red + 0.7152 * green + 0.0722 * blue }
+}
+
 // MARK: - Tokens
 
 struct DockThemeTokens: Equatable {
@@ -152,8 +216,14 @@ struct DockThemeTokens: Equatable {
 
     // MARK: 多窗口 chip 的标题胶囊
 
-    /// 卡片底。**浅色必须翻成加黑**：浅色玻璃上「加白」等于消失，只剩描边孤零零留着，
-    /// 于是每张卡看起来就是一个空心方格——用户抱怨的「方格」有一半来自这里。
+    /// 卡片底。
+    ///
+    /// **方向必须和文字相反。** 底板是透的、亮度跟着**壁纸**走，而文字颜色是固定的黑；
+    /// 两者同向就等于把对比度抹平。2026-08-16 之前这里是「加黑 0.05」——当年为了
+    /// 「让卡看起来像张卡」调的，不是为了读得清，正好同向。现在是 owner 从
+    /// 0.10 / 0.12 / 0.13 三次实机对比里定下的加白 0.13。
+    ///
+    /// 卡片的「像张卡」由 `chipPillRimTop` 那圈描边承担，不靠填充。
     let chipPillFill: DockTintPair
     let chipPillRimTop: DockTintPair
     let chipPillRimBottom: DockTint
@@ -168,6 +238,13 @@ struct DockThemeTokens: Equatable {
     let labelHover: DockTint
     /// 标题胶囊下方的应用名副标题。
     let labelSubtitle: DockTint
+    /// **裸文字**（没有药丸兜底的那些）的描边光晕：悬停冒出的应用名、图标卡悬停标题、
+    /// 抽屉图标悬停名、中转站悬停标签、固定文件夹名。
+    ///
+    /// 颜色取文字的**反方向**——深色列黑光晕托白字、浅色列白光晕托黑字，
+    /// 和 macOS 自己给桌面图标标签的做法一样。`y = 0`：要的是包住字的一圈，不是投影。
+    /// 药丸**里面**的窗口标题不用它，那里靠药丸底解决，两个手段叠加会让小字发糊。
+    let labelHalo: DockShadow
 
     // MARK: 指示器
 
@@ -176,16 +253,12 @@ struct DockThemeTokens: Equatable {
     /// 任务条分区之间的竖分隔线。
     let zoneDivider: DockTint
 
-    // MARK: 图标
-
-    /// 所有 app 图标 / 文件夹封面 / 中转格底板共用的投影。
-    let iconShadow: DockShadow
-
     // MARK: 中转格
 
-    let shelfPlateFill: DockTintPair
-    let shelfPlateRim: DockTintPair
-    let shelfGlyph: DockTint
+    /// 中转格瓷砖的配色。**必须不透明**——它是条上唯一一个不是应用图标的 chip，
+    /// 半透明的话玻璃底下一暗就消失（owner 2026-08-16 报过）。见 `ShelfChip.shelfIcon`。
+    /// 用 `DOCK_SHELF_TILE=blue|graphite|light` 现场换档，不用重编译。
+    let shelfTile: DockShelfTileStyle
     /// 投放命中时底板外扩的光晕。
     let shelfDropGlow: DockTint
 
@@ -217,15 +290,23 @@ struct DockThemeTokens: Equatable {
 
     // MARK: 窗口标题 tooltip
 
-    /// 叠在 `.ultraThinMaterial` 上的染色层。深色是加黑压暗，**浅色要反过来加白**。
-    let tooltipTint: DockTint
+    /// 气泡的底板。**不是 `DockTint`**：白/黑两种基色调不出「近白但不是纯白」。
+    ///
+    /// 数值是解出来的，不是调出来的。同一颗原生气泡在两种背景上的读数：
+    /// 纯黑底 **173**、绿壁纸（约 145）底 **216**。设 `读数 = a·L + (1-a)·背景`：
+    /// `173 = a·L`，`216 = 173 + (1-a)·145` → **a = 0.70，L = 246**。
+    ///
+    /// 也就是说原生是**一块近白的板、透三成**。中间走过一次弯路：只拿到黑底那一个读数时，
+    /// 我把 173 当成了它的本色，得出「不透明的中性灰」——方向正好反了。**一个背景解不出
+    /// 两个未知数**，以后再量这类半透明面，必须取两种背景。
+    let tooltipPlate: DockRGB
+    /// 见 `tooltipPlate`：0.70 = 透三成背景。
+    let tooltipPlateOpacity: Double
+    /// 气泡描边。**必须比填充更亮**——这是玻璃的镜面边，也是「利落」的来源；
+    /// 反成暗边等于没有边，气泡会化在背景里（2026-08-17 实测原生剖面）。
     let tooltipRim: DockTint
     let tooltipText: DockTint
     let tooltipShadow: DockShadow
-
-    // MARK: 拖动浮动副本
-
-    let carrierShadow: DockShadow
 
     /// 这一套值到底画不画厚度层。**深色必须是 `false`**——不是"画一层全透明的"，而是
     /// 整层根本不进视图树。`.blur(radius: 0)` 在 SwiftUI 里仍可能触发离屏渲染，
@@ -243,77 +324,17 @@ struct DockThemeTokens: Equatable {
     }
 }
 
-// MARK: - 深色（冻结：逐项 = 改造前散落在各视图里的字面值）
+// MARK: - 唯一那套主题值
 
 extension DockThemeTokens {
-    static let dark = DockThemeTokens(
-        panelRimTop: .white(0.15),
-        panelRimBottom: .white(0.15),
-        panelRimHighlighted: .white(0.45),
-        panelRimLineWidth: 0.5,
-        panelRimHighlightedLineWidth: 1,
-        // 深色不画厚度层（2026-07-30 冻结）：全 0 = 渲染上等价于这一层不存在。
-        panelInnerHighlight: .white(0),
-        panelInnerHighlightWidth: 0,
-        panelInnerHighlightBlur: 0,
-        panelInnerShadow: .black(0),
-        panelInnerShadowWidth: 0,
-        panelInnerShadowBlur: 0,
-        panelBackdropSaturation: 1.0,
-        stripShadow: DockShadow(tint: .black(0.35), radius: 15, y: 8),
-        popupShadow: DockShadow(tint: .black(0.35), radius: 12, y: 5),
-        panelMaterial: .popover,
-
-        chipPillFill: DockTintPair(normal: .white(0.08), emphasized: .white(0.14)),
-        chipPillRimTop: DockTintPair(normal: .white(0.15), emphasized: .white(0.25)),
-        chipPillRimBottom: .white(0.02),
-
-        labelActive: .white(0.9),
-        labelInactive: .white(0.6),
-        labelHover: .white(0.85),
-        labelSubtitle: .white(0.65),
-
-        runningDot: .white(0.85),
-        zoneDivider: .white(0.18),
-
-        iconShadow: DockShadow(tint: .black(0.22), radius: 3, y: 1),
-
-        shelfPlateFill: DockTintPair(normal: .white(0.12), emphasized: .white(0.28)),
-        shelfPlateRim: DockTintPair(normal: .white(0.18), emphasized: .white(0.4)),
-        shelfGlyph: .white(0.9),
-        shelfDropGlow: .white(0.25),
-
-        capsuleGlyph: .white(0.72),
-        capsuleStashGlow: .white(0.18),
-
-        folderDropRing: .white(0.9),
-        folderThumbHairline: .white(0.35),
-
-        popupCellLabel: .white(0.9),
-        popupCellHover: .white(0.12),
-        popupPrimaryText: .white(0.8),
-        popupSecondaryText: .white(0.5),
-        backChipFill: .white(0.16),
-        backChipRim: .white(0.2),
-        backChipGlyph: .white(0.85),
-
-        tooltipTint: .black(0.28),
-        tooltipRim: .white(0.18),
-        tooltipText: .white(0.94),
-        tooltipShadow: DockShadow(tint: .black(0.32), radius: 6, y: 2),
-
-        carrierShadow: DockShadow(tint: .black(0.35), radius: 8, y: 4)
-    )
-}
-
-// MARK: - 浅色（第一版保守初值，等 owner 看实机效果拍板）
-
-extension DockThemeTokens {
-    /// 三条取值依据：
-    /// ① **描边**：均匀灰框 → 亮上沿（白 0.60）+ 暗下沿（黑 0.10），对齐苹果原生玻璃的打光方向。
-    /// ② **卡片底 / 底板**：由「加白」翻成「加黑」——浅色下加白等于消失，只剩描边 = 空心方格。
-    /// ③ **阴影**：全线压淡并收进 `radius + |y| ≤ 20` 的预算内，消掉被面板边缘裁出的那道直边。
-    static let light = DockThemeTokens(
+    /// **唯一那套主题值。** 产品固定浅色（owner 2026-08-16 拍板删掉深色模式），
+    /// 所以这里不再有「浅 / 深」两列，名字也不带相对概念——它就是全部。
+    ///
+    /// 前提是 `AppDelegate` 无条件把 `NSApp.appearance` 钉成 `.aqua`：
+    /// `NSVisualEffectView` 和 Liquid Glass 跟的是**窗口的 effectiveAppearance**，
+    /// 不看 SwiftUI 环境。系统处于深色而不强制的话，材质会渲染成深色、而这张表是浅色数值，
+    /// 结果就是「文字翻了、底板没翻」（实测同屏同壁纸，底板亮度 37.7 对 143.2）。
+    static let standard = DockThemeTokens(
         panelRimTop: .white(0.6),
         panelRimBottom: .black(0.1),
         panelRimHighlighted: .black(0.35),
@@ -337,7 +358,8 @@ extension DockThemeTokens {
         // 通透度候选待 owner 从对照表里指定；在那之前保持 .popover。
         panelMaterial: .popover,
 
-        chipPillFill: DockTintPair(normal: .black(0.05), emphasized: .black(0.09)),
+        // owner 2026-08-16 实机比过 0.10 / 0.12 / 0.13，定 0.13。悬停态 ×1.4。
+        chipPillFill: DockTintPair(normal: .white(0.13), emphasized: .white(0.182)),
         chipPillRimTop: DockTintPair(normal: .white(0.55), emphasized: .white(0.7)),
         chipPillRimBottom: .black(0.1),
 
@@ -345,15 +367,12 @@ extension DockThemeTokens {
         labelInactive: .black(0.45),
         labelHover: .black(0.75),
         labelSubtitle: .black(0.55),
+        labelHalo: DockShadow(tint: .white(0.70), radius: 1.5, y: 0),
 
         runningDot: .black(0.5),
         zoneDivider: .black(0.12),
 
-        iconShadow: DockShadow(tint: .black(0.12), radius: 2, y: 1),
-
-        shelfPlateFill: DockTintPair(normal: .black(0.05), emphasized: .black(0.12)),
-        shelfPlateRim: DockTintPair(normal: .black(0.1), emphasized: .black(0.28)),
-        shelfGlyph: .black(0.65),
+        shelfTile: .tray,
         shelfDropGlow: .black(0.1),
 
         capsuleGlyph: .black(0.55),
@@ -370,11 +389,18 @@ extension DockThemeTokens {
         backChipRim: .black(0.12),
         backChipGlyph: .black(0.75),
 
-        tooltipTint: .white(0.55),
-        tooltipRim: .black(0.1),
+        // 2026-08-17 对着原生截图的边缘剖面定的（黑底、@2x）：
+        // 原生是「0 → 191 → **209** → 173 173 173…」——一圈**比填充更亮**的 1px 高光，
+        // 然后才是填充 173。我们原来是「59 → 157 → 189 → 202」：没有边、填充还偏白，
+        // 于是气泡是「化」在背景里的，owner 说的「不利落 / 软」就是这个。
+        //
+        // 亮边是玻璃的镜面边，和面板描边同一个道理（见 `panelRimTop`），方向不能反。
+        // 246/255 = 0.965，透三成——解方程得来的，见 `tooltipPlate` 的注释。
+        tooltipPlate: DockRGB(0.965, 0.965, 0.968),
+        tooltipPlateOpacity: 0.70,
+        // 起始值，待实测标定（见字段注释里的三个目标点）。
+        tooltipRim: .white(0.45),
         tooltipText: .black(0.85),
-        tooltipShadow: DockShadow(tint: .black(0.14), radius: 5, y: 2),
-
-        carrierShadow: DockShadow(tint: .black(0.16), radius: 6, y: 3)
+        tooltipShadow: DockShadow(tint: .black(0.14), radius: 5, y: 2)
     )
 }

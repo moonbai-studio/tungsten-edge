@@ -1,0 +1,2678 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "\n\nIf simply turning the switch back on works, Tungsten Edge restarts itself and there is nothing else to do; going through the cleanup above means reopening it manually afterwards.\nAlso, windows the taskbar had moved out of its way may sit one taskbar height short — maximizing them once puts them back.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\nIf simply turning the switch back on works, Tungsten Edge restarts itself and there is nothing else to do; going through the cleanup above means reopening it manually afterwards.\nAlso, windows the taskbar had moved out of its way may sit one taskbar height short — maximizing them once puts them back."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n如果直接把开关打开就生效了，钨极会自己重启，不用管；走上面的清理步骤则需要退出后手动重开。\n另外，之前被任务条让开过的窗口可能会矮一条边——重新最大化一次就复原了。"
+          }
+        }
+      }
+    },
+    "%@ (default)": {
+      "comment": "%@ 是应用名，「打开方式」子菜单里的默认应用",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (default)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（默认）"
+          }
+        }
+      }
+    },
+    "%@ failed (status code %d).": {
+      "comment": "%@ 是可执行文件名，%d 是退出码",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ failed (status code %d)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 执行失败（状态码 %d）。"
+          }
+        }
+      }
+    },
+    "About": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        }
+      }
+    },
+    "Accessibility Permission Required": {
+      "comment": "状态栏菜单顶部的警告项，未授权辅助功能时显示",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility Permission Required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辅助功能权限未开启"
+          }
+        }
+      }
+    },
+    "Accessibility Permission Was Revoked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility Permission Was Revoked"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辅助功能权限已失效"
+          }
+        }
+      }
+    },
+    "Accessibility permission required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility permission required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要辅助功能权限"
+          }
+        }
+      }
+    },
+    "Add Folder…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Folder…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加文件夹…"
+          }
+        }
+      }
+    },
+    "Adds a spot on the taskbar for parking files. Dropping a file there doesn’t move or copy it — Tungsten Edge just remembers where it lives.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds a spot on the taskbar for parking files. Dropping a file there doesn’t move or copy it — Tungsten Edge just remembers where it lives."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务条上多一个临时存放文件的格子。拖进去的文件不会被移动或复制，只是记住位置。"
+          }
+        }
+      }
+    },
+    "Advanced": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高级"
+          }
+        }
+      }
+    },
+    "Always": {
+      "comment": "唤醒滑块左端的刻度标记，只有 34pt 宽——不是档位名（档位名是 Always Visible，显示在滑块中间）",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常驻"
+          }
+        }
+      }
+    },
+    "Always Visible": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always Visible"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常驻"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
+          }
+        }
+      }
+    },
+    "Apply “%@” (the Dock will restart)": {
+      "comment": "%@ 是滑块档位名，如 Always Visible / 0.5s",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply “%@” (the Dock will restart)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用「%@」（Dock 会重启一下）"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回上一级"
+          }
+        }
+      }
+    },
+    "Can’t Open Dock Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t Open Dock Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开系统 Dock 设置"
+          }
+        }
+      }
+    },
+    "Can’t Subscribe Right Now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t Subscribe Right Now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法订阅"
+          }
+        }
+      }
+    },
+    "Can’t locate this Finder window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t locate this Finder window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法定位这个访达窗口"
+          }
+        }
+      }
+    },
+    "Can’t read this folder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t read this folder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取文件夹内容"
+          }
+        }
+      }
+    },
+    "Check Again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新检测"
+          }
+        }
+      }
+    },
+    "Check for Updates…": {
+      "comment": "状态栏菜单项",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新…"
+          }
+        }
+      }
+    },
+    "Check for updates automatically": {
+      "comment": "设置窗口「关于」区。自动检查默认开（SUEnableAutomaticChecks），这个开关是它唯一的关闭入口——不给关的后台联网检查比多一个勾选项糟糕得多。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动检查更新"
+          }
+        }
+      }
+    },
+    "Check whether there is a typo.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check whether there is a typo."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查一下是不是打错了。"
+          }
+        }
+      }
+    },
+    "Check your inbox and click the confirmation link to finish subscribing.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your inbox and click the confirmation link to finish subscribing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请到邮箱点击确认链接完成订阅。"
+          }
+        }
+      }
+    },
+    "Check your network connection and try again, or leave your address on tungstenedge.app.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your network connection and try again, or leave your address on tungstenedge.app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查网络连接后重试，也可以到官网 tungstenedge.app 上留邮箱。"
+          }
+        }
+      }
+    },
+    "Clear Shelf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空中转站"
+          }
+        }
+      }
+    },
+    "Close Window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close Window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭窗口"
+          }
+        }
+      }
+    },
+    "Connect to Server…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to Server…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接服务器…"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝"
+          }
+        }
+      }
+    },
+    "Copy Path": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Path"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制路径"
+          }
+        }
+      }
+    },
+    "Couldn’t Change Dock Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Change Dock Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 Dock 设置失败"
+          }
+        }
+      }
+    },
+    "Couldn’t Change Open at Login": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t Change Open at Login"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动设置失败"
+          }
+        }
+      }
+    },
+    "Couldn’t start a new instance of Tungsten Edge: %@\n\nYou can click Retry, or quit and open it manually from your Applications folder.": {
+      "comment": "%@ 是系统返回的错误描述",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start a new instance of Tungsten Edge: %@\n\nYou can click Retry, or quit and open it manually from your Applications folder."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能启动新的钨极实例：%@\n\n可以点“重试”，或者退出后从“应用程序”手动打开。"
+          }
+        }
+      }
+    },
+    "Date Added": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date Added"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加日期"
+          }
+        }
+      }
+    },
+    "Date Modified": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date Modified"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修改日期"
+          }
+        }
+      }
+    },
+    "Debug": {
+      "comment": "调试子菜单标题",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调试"
+          }
+        }
+      }
+    },
+    "Debug Build": {
+      "comment": "版本行后缀，标记这是开发构建而非正式包",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug Build"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发版"
+          }
+        }
+      }
+    },
+    "Dock Settings…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统 Dock 设置…"
+          }
+        }
+      }
+    },
+    "Dock settings can’t be changed directly from a sandboxed environment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock settings can’t be changed directly from a sandboxed environment."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沙箱环境不能直接修改系统 Dock 设置。"
+          }
+        }
+      }
+    },
+    "Dock wake delay": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock wake delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 Dock 唤醒时间"
+          }
+        }
+      }
+    },
+    "Drag apps here": {
+      "comment": "抽屉为空时的提示文字",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag apps here"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将应用拖入抽屉区"
+          }
+        }
+      }
+    },
+    "Drag files here to park them": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag files here to park them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖文件到中转站暂存"
+          }
+        }
+      }
+    },
+    "Export Taskbar Snapshot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Taskbar Snapshot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出任务条快照"
+          }
+        }
+      }
+    },
+    "Extra Large": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extra Large"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "特大"
+          }
+        }
+      }
+    },
+    "Finder is temporarily unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finder is temporarily unavailable"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "访达暂时不可用"
+          }
+        }
+      }
+    },
+    "Force Quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Force Quit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "强制退出"
+          }
+        }
+      }
+    },
+    "Founding Users · Free Forever": {
+      "comment": "⚠️ 与官网 tungstenedge.app 订阅区逐字同源的公开承诺。官网做英文版时必须用同一份英文，不要各写各的。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Founding Users · Free Forever"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始用户，永久免费"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "Go to Folder…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to Folder…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往文件夹…"
+          }
+        }
+      }
+    },
+    "Hide": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏"
+          }
+        }
+      }
+    },
+    "Hide App": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏 App"
+          }
+        }
+      }
+    },
+    "Hide the Dock": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide the Dock"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帮我隐藏"
+          }
+        }
+      }
+    },
+    "Hide the Dock First": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide the Dock First"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先把系统 Dock 收起来"
+          }
+        }
+      }
+    },
+    "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Accessibility, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Accessibility, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已经打开了开关却还是没生效，可能是旧版本留下的授权记录不再匹配当前这份钨极。可以这样重置一次：\n\n1. 先退出钨极——应用还在运行时，列表里的减号是灰的，删不掉。\n2. 在“隐私与安全性 → 辅助功能”里把列表中的 Tungsten Edge 用减号删掉，可能不止一条，都删掉。\n3. 从“应用程序”重新打开钨极，按提示重新添加并打开开关。"
+          }
+        }
+      }
+    },
+    "Invalid Email Address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid Email Address"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮箱地址无效"
+          }
+        }
+      }
+    },
+    "Keep Finder in the taskbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Finder in the taskbar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务条常驻访达"
+          }
+        }
+      }
+    },
+    "Keep in Dock": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep in Dock"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在程序坞中保留"
+          }
+        }
+      }
+    },
+    "Keep maximized windows above the taskbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep maximized windows above the taskbar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化窗口避开任务条"
+          }
+        }
+      }
+    },
+    "Kind": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "种类"
+          }
+        }
+      }
+    },
+    "Large": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大"
+          }
+        }
+      }
+    },
+    "Later": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍后"
+          }
+        }
+      }
+    },
+    "Leave your email address and your license will be sent directly to you. It survives switching devices or reinstalling macOS.": {
+      "comment": "⚠️ 同上，与官网逐字同源。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave your email address and your license will be sent directly to you. It survives switching devices or reinstalling macOS."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请留下邮箱地址，届时授权将直接发送给你，更换设备或重装系统均不会丢失。"
+          }
+        }
+      }
+    },
+    "Lifts the bottom edge of a screen-filling window above the taskbar. This resizes other apps’ windows, so it is off by default.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lifts the bottom edge of a screen-filling window above the taskbar. This resizes other apps’ windows, so it is off by default."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把铺满屏幕的窗口底边抬到任务条上方。这会改动其他应用的窗口尺寸，所以默认关闭。"
+          }
+        }
+      }
+    },
+    "Mark as Messaging App": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark as Messaging App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标记为消息应用"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中"
+          }
+        }
+      }
+    },
+    "Minimize": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimize"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最小化"
+          }
+        }
+      }
+    },
+    "Move Tungsten Edge to Applications": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Tungsten Edge to Applications"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先移到“应用程序”"
+          }
+        }
+      }
+    },
+    "Move to Trash": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Trash"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到废纸篓"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Never": {
+      "comment": "唤醒滑块右端的刻度标记，只有 34pt 宽——不是档位名（档位名是 Never Wake）",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不唤醒"
+          }
+        }
+      }
+    },
+    "Never Wake": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never Wake"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不唤醒"
+          }
+        }
+      }
+    },
+    "New Window": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建窗口"
+          }
+        }
+      }
+    },
+    "No Apps Available": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Apps Available"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无可用应用"
+          }
+        }
+      }
+    },
+    "Not Installed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Installed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非安装位置"
+          }
+        }
+      }
+    },
+    "Not Now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以后再说"
+          }
+        }
+      }
+    },
+    "Nothing to do here — just a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to do here — just a moment."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请稍候，不用操作。"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "Only your email address and first-launch date are sent, to confirm you as a founding user. No marketing email.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only your email address and first-launch date are sent, to confirm you as a founding user. No marketing email."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只发送邮箱地址与首次安装日期，用于确认你的原始用户身份。不发送营销邮件。"
+          }
+        }
+      }
+    },
+    "Open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开"
+          }
+        }
+      }
+    },
+    "Open Applications Folder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Applications Folder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“应用程序”"
+          }
+        }
+      }
+    },
+    "Open Login Items Settings…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Login Items Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开登录项设置…"
+          }
+        }
+      }
+    },
+    "Open Shelf": {
+      "comment": "中文侧 2026-08-18 由「打开中转」统一为「打开中转站」",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开中转站"
+          }
+        }
+      }
+    },
+    "Open System Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统设置"
+          }
+        }
+      }
+    },
+    "Open System Settings and go to Desktop & Dock (on macOS 12, Dock & Menu Bar).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings and go to Desktop & Dock (on macOS 12, Dock & Menu Bar)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请从系统设置进入「桌面与程序坞」（macOS 12 为「程序坞与菜单栏」）。"
+          }
+        }
+      }
+    },
+    "Open With": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open With"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开方式"
+          }
+        }
+      }
+    },
+    "Open at Login": {
+      "comment": "状态栏菜单项，对齐 macOS Dock 右键菜单 Options > Open at Login 的原生说法",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open at Login"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动"
+          }
+        }
+      }
+    },
+    "Open at Login (Pending Approval)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open at Login (Pending Approval)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动（待批准）"
+          }
+        }
+      }
+    },
+    "Open at Login (macOS 13+)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open at Login (macOS 13+)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动（macOS 13+）"
+          }
+        }
+      }
+    },
+    "Open at Login requires macOS 13 or later.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open at Login requires macOS 13 or later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动需要 macOS 13 或更新系统。"
+          }
+        }
+      }
+    },
+    "Open in Finder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in Finder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中打开"
+          }
+        }
+      }
+    },
+    "Permission to control Finder is required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission to control Finder is required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要允许控制访达"
+          }
+        }
+      }
+    },
+    "Pin to Taskbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pin to Taskbar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定到固定区"
+          }
+        }
+      }
+    },
+    "Predict full-screen transitions to prevent taskbar flicker": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Predict full-screen transitions to prevent taskbar flicker"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预测全屏切换，消除任务条闪烁"
+          }
+        }
+      }
+    },
+    "Press ⌥⌘D at any time — that’s macOS’s own shortcut for showing and hiding the Dock. You can also change this later from the Tungsten Edge menu bar item.": {
+      "comment": "⚠️ ⌥⌘D 归 macOS 所有，钨极只把它当纯文字写、绝不注册成 keyEquivalent（会抢掉系统的）。钨极自己的全局热键是 ⌥⇧⌘D，别写混。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press ⌥⌘D at any time — that’s macOS’s own shortcut for showing and hiding the Dock. You can also change this later from the Tungsten Edge menu bar item."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随时按 ⌥⌘D 就能唤回来——这是 macOS 自带的 Dock 显隐快捷键。也可以之后从钨极的状态栏菜单里改。"
+          }
+        }
+      }
+    },
+    "Preview Contents": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview Contents"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览内容"
+          }
+        }
+      }
+    },
+    "Putting the windows it moved back where they were.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Putting the windows it moved back where they were."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在把之前让开过的窗口放回原位。"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出"
+          }
+        }
+      }
+    },
+    "Quit App": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 App"
+          }
+        }
+      }
+    },
+    "Quit Tungsten Edge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Tungsten Edge"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Tungsten Edge 钨极"
+          }
+        }
+      }
+    },
+    "Recent Files": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent Files"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的文件"
+          }
+        }
+      }
+    },
+    "Recent Folders": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent Folders"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的文件夹"
+          }
+        }
+      }
+    },
+    "Remove from Shelf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from Shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移出中转站"
+          }
+        }
+      }
+    },
+    "Remove from Taskbar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from Taskbar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从固定区移除"
+          }
+        }
+      }
+    },
+    "Restart Failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restart Failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重启失败"
+          }
+        }
+      }
+    },
+    "Restarting Tungsten Edge…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restarting Tungsten Edge…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在重启钨极…"
+          }
+        }
+      }
+    },
+    "Restore": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还原"
+          }
+        }
+      }
+    },
+    "Restoring Windows…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring Windows…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在还原窗口…"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Settings…": {
+      "comment": "状态栏菜单项，打开设置窗口",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
+    },
+    "Shelf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中转站"
+          }
+        }
+      }
+    },
+    "Shelf · %d": {
+      "comment": "%d 是中转站里的件数；中转站 chip 的悬停名",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf · %d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中转站 · %d"
+          }
+        }
+      }
+    },
+    "Shelf · %d — drag files here to park them": {
+      "comment": "%d 是中转站里的件数",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf · %d — drag files here to park them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中转站 · %d：拖文件到这里暂存"
+          }
+        }
+      }
+    },
+    "Shelf — drag files here to park them": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shelf — drag files here to park them"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中转站：拖文件到这里暂存"
+          }
+        }
+      }
+    },
+    "Show": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示"
+          }
+        }
+      }
+    },
+    "Show Debug Console": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Debug Console"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示调试台"
+          }
+        }
+      }
+    },
+    "Show Shelf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Shelf"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示中转站"
+          }
+        }
+      }
+    },
+    "Show app name on hover": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show app name on hover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标悬停显示应用名"
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示"
+          }
+        }
+      }
+    },
+    "Small": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小"
+          }
+        }
+      }
+    },
+    "Sort by": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort by"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排序方式"
+          }
+        }
+      }
+    },
+    "Star Tungsten Edge on GitHub — a free way to help it get better.": {
+      "comment": "⚠️ 中文与官网 tungstenedge.app 订阅区下面那句 Star 请求逐字同源，改这里就要同步改官网。调子必须比上面订阅正文更淡——它是顺手帮个忙，不能压过留邮箱的真实理由。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Star Tungsten Edge on GitHub — a free way to help it get better."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 GitHub 点个免费的 Star，支持钨极变得更好。"
+          }
+        }
+      }
+    },
+    "Submitting…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submitting…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交中…"
+          }
+        }
+      }
+    },
+    "Subscribe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscribe"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅"
+          }
+        }
+      }
+    },
+    "Subscribed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscribed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅成功"
+          }
+        }
+      }
+    },
+    "Switch already on but nothing happens?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch already on but nothing happens?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已经打开开关，却还是没反应？"
+          }
+        }
+      }
+    },
+    "System Preferences > Security & Privacy > Privacy > Accessibility": {
+      "comment": "macOS 12 的权限路径，必须与英文系统界面的原词一致",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Preferences > Security & Privacy > Privacy > Accessibility"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统偏好设置的“安全性与隐私 > 隐私 > 辅助功能”"
+          }
+        }
+      }
+    },
+    "System Settings > Privacy & Security > Accessibility": {
+      "comment": "macOS 13+ 的权限路径，必须与英文系统界面的原词一致",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings > Privacy & Security > Accessibility"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置的“隐私与安全性 > 辅助功能”"
+          }
+        }
+      }
+    },
+    "Taskbar": {
+      "comment": "设置窗口的分组名",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taskbar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务条"
+          }
+        }
+      }
+    },
+    "Taskbar Size": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taskbar Size"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务条大小"
+          }
+        }
+      }
+    },
+    "The Dock (⌥⌘D to show/hide)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Dock (⌥⌘D to show/hide)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 Dock（⌥⌘D 显隐）"
+          }
+        }
+      }
+    },
+    "The Dock will restart": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Dock will restart"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dock 会重启一下"
+          }
+        }
+      }
+    },
+    "The email address is not valid.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The email address is not valid."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮箱地址格式无效。"
+          }
+        }
+      }
+    },
+    "The subscription server returned an invalid response.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The subscription server returned an invalid response."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅服务器返回了无效响应。"
+          }
+        }
+      }
+    },
+    "The subscription server returned status code %d.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The subscription server returned status code %d."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅服务器返回状态码 %d。"
+          }
+        }
+      }
+    },
+    "This Finder window isn’t supported": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Finder window isn’t supported"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持此访达窗口"
+          }
+        }
+      }
+    },
+    "This address is already on the list. Your license will be sent straight to it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This address is already on the list. Your license will be sent straight to it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个邮箱已经在名单里，将来的授权会直接发给你。"
+          }
+        }
+      }
+    },
+    "This copy is running from a temporary or read-only location.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This copy is running from a temporary or read-only location."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前副本位于临时或只读位置。"
+          }
+        }
+      }
+    },
+    "This folder is empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This folder is empty"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹是空的"
+          }
+        }
+      }
+    },
+    "This sets the Dock to hide itself and stay hidden, so it won’t pop up when you move the pointer to the bottom edge. The Dock restarts, so the screen will flash once.": {
+      "comment": "「不唤醒」是 owner 2026-08-20 定的推荐档位（对应 AppSettingsStore.neverWakeDelay）。文案要把「会闪一下」说在前面——用户没预期的闪烁会被当成 bug。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This sets the Dock to hide itself and stay hidden, so it won’t pop up when you move the pointer to the bottom edge. The Dock restarts, so the screen will flash once."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点下面的按钮，钨极会把系统 Dock 设成自动隐藏，而且鼠标碰到底边也不会把它唤出来。写入时系统 Dock 会重启一下，屏幕会闪一次。"
+          }
+        }
+      }
+    },
+    "This will only take a moment.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This will only take a moment."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "马上就好。"
+          }
+        }
+      }
+    },
+    "Timed out while reading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timed out while reading"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取超时"
+          }
+        }
+      }
+    },
+    "To keep the taskbar from flashing when you switch into full screen, Tungsten Edge has to hide it before your input reaches the app. It therefore watches global left-clicks, key presses and trackpad gestures, and recognizes only four of them: the window’s green button, Control-Command-F, Control-Left/Right arrow, and a three-finger horizontal swipe. What you type is never recorded, logged, or sent anywhere. Turning this off disables the watching completely.": {
+      "comment": "隐私披露。必须与两份 README 里枚举的四种输入保持一致（AGENTS.md 有护栏）。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To keep the taskbar from flashing when you switch into full screen, Tungsten Edge has to hide it before your input reaches the app. It therefore watches global left-clicks, key presses and trackpad gestures, and recognizes only four of them: the window’s green button, Control-Command-F, Control-Left/Right arrow, and a three-finger horizontal swipe. What you type is never recorded, logged, or sent anywhere. Turning this off disables the watching completely."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为了不让任务条在切进全屏时闪一下，钨极需要在你的输入送到应用之前先把它藏起来。因此会监听全局的鼠标左键按下、键盘按下和触控板手势，只识别窗口绿灯、Control-Command-F、Control-左右方向键和三指水平滑动这四种；不记录输入内容，也不写日志、不发送到任何地方。关闭后这些监听会被完全停用。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge": {
+      "comment": "钨极组的分组标题（热键未注册时）。中文界面带品牌后缀「钨极」，英文只用产品名。",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge 钨极"
+          }
+        }
+      }
+    },
+    "Tungsten Edge (⌥⇧⌘D to show/hide)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge (⌥⇧⌘D to show/hide)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge 钨极（⌥⇧⌘D 显隐）"
+          }
+        }
+      }
+    },
+    "Tungsten Edge Settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge 钨极 设置"
+          }
+        }
+      }
+    },
+    "Tungsten Edge and the Dock both live along the bottom edge of the screen, so they cover each other up.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge and the Dock both live along the bottom edge of the screen, so they cover each other up."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极和系统 Dock 都住在屏幕底边，会互相遮挡。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge is ready. One suggestion before you start.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge is ready. One suggestion before you start."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极已经就位。开始用之前，有一条建议。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge is still running. You can try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge is still running. You can try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极还在运行，可以重试。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge just lost its Accessibility permission, so the taskbar has been put away. Turn Tungsten Edge back on in %@.": {
+      "comment": "%@ 同上",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge just lost its Accessibility permission, so the taskbar has been put away. Turn Tungsten Edge back on in %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极刚才失去了辅助功能权限，任务条已经收起。请在%@中重新打开 Tungsten Edge 钨极的开关。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge needs this permission to read and manage your windows.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge needs this permission to read and manage your windows."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge 需要这项权限来读取和操作窗口。"
+          }
+        }
+      }
+    },
+    "Tungsten Edge wake delay": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge wake delay"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge 钨极唤醒时间"
+          }
+        }
+      }
+    },
+    "Tungsten Edge will restart itself once you grant it again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge will restart itself once you grant it again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新授权后钨极会自动重启。"
+          }
+        }
+      }
+    },
+    "Turn On Accessibility Permission": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn On Accessibility Permission"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要开启辅助功能权限"
+          }
+        }
+      }
+    },
+    "Turn on Tungsten Edge in %@. This window closes by itself once you do, and the taskbar finishes starting.": {
+      "comment": "%@ 是系统设置里的权限路径，随 macOS 版本不同",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on Tungsten Edge in %@. This window closes by itself once you do, and the taskbar finishes starting."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在%@中，打开 Tungsten Edge 钨极的开关。开启后本窗口会自动关闭，任务条会继续启动。"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        }
+      }
+    },
+    "Version %@ (%@)": {
+      "comment": "%@ 依次是版本号与构建号",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@ (%@)"
+          }
+        }
+      }
+    },
+    "Version (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 (%@)"
+          }
+        }
+      }
+    },
+    "Want the Dock back?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Want the Dock back?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "想让系统 Dock 回来？"
+          }
+        }
+      }
+    },
+    "Warning": {
+      "comment": "状态栏警告图标的无障碍描述",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "警告"
+          }
+        }
+      }
+    },
+    "When off, Finder no longer stays in the taskbar: once every Finder window is closed, it disappears from the taskbar like any other app. Clicking a windowless Finder card to open your home folder is disabled as well.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When off, Finder no longer stays in the taskbar: once every Finder window is closed, it disappears from the taskbar like any other app. Clicking a windowless Finder card to open your home folder is disabled as well."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，访达不再常驻任务条：没有打开任何访达窗口时，它会和普通应用一样从任务条上消失。\n点击无窗口的访达卡打开个人文件夹的行为也会一并取消。"
+          }
+        }
+      }
+    },
+    "When off, moving the pointer across the taskbar no longer shows app names.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When off, moving the pointer across the taskbar no longer shows app names."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，鼠标划过任务条不再有放大和名称提示。"
+          }
+        }
+      }
+    },
+    "You’re Already Subscribed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’re Already Subscribed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已经订阅过了"
+          }
+        }
+      }
+    },
+    "You’re subscribed. When licensing arrives, it will be sent straight to your inbox.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’re subscribed. When licensing arrives, it will be sent straight to your inbox."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已订阅。将来的授权会直接发送到你的邮箱。"
+          }
+        }
+      }
+    },
+    "macOS ties Accessibility permission to one specific copy of an app. This copy is running from a temporary or read-only location, so turning the switch on will not take effect — and the permission record stays behind in System Settings after the disk image is ejected. Drag Tungsten Edge to your Applications folder and open it from there.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS ties Accessibility permission to one specific copy of an app. This copy is running from a temporary or read-only location, so turning the switch on will not take effect — and the permission record stays behind in System Settings after the disk image is ejected. Drag Tungsten Edge to your Applications folder and open it from there."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 会把辅助功能授权绑定到具体的应用副本上。当前这份钨极跑在一个临时或只读的位置，就算你打开了开关也不会生效，而且卸载磁盘映像后那条授权记录还会留在系统里。请把 Tungsten Edge 拖到“应用程序”文件夹，再从那里重新打开。"
+          }
+        }
+      }
+    },
+    "you@example.com": {
+      "comment": "邮箱输入框的占位示例，两种语言相同",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you@example.com"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "you@example.com"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

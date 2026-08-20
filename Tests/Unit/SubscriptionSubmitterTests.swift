@@ -170,10 +170,10 @@ final class SubscriptionSubmitterTests: XCTestCase {
         var state = SubscriptionSubmitState()
         XCTAssertTrue(state.begin())
         XCTAssertFalse(state.begin(), "已经有一次在飞时必须拒绝")
-        XCTAssertEqual(state.presentation, SubscriptionSubmitPresentation(title: "提交中…", isEnabled: false))
+        XCTAssertEqual(state.presentation, SubscriptionSubmitPresentation(title: String(localized: "Submitting…"), isEnabled: false))
 
         state.finish()
-        XCTAssertEqual(state.presentation, SubscriptionSubmitPresentation(title: "订阅", isEnabled: true))
+        XCTAssertEqual(state.presentation, SubscriptionSubmitPresentation(title: String(localized: "Subscribe"), isEnabled: true))
         XCTAssertTrue(state.begin())
     }
 
@@ -183,7 +183,9 @@ final class SubscriptionSubmitterTests: XCTestCase {
     /// 进名单的。少了这句，用户会以为已经完事，名单里却永远停在 unactivated。
     func testCreatedAlertTellsUserToConfirmByEmail() {
         let content = SubscriptionAlertContent(outcome: .created)
-        XCTAssertTrue(content.message.contains("确认"), content.message)
+        // 语言无关地锁住「必须提确认邮件」：中文说「确认」，英文说 confirmation。
+        let lowered = content.message.lowercased()
+        XCTAssertTrue(lowered.contains("确认") || lowered.contains("confirm"), content.message)
         XCTAssertFalse(content.isWarning)
         XCTAssertTrue(content.didSubscribe)
     }

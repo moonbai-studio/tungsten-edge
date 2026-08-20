@@ -1,3 +1,76 @@
+# Tungsten Edge v0.8.0
+
+One thing first: **builds now live on the official website, not on GitHub Releases.** Beyond that, this release is five fixes, all clustered around the moment you click — stuttering animations, a sticky-feeling press, the messaging zone getting shoved sideways, and cards that duplicated or vanished.
+
+## ⚠️ Downloads moved to the website
+
+From this release on, compiled builds are published only on the website:
+
+**<https://tungstenedge.app>**
+
+The GitHub repository stays open source and keeps taking issues, but it now holds **source code only** — release pages no longer carry `.dmg` or `.zip` attachments.
+
+What this means for you:
+
+- **If you already have it installed, nothing changes.** Keep using it; there is nothing to do.
+- **The in-app "Check for Updates" has been updated accordingly** — when a new version exists it now takes you to the website instead of a page with no download on it. That alone made this release urgent.
+- **Homebrew users are unaffected.** `brew upgrade --cask tungsten-edge` works as before; only the source of the package changed.
+- **v0.7.7 and earlier stay on GitHub**, so existing links keep working.
+
+If you have posted a download link somewhere, please use this permanent address from now on: **<https://tungstenedge.app/download/latest>** — it always points at the newest build, so old posts will not go stale.
+
+For the record: Tungsten Edge remains GPL-3.0 open source and anyone can build it themselves. What the website provides is the signed, maintained, ready-to-run build.
+
+## Fixed: animations stuttered when you moved the pointer away right after clicking
+
+Click a card and immediately move the pointer away, and both the press rebound and the hover-exit animation would hitch at the start.
+
+The taskbar asks the system which app is frontmost twice a second, and that question was being asked on the main thread — where **an app that looks perfectly healthy can still block it for 200–400 ms**. The animation queued up behind it, so a rebound that should finish in 90 ms was taking 320–405 ms.
+
+That question now runs on a background thread and no longer sits in front of the animation. **The taskbar's refresh rate is unchanged**; it simply stopped occupying the channel that draws.
+
+## Fixed: pressing a card felt sticky
+
+The small scale-down you get when pressing a card used to play on **mouse-up** — meaning the whole animation happened after the click was already over. What you felt was "nothing happens when I press, it moves only when I let go."
+
+It now starts the instant you press. While we were there, three places that had **no press feedback at all** — messaging icons with no main window, icons for apps you have kept in the Dock, and drawer icons — got the same treatment, so all four surfaces now behave alike.
+
+## Improved: minimized windows come back faster
+
+A minimized app is often dozing, and waking it means getting a handle on its window first — which in the slow case waits for the system to enumerate everything. Handles are now cached, so a hit skips that whole round.
+
+## Fixed: the messaging zone got shoved right when clicking a window icon
+
+Clicking a window icon would push everything right of the messaging zone sideways, sometimes producing a second Feishu or WeChat card — the same app appearing in both the messaging zone and the window area at once. The amount of shove varied.
+
+Deciding whether a window belongs to a messaging app needs the app's localized name, and the system call that returns it **occasionally returns empty even for a live process**. Feishu's and WeChat's Chinese names happen to be available only through that call, so the two failed together; QQ, whose name contains `qq`, takes a different path and was never affected — that asymmetry is what led to the cause.
+
+Names now come from a local registry that only ever grows: looked up once, remembered for good.
+
+## Fixed: messaging apps occasionally showed two cards
+
+When reading a window title failed, "could not read" was being treated as "the title is empty", so the same window was taken for a new one and given a second card. Those two states are now distinct.
+
+## Fixed: window cards occasionally vanished
+
+The system sometimes returns an empty window list. That used to read as "every window was closed", so the taskbar released the matching cards — while the windows were in fact still there. An empty list is no longer grounds for releasing anything.
+
+## Install
+
+Download `Tungsten-Edge-0.8.0.dmg` from the website and drag it into Applications: **<https://tungstenedge.app>**
+
+Or use Homebrew:
+
+```
+brew install --cask moonbai-studio/tungsten-edge/tungsten-edge
+```
+
+**On first launch**: this build is not notarized by Apple yet, so macOS will stop it once. Right-click the icon and choose Open (macOS 14 and earlier), or go to System Settings ▸ Privacy & Security and click "Open Anyway" (macOS 15 and later). The website's download section has the full walkthrough with screenshots.
+
+**Accessibility permission is required**: the taskbar reads and manages your windows, and it guides you through granting it on first launch.
+
+---
+
 # Tungsten Edge 钨极 v0.8.0
 
 这一版有一件事必须先说：**安装包以后从官网下载，不再放在 GitHub 上**。除此之外是五处修复，全部集中在「点下去的那一刻」——动画卡顿、按压粘滞、消息区被推来推去、卡片重复或凭空消失。

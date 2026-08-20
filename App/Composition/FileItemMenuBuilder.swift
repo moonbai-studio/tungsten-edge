@@ -43,22 +43,22 @@ enum FileItemMenuBuilder {
         let url = context.url
         let closePopup = context.closePopup
 
-        menu.addItem(ClosureMenuItem("打开") {
+        menu.addItem(ClosureMenuItem(String(localized: "Open")) {
             NSWorkspace.shared.open(url)
             closePopup()
         })
         menu.addItem(openWithItem(url: url, closePopup: closePopup))
-        menu.addItem(ClosureMenuItem("在访达中显示") {
+        menu.addItem(ClosureMenuItem(String(localized: "Show in Finder")) {
             NSWorkspace.shared.activateFileViewerSelecting([url])
             closePopup()
         })
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem("拷贝") {
+        menu.addItem(ClosureMenuItem(String(localized: "Copy")) {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.writeObjects([url as NSURL])
         })
-        menu.addItem(ClosureMenuItem("复制路径") {
+        menu.addItem(ClosureMenuItem(String(localized: "Copy Path")) {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(url.path, forType: .string)
@@ -66,15 +66,15 @@ enum FileItemMenuBuilder {
         if context.pinFolder != nil || context.removeFromShelf != nil {
             menu.addItem(.separator())
             if let pinFolder = context.pinFolder {
-                menu.addItem(ClosureMenuItem("固定到固定区") { pinFolder() })
+                menu.addItem(ClosureMenuItem(String(localized: "Pin to Taskbar")) { pinFolder() })
             }
             if let removeFromShelf = context.removeFromShelf {
-                menu.addItem(ClosureMenuItem("移出中转") { removeFromShelf() })
+                menu.addItem(ClosureMenuItem(String(localized: "Remove from Shelf")) { removeFromShelf() })
             }
         }
         menu.addItem(.separator())
         let onTrashed = context.onTrashed
-        menu.addItem(ClosureMenuItem("移到废纸篓") {
+        menu.addItem(ClosureMenuItem(String(localized: "Move to Trash")) {
             do {
                 try FileManager.default.trashItem(at: url, resultingItemURL: nil)
                 onTrashed?()
@@ -88,7 +88,7 @@ enum FileItemMenuBuilder {
     /// 「打开方式 ▸」子菜单：系统登记的可打开应用，默认应用置顶标注。菜单每次右键现建，
     /// 列表现查（urlsForApplications 本地查询,量级毫秒）。查不到 → 单条置灰「无可用应用」。
     private static func openWithItem(url: URL, closePopup: @escaping () -> Void) -> NSMenuItem {
-        let item = NSMenuItem(title: "打开方式", action: nil, keyEquivalent: "")
+        let item = NSMenuItem(title: String(localized: "Open With"), action: nil, keyEquivalent: "")
         let submenu = NSMenu()
 
         let defaultApp = NSWorkspace.shared.urlForApplication(toOpen: url)
@@ -104,13 +104,15 @@ enum FileItemMenuBuilder {
         }
 
         if apps.isEmpty {
-            let none = NSMenuItem(title: "无可用应用", action: nil, keyEquivalent: "")
+            let none = NSMenuItem(title: String(localized: "No Apps Available"), action: nil, keyEquivalent: "")
             none.isEnabled = false
             submenu.addItem(none)
         }
         for appURL in apps {
             let isDefault = appURL.standardizedFileURL.path == defaultPath
-            let title = isDefault ? "\(displayName(appURL))（默认）" : displayName(appURL)
+            let title = isDefault
+                ? String(format: String(localized: "%@ (default)"), displayName(appURL))
+                : displayName(appURL)
             let appItem = ClosureMenuItem(title) {
                 NSWorkspace.shared.open([url], withApplicationAt: appURL,
                                         configuration: NSWorkspace.OpenConfiguration(),

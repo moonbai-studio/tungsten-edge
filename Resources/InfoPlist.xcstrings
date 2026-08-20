@@ -1,0 +1,60 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "应用显示名。英文环境只用 Tungsten Edge，不带中文品牌名。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungsten Edge"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungsten Edge 钨极"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "应用短名，与 CFBundleDisplayName 保持一致。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungsten Edge"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungsten Edge 钨极"
+          }
+        }
+      }
+    },
+    "NSAppleEventsUsageDescription" : {
+      "comment" : "系统授权弹窗的原文——读取访达窗口所在文件夹时由 macOS 弹出。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungsten Edge uses this to read the folder shown in the current Finder window, so it can display that folder's contents in a quick panel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于读取当前访达窗口所在文件夹，以便显示文件夹内容快捷面板。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -27,8 +27,27 @@ final class ManualPanelHost {
 /// 来约束，把整窗按到下方屏菜单栏正下方 → 任务条/胶囊跑到错误的屏（2026-06-23 三屏 bug 根因；实测 y=970
 /// 被按成 y=857 = 下方屏可用区顶 949 − 窗口高 92）。我们的面板永远手动精确定位、永不盖菜单栏，故直接
 /// 返回原 frame、不让系统二次约束。
-final class NonConstrainingPanel: NSPanel {
+class NonConstrainingPanel: NSPanel {
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         frameRect
     }
+}
+
+/// Liquid Glass is hosted in a non-key floating panel. These private AppKit appearance hooks are
+/// the same narrow override used by native-looking third-party docks to keep the material active.
+final class DockLiquidGlassPanel: NonConstrainingPanel {
+    @objc(_hasActiveAppearance)
+    func bestDockHasActiveAppearance() -> Bool { true }
+
+    @objc(_hasActiveAppearanceIgnoringKeyFocus)
+    func bestDockHasActiveAppearanceIgnoringKeyFocus() -> Bool { true }
+
+    @objc(_hasKeyAppearance)
+    func bestDockHasKeyAppearance() -> Bool { true }
+
+    @objc(_hasMainAppearance)
+    func bestDockHasMainAppearance() -> Bool { true }
+
+    @objc(_hasActiveControls)
+    func bestDockHasActiveControls() -> Bool { true }
 }

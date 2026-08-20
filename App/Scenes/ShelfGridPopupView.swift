@@ -8,14 +8,16 @@ import SwiftUI
 struct ShelfGridPopupView: View {
     @ObservedObject var shelfStore: ShelfStore
     let maxContentHeight: CGFloat
+    /// 底板走不走原生 Liquid Glass。**显式传入、无默认值**（同 `scale` / `hoverStyle`）——
+    /// 每个面板都是独立的 hosting 根视图，漏传就会出现「这个面板是玻璃、旁边那个还是
+    /// 毛玻璃」这种一眼可见的不一致。
+    let usesLiquidGlass: Bool
     var onClosePopup: () -> Void = {}
     var onContentResize: () -> Void = {}
     var onPinFolder: ((URL) -> Void)?
     var isFolderPinned: ((URL) -> Bool)?
 
-    /// 浅 / 深色两套视觉数值（见 `DockThemeTokens`）。
-    @Environment(\.colorScheme) private var colorScheme
-    private var theme: DockThemeTokens { .resolve(colorScheme) }
+    private let theme = DockThemeTokens.standard
 
     @State private var gridHeight: CGFloat = 0
 
@@ -31,11 +33,9 @@ struct ShelfGridPopupView: View {
         let availableGridHeight = min(max(140, maxContentHeight), Style.maxGridHeight)
 
         ZStack(alignment: .bottomLeading) {
-            DockVisualEffectView(material: theme.effectivePanelMaterial)
-                .dockBackdropSaturation(theme.effectiveBackdropSaturation)
-                .padding(-2)
-                .clipShape(RoundedRectangle(cornerRadius: DockShape.panelCornerRadius, style: .continuous))
-                .ignoresSafeArea()
+            DockPanelBackdrop(theme: theme,
+                              cornerRadius: DockShape.panelCornerRadius,
+                              usesLiquidGlass: usesLiquidGlass)
 
             Group {
                 if gridHeight > availableGridHeight + 0.5 {
@@ -47,10 +47,10 @@ struct ShelfGridPopupView: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: DockShape.panelCornerRadius, style: .continuous))
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: DockShape.panelCornerRadius, style: .continuous)
-                .strokeBorder(theme.panelRimStyle, lineWidth: theme.panelRimLineWidth)
-        }
+        .dockPanelRim(cornerRadius: DockShape.panelCornerRadius,
+                      style: theme.panelRimStyle,
+                      lineWidth: theme.panelRimLineWidth,
+                      usesLiquidGlass: usesLiquidGlass)
         // 淡入淡出由协调器在 AppKit 层做（panel.alphaValue）,内容层不另加（同 FolderGridPopupView）。
         // 阴影延伸(radius+|y|)必须 ≤ shadowPadding(20)（AGENTS 护栏,同文件夹弹窗）。
         .dockShadow(theme.popupShadow)
@@ -62,7 +62,7 @@ struct ShelfGridPopupView: View {
     private func gridBody(entries: [FolderContentsLoader.Entry], contentWidth: CGFloat, columnCount: Int) -> some View {
         VStack(spacing: 0) {
             if entries.isEmpty {
-                Text("拖文件到中转格暂存")
+                Text("Drag files here to park them")
                     .font(.system(size: Style.labelSize))
                     .foregroundStyle(theme.popupSecondaryText.color)
                     .frame(maxWidth: .infinity)

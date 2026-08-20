@@ -28,5 +28,14 @@
   <string>NSApplication</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>用于读取当前访达窗口所在文件夹，以便显示文件夹内容快捷面板。</string>
+  <!-- Sparkle 自动更新。SUFeedURL 一旦 404，所有已安装用户的自动更新静默失效；
+       SUPublicEDKey 对应的私钥只在 owner 的登录钥匙串里，丢了不可恢复。见 Docs/29。 -->
+  <key>SUFeedURL</key>
+  <string>https://tungstenedge.app/appcast.xml</string>
+  <key>SUPublicEDKey</key>
+  <string>oOwdzOmmoDnopf5WceY+Ts8l3fEFK2zr3aFKc76uFuc=</string>
+  <!-- 默认自动检查。关闭入口在设置窗口「关于」区——不给关的后台联网检查比多一个勾选项糟糕。 -->
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
 </dict>
 </plist>

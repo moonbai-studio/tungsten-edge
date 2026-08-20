@@ -27,11 +27,11 @@ extension LauncherMembershipItem {
         ).map { item in
             switch item {
             case let .keep(isChecked):
-                return LauncherMembershipItem(label: "在程序坞中保留", isChecked: isChecked) {
+                return LauncherMembershipItem(label: String(localized: "Keep in Dock"), isChecked: isChecked) {
                     controller.setKept(bundleID, enabled: !isChecked)
                 }
             case let .messaging(isChecked):
-                return LauncherMembershipItem(label: "标记为消息应用", isChecked: isChecked) {
+                return LauncherMembershipItem(label: String(localized: "Mark as Messaging App"), isChecked: isChecked) {
                     if isChecked {
                         controller.unmarkMessaging(bundleID)
                     } else {

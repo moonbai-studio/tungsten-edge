@@ -17,8 +17,8 @@ enum BuildProvenance {
     /// Debug 优先于位置判断：开发构建即使被拷进 `/Applications` 也仍是开发构建，
     /// 手感与正式包不同（Debug 无编译器优化），这一点比它在哪儿更重要。
     static func suffix(isDebugBuild: Bool, bundlePath: String) -> String? {
-        if isDebugBuild { return "开发版" }
-        return bundlePath.hasPrefix(installedPrefix) ? nil : "非安装位置"
+        if isDebugBuild { return String(localized: "Debug Build") }
+        return bundlePath.hasPrefix(installedPrefix) ? nil : String(localized: "Not Installed")
     }
 
     /// 拼好的完整版本行。version / build 任一缺失时的退化文案与加标记前的旧实现一致。
@@ -30,9 +30,9 @@ enum BuildProvenance {
     ) -> String? {
         let base: String
         switch (version, build) {
-        case let (version?, build?): base = "版本 \(version) (\(build))"
-        case let (version?, nil): base = "版本 \(version)"
-        case let (nil, build?): base = "版本 (\(build))"
+        case let (version?, build?): base = String(format: String(localized: "Version %@ (%@)"), version, build)
+        case let (version?, nil): base = String(format: String(localized: "Version %@"), version)
+        case let (nil, build?): base = String(format: String(localized: "Version (%@)"), build)
         case (nil, nil): return nil
         }
         guard let suffix = suffix(isDebugBuild: isDebugBuild, bundlePath: bundlePath) else {

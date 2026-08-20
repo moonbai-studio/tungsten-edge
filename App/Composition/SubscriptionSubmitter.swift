@@ -133,11 +133,11 @@ enum SubscriptionError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidEmail:
-            return "邮箱地址格式无效。"
+            return String(localized: "The email address is not valid.")
         case .invalidResponse:
-            return "订阅服务器返回了无效响应。"
+            return String(localized: "The subscription server returned an invalid response.")
         case .httpStatus(let status):
-            return "订阅服务器返回状态码 \(status)。"
+            return String(format: String(localized: "The subscription server returned status code %d."), status)
         }
     }
 }
@@ -154,9 +154,9 @@ struct SubscriptionSubmitState {
 
     var presentation: SubscriptionSubmitPresentation {
         if isSubmitting {
-            return SubscriptionSubmitPresentation(title: "提交中…", isEnabled: false)
+            return SubscriptionSubmitPresentation(title: String(localized: "Submitting…"), isEnabled: false)
         }
-        return SubscriptionSubmitPresentation(title: "订阅", isEnabled: true)
+        return SubscriptionSubmitPresentation(title: String(localized: "Subscribe"), isEnabled: true)
     }
 
     mutating func begin() -> Bool {
@@ -189,30 +189,30 @@ struct SubscriptionAlertContent: Equatable {
         switch outcome {
         case .created:
             self.init(
-                title: "订阅成功",
+                title: String(localized: "Subscribed"),
                 // 双重确认是 Buttondown 的默认流程，不点确认信是不会真正进名单的，
                 // 所以这句必须说出来，否则用户会以为已经完事了。
-                message: "请到邮箱点击确认链接完成订阅。",
+                message: String(localized: "Check your inbox and click the confirmation link to finish subscribing."),
                 didSubscribe: true
             )
         case .alreadySubscribed:
             self.init(
-                title: "你已经订阅过了",
-                message: "这个邮箱已经在名单里，将来的授权会直接发给你。",
+                title: String(localized: "You’re Already Subscribed"),
+                message: String(localized: "This address is already on the list. Your license will be sent straight to it."),
                 didSubscribe: true
             )
         }
     }
 
     static let invalidEmail = SubscriptionAlertContent(
-        title: "邮箱地址无效",
-        message: "请检查一下是不是打错了。",
+        title: String(localized: "Invalid Email Address"),
+        message: String(localized: "Check whether there is a typo."),
         isWarning: true
     )
 
     static let failure = SubscriptionAlertContent(
-        title: "暂时无法订阅",
-        message: "请检查网络连接后重试，也可以到官网 tungstenedge.app 上留邮箱。",
+        title: String(localized: "Can’t Subscribe Right Now"),
+        message: String(localized: "Check your network connection and try again, or leave your address on tungstenedge.app."),
         isWarning: true
     )
 }

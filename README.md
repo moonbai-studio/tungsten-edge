@@ -48,13 +48,13 @@ Unlike a plain Windows-style task switcher, single-window apps stay collapsed as
 - **Pinned messaging apps + badges** — messaging apps (WeChat, Feishu, …) get a persistent pinned entry and mirror the Dock's red unread badge.
 - **App drawer** — stash rarely-used apps into a drawer on the right to keep the strip clean; pin favorites in the drawer to use it as a launcher.
 - **Drag to organize** — reorder cards by dragging; drag a card into the drawer to stash it; drag it back out and it lands exactly where you drop it.
-- **Menu bar controls** — the status menu controls launch at login, native Dock visibility and wake timing, Tungsten Edge wake timing, whether the shelf is shown, and the taskbar size.
+- **Menu bar and Settings** — the status menu holds what you flip mid-session (Open at Login, and the wake delays for the Dock and for Tungsten Edge); the appearance preferences (Show Shelf, hover names, maximized-window avoidance, taskbar size) live in the settings window.
 - **Edge auto-hide** — Tungsten Edge can hide itself and wake from the bottom edge after the delay you choose; moving away hides it again after about 0.2s.
 - **Frosted-glass look** — native-grade translucency that blends into the desktop.
 - **Multi-display follow** — resting the pointer on another screen's bottom edge moves the taskbar there automatically.
-- **Blink-free native fullscreen entry** — before a standard green-button or `Control-Command-F` fullscreen transition, Tungsten Edge moves its panels out of the transition snapshot. This is enabled by default and can be turned off in Settings.
+- **Blink-free native full-screen entry** — before a standard green-button or `Control-Command-F` full-screen transition, Tungsten Edge moves its panels out of the transition snapshot. This is enabled by default and can be turned off in Settings.
 
-> **Note:** the app's interface is currently **Chinese only**. An English/localized UI is planned but not yet available — see [Roadmap](#roadmap).
+> **Note:** the interface ships in **English and Simplified Chinese**, following your system language. To pick one explicitly, use **System Settings ▸ General ▸ Language & Region ▸ Applications**.
 
 ## Requirements
 
@@ -64,14 +64,14 @@ Unlike a plain Windows-style task switcher, single-window apps stay collapsed as
 
 ### Global input observation
 
-Entering a native fullscreen Space lets the system's transition snapshot catch the taskbar, which shows up as a one-frame blink. Removing it requires hiding the taskbar *before* your input reaches the target app, so Tungsten Edge observes global **left-click, key-down and trackpad gesture** events. It recognizes only these four:
+Entering a native full-screen Space lets the system's transition snapshot catch the taskbar, which shows up as a one-frame blink. Removing it requires hiding the taskbar *before* your input reaches the target app, so Tungsten Edge observes global **left-click, key-down and trackpad gesture** events. It recognizes only these four:
 
 - the standard window green button
 - the exact `Control-Command-F` shortcut
-- `Control-Left` / `Control-Right` (when switching into an adjacent fullscreen Space)
+- `Control-Left` / `Control-Right` (when switching into an adjacent full-screen Space)
 - a three-finger horizontal swipe (same case)
 
-Ordinary input is not recorded, logged, modified, or sent anywhere. The listener is enabled by default; turn off **预测全屏切换，消除任务条闪烁** under **高级** in Settings to disable it completely.
+Ordinary input is not recorded, logged, modified, or sent anywhere. The listener is enabled by default; turn off **Predict full-screen transitions to prevent taskbar flicker** under **Advanced** in Settings to disable it completely.
 
 macOS suppresses key events from global event taps while Secure Input is active, such as in a protected password field. During that time the keyboard shortcuts cannot be recognized in advance; green-button and trackpad-gesture detection are unaffected.
 
@@ -81,7 +81,7 @@ macOS suppresses key events from global event taps while Secure Input is active,
 
 1. Download the latest `.dmg` from the [official website](https://tungstenedge.app).
 2. Open it and drag **Tungsten Edge** into your **Applications** folder.
-3. **First launch needs to be allowed once** (this is an early, unsigned build, so macOS blocks it by default — it's not malware) — follow [First launch](#first-launch) below, then grant Accessibility permission.
+3. Double-click to open it. On first run, grant **Accessibility** permission when prompted (see [Grant Accessibility permission](#grant-accessibility-permission) below).
 
 ### Option 2 — Homebrew (for technical users)
 
@@ -91,64 +91,71 @@ brew trust moonbai-studio/tungsten-edge
 brew install --cask tungsten-edge
 ```
 
-> The `brew trust` step is required for any third-party tap. If the first launch is blocked by macOS, allow it as described in [First launch](#first-launch) below.
+> The `brew trust` step is required for any third-party tap.
 
-## First launch
+## Grant Accessibility permission
 
-Because this is an early build that isn't Apple-notarized yet, macOS blocks it the first time with a message like "cannot be opened because it is from an unidentified developer". **This isn't malware — it's macOS's default block for any unsigned app.** Allow it once and double-clicking works normally afterward. Pick the method for your macOS version:
+As of **v0.9.0 Tungsten Edge is signed and notarized by Apple**, so it opens with a plain
+double-click — no right-click workaround needed.
 
-### Method A — right-click to open (macOS 14 and earlier)
-
-1. Open your **Applications** folder and find **Tungsten Edge**.
-2. **Right-click its icon** (or Control-click it) and choose **Open** from the menu.
-3. The dialog this time has an extra **Open** button — click it.
-4. Done. Double-click works from now on.
-
-> The trick is to go through **right-click → Open**, not a plain double-click — a plain double-click only gets blocked, with no allow button.
-
-### Method B — allow it in System Settings (macOS 15 Sequoia and newer)
-
-Newer macOS removed right-click-to-open, so do this instead:
-
-1. **Double-click** Tungsten Edge once; when it's blocked, **click "Done"** to dismiss the prompt (this lets the system record the attempt).
-2. Open **System Settings → Privacy & Security** and scroll down to the **Security** section.
-3. You'll see a line saying "Tungsten Edge was blocked…" with an **"Open Anyway"** button next to it — click it.
-4. Confirm once more (you may need your login password or Touch ID). Done — double-click works from now on.
-
-### One more step after opening: grant Accessibility permission
-
-Tungsten Edge needs **Accessibility** permission to read and manage your windows; it guides you through this on first run:
+One step remains: Tungsten Edge needs **Accessibility** permission to read and manage your
+windows, and it guides you through this on first run:
 
 - Open **System Settings → Privacy & Security → Accessibility**, find **Tungsten Edge**, and **turn on its switch**.
 
-## Status menu
+> **Upgrading from v0.8.0 or earlier:** v0.9.0 switched to a proper Developer ID signature, so
+> macOS treats it as a *different* app and your old Accessibility grant no longer applies.
+> **Quit Tungsten Edge**, select the old **Tungsten Edge** entry in the Accessibility list and
+> remove it with the **−** button, then reopen Tungsten Edge and grant it again. One time only;
+> future updates will not need this.
 
-Tungsten Edge lives in the macOS menu bar. Its menu currently includes:
+## Status menu and Settings
 
-- **Launch at login** — available on macOS 13 and later. If macOS asks for approval, open Login Items in System Settings and approve Tungsten Edge there.
-- **Hide/Show System Dock** — equivalent to macOS's own `⌥⌘D`: it toggles the native Dock's auto-hide only and never touches the wake delay you configured. The menu shows `⌥⌘D` as its shortcut hint (macOS owns that shortcut, so it always works). The compact slider immediately below controls the native Dock's wake delay: `常驻` (always visible), `0.1s`–`3.0s`, or `不唤醒` (never wake) — drag it to `不唤醒` and the Dock stays fully out of the way, no longer popping up when the pointer reaches the screen edge. The slider applies on release, since every write restarts Dock.
-- **Open System Dock Settings…** — opens Desktop & Dock on Ventura and later, or Dock & Menu Bar on macOS 12. It only opens System Settings; it never writes Dock preferences or restarts Dock.
-- **Hide/Show Tungsten Edge 钨极** — switches between always visible and your last auto-hide wake delay. The compact slider immediately below it controls the wake delay: `常驻`, `0.1s`–`3.0s`, or `不唤醒`. When the status menu is closed, the global `⌥⇧⌘D` shortcut performs the same switch; if registration fails, the menu hides its key hint but the command remains clickable. Adding Shift mirrors the system Dock's `⌥⌘D` while releasing the old `⌥⌘E` shortcut back to Safari and Finder.
-- **显示中转站** — a checkbox that shows or hides the shelf chip. Unchecking it only hides the chip; stashed file references are kept and come back when you check it again. Note that with the shelf hidden *and* no pinned folders, the whole folder zone disappears, so the strip has no external-file drop target and no 「添加文件夹…」 entry — check it back on to get them.
-- **任务条大小 ▸** — four tiers (小 / 中 / 大 / 特大) that scale the taskbar and its capsule together: icons, labels, spacing, corner radius and bar height all follow. 中 is the default and is pixel-identical to previous versions. Switching applies instantly with no transition animation; an open drawer closes so it can be re-measured at the new size. The drawer's own contents and the folder / shelf popups keep their current size.
-- **检查更新…** — manually checks for the latest stable version. When an update is available, Tungsten Edge opens the official website for you to download and install it.
+Preferences live in two places, and the split is deliberate: the **status menu** carries only what you flip mid-session, the **settings window** carries everything else.
 
-Changing native Dock visibility from this menu requires a non-sandboxed build because sandboxed apps cannot write Dock preferences or restart Dock. Opening the settings pane works in either environment.
+### Status menu
+
+- **Open at Login** — available on macOS 13 and later. If macOS asks for approval, open Login Items in System Settings and approve Tungsten Edge there.
+- **Tungsten Edge (⌥⇧⌘D to show/hide)** — a greyed-out section header, not a clickable command. Below it sits a compact slider for the taskbar's own wake delay: `Always Visible`, `0.1s`–`3.0s`, or `Never Wake`. The global `⌥⇧⌘D` shortcut switches between always-visible and your last auto-hide delay; it is the system Dock's `⌥⌘D` plus Shift, which also releases the older `⌥⌘E` back to Safari and Finder. If the shortcut cannot be registered, the menu simply stops showing the key hint.
+- **The Dock (⌥⌘D to show/hide)** — likewise a section header. `⌥⌘D` belongs to macOS, so it is named here as plain text rather than claimed as a shortcut. Its slider sets the **native Dock's** wake delay (`Always Visible`, `0.1s`–`3.0s`, `Never Wake` — drag to `Never Wake` and the Dock stops popping up at the screen edge entirely). Moving it stages a draft and reveals a confirm row; nothing is written until you press it, because every write restarts the Dock and flashes the screen.
+- **Dock Settings…** — opens Desktop & Dock on Ventura and later, or Dock & Menu Bar on macOS 12. It only opens System Settings; it never writes Dock preferences or restarts Dock.
+- **Settings…** — opens the settings window described below.
+- **Check for Updates…** — manually checks for the latest stable version. When an update is available you get an update window: one click downloads, installs and relaunches it for you — no more downloading a disk image and dragging it across by hand.
+
+### Settings window
+
+Open it from **Settings…** in the status menu, or by **right-clicking the drawer capsule** at the right end of the taskbar. (`⌘,` does not work in normal operation: Tungsten Edge runs as a menu-bar app and has no menu bar of its own to hang it on.)
+
+- **General** — Open at Login.
+- **Taskbar**
+  - **Show Shelf** — shows or hides the shelf chip. Unchecking it only hides the chip; stashed file references are kept and come back when you check it again. Note that with the shelf hidden *and* no pinned folders, the whole folder zone disappears, so the taskbar has no external-file drop target and no **Add Folder…** entry — check it back on to get them.
+  - **Show app name on hover** — turn it off and moving the pointer across the taskbar no longer pops up app names.
+  - **Keep maximized windows above the taskbar** — lifts the bottom edge of a screen-filling window above the taskbar. This resizes other apps' windows, so it is off by default.
+  - **Taskbar Size** — four tiers (Small / Medium / Large / Extra Large) that scale the taskbar and its capsule together: icons, labels, spacing, corner radius and bar height all follow. Medium is the default and matches the real Dock's height. Switching applies instantly; an open drawer closes so it can be re-measured. The drawer's own contents and the folder / shelf popups keep their current size.
+- **Advanced** — **Predict full-screen transitions to prevent taskbar flicker** (on by default; see [Global input observation](#global-input-observation) for exactly what it watches).
+- **About** — version, update check, **Check for updates automatically** (on by default; turn it off and Tungsten Edge stops contacting the network on a schedule, checking only when you click *Check for Updates…*), and the founding-user mailing list.
+
+Writing native Dock preferences requires a non-sandboxed build, because sandboxed apps cannot write Dock preferences or restart Dock. Opening the settings pane works in either environment.
 
 ## Recommended setup (align the minimize animation to the bottom)
+
+> On first run, if the Dock is not already set to hide itself, Tungsten Edge offers to do it for
+> you — one click. You will not see that prompt if you have already hidden the Dock. The rest of
+> this section is the manual route, plus the suggestions the prompt does not cover.
+
 
 If your native Dock lives on the **side or top** of the screen, minimizing a window flies the animation toward the native Dock — out of sync with this bottom taskbar. Move the native Dock back to the **bottom** and set it to auto-hide; the minimize animation will then shrink toward the bottom, matching Tungsten Edge:
 
 - **System Settings → Desktop & Dock → Position on screen → Bottom**, and turn on **Automatically hide and show the Dock**.
 
-To keep the native Dock from ever reappearing, drag the system Dock slider in the status menu to `不唤醒` (never wake): hovering at the screen edge will no longer wake it.
+To keep the native Dock from ever reappearing, drag the Dock slider in the status menu to `Never Wake`: hovering at the screen edge will no longer wake it.
 
 ## Roadmap
 
 This is an early public build (v0.3). Known limitations and what's next:
 
-- **Not yet signed/notarized** → first launch needs right-click → Open (above). A signed build is planned.
-- **Chinese-only UI** → localization is on the roadmap. A Chinese version of this README is available at [README.zh-CN.md](README.zh-CN.md).
+- **Signed and notarized** since v0.9.0 → opens with a plain double-click.
+- **Localization** → English and Simplified Chinese are both shipped and follow the system language. A Chinese version of this README is at [README.zh-CN.md](README.zh-CN.md).
 - Feedback and issues are very welcome.
 
 ## Community

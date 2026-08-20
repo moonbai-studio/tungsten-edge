@@ -13,7 +13,7 @@ enum AutoHideToggleMenuModel {
     /// ⌥⌘D 以**纯文字**写进标题，不设 `keyEquivalent`：这一行本就不可点，设了会被菜单捕获，
     /// 也会让禁用行看起来能点。这个键归 macOS 持有、恒生效，我们只是告诉用户它在——
     /// 删掉显隐命令之后，它就是「把 Dock 临时叫回来」的一键入口。
-    static let nativeDockSectionTitle = "系统 Dock（⌥⌘D 显隐）"
+    static let nativeDockSectionTitle = String(localized: "The Dock (⌥⌘D to show/hide)")
 
     /// 钨极这一组的分组标题（不可点），与上面那条**对称**。
     ///
@@ -25,8 +25,8 @@ enum AutoHideToggleMenuModel {
     /// 而且只在 Carbon 注册成功时才提，注册失败时按不出来，写上去就是骗人。
     static func edgeSectionTitle(isHotKeyRegistered: Bool) -> String {
         isHotKeyRegistered
-            ? "Tungsten Edge 钨极（⌥⇧⌘D 显隐）"
-            : "Tungsten Edge 钨极"
+            ? String(localized: "Tungsten Edge (⌥⇧⌘D to show/hide)")
+            : String(localized: "Tungsten Edge")
     }
 
     /// 滑块档位的显示名。滑块本体与确认行必须共用这一份口径，
@@ -34,9 +34,9 @@ enum AutoHideToggleMenuModel {
     static func delayDisplayName(sliderIndex index: Int) -> String {
         switch index {
         case 0:
-            return "常驻"
+            return String(localized: "Always Visible")
         case AppSettingsStore.sliderIndexMax:
-            return "不唤醒"
+            return String(localized: "Never Wake")
         default:
             return String(format: "%.1fs", AppSettingsStore.delayFromSliderIndex(index))
         }
@@ -54,7 +54,10 @@ enum AutoHideToggleMenuModel {
     /// 标题带上目标档位是有意的：它同时在提醒「你拖到的这一档现在还没生效」。
     static func nativeApplyTitle(draft: Double) -> String {
         let name = delayDisplayName(sliderIndex: AppSettingsStore.sliderIndexFromDelay(draft))
-        return "应用「\(name)」（Dock 会重启一下）"
+        // 显式 %@ + String(format:)，不用 String(localized:) 的插值语法：后者的 key 由编译器
+        // 按插值类型推导（String → %@），key 长什么样不在眼前，写错了要到运行时才发现。
+        // 手写占位符则 key 就是这行字面量，可以被脚本逐条核对。
+        return String(format: String(localized: "Apply “%@” (the Dock will restart)"), name)
     }
 
     /// autohide-delay 键不存在时系统 Dock 的实际默认延迟。

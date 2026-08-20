@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 
 @MainActor
@@ -123,7 +124,7 @@ final class SettingsCoordinatorTests: XCTestCase {
             store: makeStore(),
             launchAtLoginService: launch,
             nativeDockPreferencesService: NativeDockServiceStub(),
-            updateChecker: UpdateCheckerStub(),
+            updateService: UpdateControlStub(),
             subscriptionSubmitter: SubscriptionSubmitterStub()
         )
 
@@ -149,7 +150,7 @@ final class SettingsCoordinatorTests: XCTestCase {
             store: store,
             launchAtLoginService: LaunchServiceStub(state: .off),
             nativeDockPreferencesService: native,
-            updateChecker: UpdateCheckerStub(),
+            updateService: UpdateControlStub(),
             subscriptionSubmitter: SubscriptionSubmitterStub()
         )
 
@@ -171,42 +172,50 @@ final class SettingsCoordinatorTests: XCTestCase {
         XCTAssertEqual(store.nativeDockAutoHideDelay, 0.9)
     }
 
-    /// 在飞守卫是**共享**的：菜单和设置窗口各有一个「检查更新」入口，
-    /// 各守各的会同时发两次请求。
-    func testUpdateCheckGuardIsSharedAcrossBothEntryPoints() {
-        let coordinator = makeCoordinator()
-        XCTAssertTrue(coordinator.beginUpdateCheck())
-        XCTAssertFalse(coordinator.beginUpdateCheck())
-        XCTAssertFalse(coordinator.updateCheckState.presentation.isEnabled)
-
-        coordinator.finishUpdateCheck()
-        XCTAssertTrue(coordinator.updateCheckState.presentation.isEnabled)
-        XCTAssertTrue(coordinator.beginUpdateCheck())
-    }
-
-    func testUpdateCheckFailureMapsToSharedFailureCopy() async {
-        let updates = UpdateCheckerStub()
-        updates.error = TestError.failed
+    /// 两套界面共用同一个更新器：菜单和设置窗口各点一次「检查更新」，
+    /// 到的是同一个对象，不会各发各的。
+    ///
+    /// 「正在检查时不能再点」这条守卫现在归 Sparkle（`canCheckForUpdates`），
+    /// 不再由本对象维护，所以这里只验注入与透传。
+    func testUpdateCheckGoesThroughTheSingleSharedUpdater() {
+        let updates = UpdateControlStub()
         let coordinator = makeCoordinator(updates: updates)
 
-        let content = await coordinator.performUpdateCheck()
-        XCTAssertEqual(content, UpdateCheckAlertContent.failure)
-        XCTAssertTrue(content.isWarning)
-        XCTAssertEqual(updates.checkCount, 1)
+        XCTAssertTrue(coordinator.canCheckForUpdates)
+        coordinator.checkForUpdates()
+        coordinator.checkForUpdates()
+        XCTAssertEqual(updates.checkCount, 2)
+
+        updates.canCheckForUpdates = false
+        XCTAssertFalse(coordinator.canCheckForUpdates)
+    }
+
+    /// 「自动检查更新」的真值必须落在更新器上，**不许在本地存镜像**——
+    /// 两份状态一定会漂，而且 Sparkle 自己也会写这个偏好。
+    func testAutomaticUpdateTogglePassesStraightThroughToTheUpdater() {
+        let updates = UpdateControlStub()
+        let coordinator = makeCoordinator(updates: updates)
+
+        coordinator.automaticallyChecksForUpdates = false
+        XCTAssertFalse(updates.automaticallyChecksForUpdates)
+        XCTAssertFalse(coordinator.automaticallyChecksForUpdates)
+
+        updates.automaticallyChecksForUpdates = true
+        XCTAssertTrue(coordinator.automaticallyChecksForUpdates)
     }
 
     private func makeCoordinator(
         store: AppSettingsStore? = nil,
         launch: LaunchServiceStub? = nil,
         native: NativeDockServiceStub? = nil,
-        updates: UpdateCheckerStub? = nil,
+        updates: UpdateControlStub? = nil,
         subscriptions: SubscriptionSubmitterStub? = nil
     ) -> SettingsCoordinator {
         SettingsCoordinator(
             store: store ?? makeStore(),
             launchAtLoginService: launch ?? LaunchServiceStub(state: .off),
             nativeDockPreferencesService: native ?? NativeDockServiceStub(),
-            updateChecker: updates ?? UpdateCheckerStub(),
+            updateService: updates ?? UpdateControlStub(),
             subscriptionSubmitter: subscriptions ?? SubscriptionSubmitterStub()
         )
     }
@@ -350,16 +359,16 @@ private final class SubscriptionSubmitterStub: SubscriptionSubmitting, @unchecke
     }
 }
 
-private final class UpdateCheckerStub: UpdateChecking, @unchecked Sendable {
-    var outcome: UpdateCheckOutcome?
-    var error: Error?
+@MainActor
+private final class UpdateControlStub: UpdateControlling {
+    var canCheckForUpdates = true
+    var automaticallyChecksForUpdates = true
     private(set) var checkCount = 0
 
-    func check(currentVersion: String) async throws -> UpdateCheckOutcome {
-        checkCount += 1
-        if let error { throw error }
-        return outcome ?? .upToDate(currentVersion: currentVersion, latestVersion: currentVersion)
-    }
+    private let subject = PassthroughSubject<Void, Never>()
+    var changes: AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
+
+    func checkForUpdates() { checkCount += 1 }
 }
 
 private enum TestError: Error {

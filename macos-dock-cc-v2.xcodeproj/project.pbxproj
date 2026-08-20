@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B77000000000000000000001 /* SparkleUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77000000000000000000003 /* SparkleUpdateService.swift */; };
+		B76000000000000000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = B76000000000000000000002 /* Sparkle */; };
+		D20000000000000000000000 /* CarrierSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000000 /* CarrierSnapshot.swift */; };
+		D20000000000000000000005 /* CarrierSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000000 /* CarrierSnapshot.swift */; };
+		D20000000000000000000007 /* DragCarrierGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000005 /* DragCarrierGeometry.swift */; };
+		D20000000000000000000008 /* DragCarrierGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000005 /* DragCarrierGeometry.swift */; };
+		D20000000000000000000009 /* ChipSnapshotter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000008 /* ChipSnapshotter.swift */; };
+		D2000000000000000000000A /* DragCarrierGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000000000000000000000A /* DragCarrierGeometryTests.swift */; };
 		F20000000000000000000001 /* FullscreenIntentDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* FullscreenIntentDecision.swift */; };
 		F20000000000000000000002 /* FullscreenIntentMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* FullscreenIntentMonitor.swift */; };
 		F20000000000000000000003 /* FullscreenIntentDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000010 /* FullscreenIntentDecision.swift */; };
@@ -24,13 +32,22 @@
 		D20000000000000000000004 /* AutoHideToggleMenuModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000004 /* AutoHideToggleMenuModel.swift */; };
 		D20000000000000000000006 /* AccessoryWindowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000006 /* AccessoryWindowPresentation.swift */; };
 		D20000000000000000000041 /* StripContextMenuZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000041 /* StripContextMenuZone.swift */; };
+		D20000000000000000000061 /* StripHoverResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000061 /* StripHoverResolution.swift */; };
+		D20000000000000000000064 /* DragLandingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000063 /* DragLandingPlan.swift */; };
+		D20000000000000000000068 /* StripBlockLanding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000065 /* StripBlockLanding.swift */; };
 		D20000000000000000000013 /* SettingsCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000003 /* SettingsCoordinator.swift */; };
 		D20000000000000000000014 /* AutoHideToggleMenuModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000004 /* AutoHideToggleMenuModel.swift */; };
 		D20000000000000000000016 /* AccessoryWindowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000006 /* AccessoryWindowPresentation.swift */; };
 		D20000000000000000000042 /* StripContextMenuZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000041 /* StripContextMenuZone.swift */; };
+		D20000000000000000000062 /* StripHoverResolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000061 /* StripHoverResolution.swift */; };
+		D20000000000000000000065 /* DragLandingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000063 /* DragLandingPlan.swift */; };
+		D20000000000000000000069 /* StripBlockLanding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000065 /* StripBlockLanding.swift */; };
 		D20000000000000000000017 /* SettingsCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000007 /* SettingsCoordinatorTests.swift */; };
 		D20000000000000000000019 /* AccessoryWindowPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* AccessoryWindowPresentationTests.swift */; };
 		D20000000000000000000043 /* StripContextMenuZoneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000042 /* StripContextMenuZoneTests.swift */; };
+		D20000000000000000000063 /* StripHoverResolutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000062 /* StripHoverResolutionTests.swift */; };
+		D20000000000000000000066 /* DragLandingPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000064 /* DragLandingPlanTests.swift */; };
+		D2000000000000000000006A /* StripBlockLandingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000066 /* StripBlockLandingTests.swift */; };
 		A00000000000000000001040 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000066 /* AppDelegate.swift */; };
 		A00000000000000000001046 /* PanelCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006C /* PanelCoordinator.swift */; };
 		A00000000000000000001041 /* DockStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000067 /* DockStripView.swift */; };
@@ -86,6 +103,10 @@
 		A0000000000000000000FC01 /* DockTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FC00 /* DockTheme.swift */; };
 		A0000000000000000000FC02 /* DockTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FC00 /* DockTheme.swift */; };
 		A0000000000000000000FE01 /* DockGlassBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FE00 /* DockGlassBackdrop.swift */; };
+		E20000000000000000000001 /* DockLiquidGlassConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* DockLiquidGlassConfiguration.swift */; };
+		E20000000000000000000002 /* DockLiquidGlassConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000001 /* DockLiquidGlassConfiguration.swift */; };
+		E20000000000000000000003 /* DockGlassRuntimeBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000003 /* DockGlassRuntimeBridge.m */; };
+		E20000000000000000000004 /* DockLiquidGlassConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10000000000000000000005 /* DockLiquidGlassConfigurationTests.swift */; };
 		A0000000000000000000FD01 /* DockThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FD00 /* DockThemeTests.swift */; };
 		A00000000000000000009591 /* AppMembershipMenuPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */; };
 		A00000000000000000009581 /* AppMembershipMenuPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009580 /* AppMembershipMenuPlan.swift */; };
@@ -93,6 +114,7 @@
 		A00000000000000000009311 /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009310 /* ShelfStore.swift */; };
 		A00000000000000000009312 /* ShelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009310 /* ShelfStore.swift */; };
 		A00000000000000000009321 /* ShelfChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009320 /* ShelfChip.swift */; };
+		A00000000000000000009AA1 /* ShelfTrayArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009AA0 /* ShelfTrayArt.swift */; };
 		A00000000000000000009331 /* ShelfGridPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009330 /* ShelfGridPopupView.swift */; };
 		A00000000000000000009341 /* StripDropRoutingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009340 /* StripDropRoutingTests.swift */; };
 		A00000000000000000009351 /* ShelfLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009350 /* ShelfLogicTests.swift */; };
@@ -106,12 +128,13 @@
 		A00000000000000000009051 /* PanelVisibilityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009030 /* PanelVisibilityState.swift */; };
 		A00000000000000000009061 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009010 /* LaunchAtLoginService.swift */; };
 		A00000000000000000009071 /* StatusMenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000008020 /* StatusMenuController.swift */; };
-		A00000000000000000009C01 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009C00 /* UpdateChecker.swift */; };
-		A00000000000000000009C02 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009C00 /* UpdateChecker.swift */; };
-		A00000000000000000009C03 /* UpdateCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009C10 /* UpdateCheckerTests.swift */; };
 		B74000000000000000000001 /* SubscriptionSubmitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74000000000000000000003 /* SubscriptionSubmitter.swift */; };
 		B74000000000000000000002 /* SubscriptionSubmitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74000000000000000000003 /* SubscriptionSubmitter.swift */; };
 		B74000000000000000000011 /* SubscriptionSubmitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74000000000000000000013 /* SubscriptionSubmitterTests.swift */; };
+		B75000000000000000000001 /* WelcomeGuideDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000003 /* WelcomeGuideDecision.swift */; };
+		B75000000000000000000002 /* WelcomeGuideDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000003 /* WelcomeGuideDecision.swift */; };
+		B75000000000000000000011 /* WelcomeGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000013 /* WelcomeGuideView.swift */; };
+		B75000000000000000000021 /* WelcomeGuideDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000023 /* WelcomeGuideDecisionTests.swift */; };
 		A00000000000000000009D01 /* WindowTitleTooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009D00 /* WindowTitleTooltip.swift */; };
 		A00000000000000000009D02 /* WindowTitleTooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009D00 /* WindowTitleTooltip.swift */; };
 		A00000000000000000009D03 /* WindowTitleTooltipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009D10 /* WindowTitleTooltipTests.swift */; };
@@ -120,6 +143,8 @@
 		B72000000000000000000001 /* AppDisplayNameCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72000000000000000000003 /* AppDisplayNameCache.swift */; };
 		B72000000000000000000011 /* InstallationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72000000000000000000013 /* InstallationRecord.swift */; };
 		C90000000000000000000006 /* ClickLatencyTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000005 /* ClickLatencyTrace.swift */; };
+		A00000000000000000009AB1 /* HoverTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009AB0 /* HoverTrace.swift */; };
+		D20000000000000000000067 /* HoverTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009AB0 /* HoverTrace.swift */; };
 		C9000000000000000000000C /* ClickLatencyTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000005 /* ClickLatencyTrace.swift */; };
 		B72000000000000000000002 /* AppDisplayNameCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72000000000000000000003 /* AppDisplayNameCache.swift */; };
 		B72000000000000000000012 /* InstallationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72000000000000000000013 /* InstallationRecord.swift */; };
@@ -203,6 +228,8 @@
 		A0000000000000000000B062 /* PermissionOnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000B060 /* PermissionOnboardingTests.swift */; };
 		A00000000000000000001014 /* StripItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* StripItem.swift */; };
 		A00000000000000000001015 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* Assets.xcassets */; };
+		A00000000000000000001F10 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000F10 /* Localizable.xcstrings */; };
+		A00000000000000000001F11 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000F11 /* InfoPlist.xcstrings */; };
 		A00000000000000000001016 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* main.swift */; };
 		A0000000000000000000101C /* ObservationKindMergeRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ObservationKindMergeRule.swift */; };
 		A0000000000000000000101D /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
@@ -231,7 +258,6 @@
 		A00000000000000000000B201 /* AppNameRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000B200 /* AppNameRegistryTests.swift */; };
 		A00000000000000000000B211 /* InstallationRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000B210 /* InstallationRecordTests.swift */; };
 		A00000000000000000006012 /* DragController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000006010 /* DragController.swift */; };
-		A00000000000000000009741 /* DragCarrierView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009740 /* DragCarrierView.swift */; };
 		A00000000000000000009751 /* NonConstrainingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009750 /* NonConstrainingPanel.swift */; };
 		A00000000000000000009752 /* NonConstrainingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009750 /* NonConstrainingPanel.swift */; };
 		A00000000000000000000C01 /* ManualPanelHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000C00 /* ManualPanelHostTests.swift */; };
@@ -281,6 +307,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B77000000000000000000003 /* SparkleUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdateService.swift; sourceTree = "<group>"; };
+		D10000000000000000000000 /* CarrierSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarrierSnapshot.swift; sourceTree = "<group>"; };
+		D10000000000000000000005 /* DragCarrierGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragCarrierGeometry.swift; sourceTree = "<group>"; };
+		D10000000000000000000008 /* ChipSnapshotter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChipSnapshotter.swift; sourceTree = "<group>"; };
+		D1000000000000000000000A /* DragCarrierGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragCarrierGeometryTests.swift; sourceTree = "<group>"; };
 		F10000000000000000000010 /* FullscreenIntentDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenIntentDecision.swift; sourceTree = "<group>"; };
 		F10000000000000000000011 /* FullscreenIntentMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenIntentMonitor.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* FullscreenIntentDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenIntentDecisionTests.swift; sourceTree = "<group>"; };
@@ -294,9 +325,15 @@
 		D10000000000000000000004 /* AutoHideToggleMenuModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoHideToggleMenuModel.swift; sourceTree = "<group>"; };
 		D10000000000000000000006 /* AccessoryWindowPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryWindowPresentation.swift; sourceTree = "<group>"; };
 		D10000000000000000000041 /* StripContextMenuZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripContextMenuZone.swift; sourceTree = "<group>"; };
+		D10000000000000000000061 /* StripHoverResolution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripHoverResolution.swift; sourceTree = "<group>"; };
+		D10000000000000000000063 /* DragLandingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragLandingPlan.swift; sourceTree = "<group>"; };
+		D10000000000000000000065 /* StripBlockLanding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripBlockLanding.swift; sourceTree = "<group>"; };
 		D10000000000000000000007 /* SettingsCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCoordinatorTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000009 /* AccessoryWindowPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryWindowPresentationTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000042 /* StripContextMenuZoneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripContextMenuZoneTests.swift; sourceTree = "<group>"; };
+		D10000000000000000000062 /* StripHoverResolutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripHoverResolutionTests.swift; sourceTree = "<group>"; };
+		D10000000000000000000064 /* DragLandingPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragLandingPlanTests.swift; sourceTree = "<group>"; };
+		D10000000000000000000066 /* StripBlockLandingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripBlockLandingTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000068 /* AppWindowObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppWindowObserver.swift; sourceTree = "<group>"; };
 		A00000000000000000000069 /* AppTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTracker.swift; sourceTree = "<group>"; };
 		A00000000000000000009600 /* TabFoldDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabFoldDecision.swift; sourceTree = "<group>"; };
@@ -322,7 +359,6 @@
 		A00000000000000000009800 /* CGWindowSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGWindowSnapshot.swift; sourceTree = "<group>"; };
 		A00000000000000000009801 /* CGWindowSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGWindowSnapshotTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009700 /* DragConversionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragConversionPlan.swift; sourceTree = "<group>"; };
-		A00000000000000000009740 /* DragCarrierView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragCarrierView.swift; sourceTree = "<group>"; };
 		A00000000000000000009750 /* NonConstrainingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonConstrainingPanel.swift; sourceTree = "<group>"; };
 		A00000000000000000000C00 /* ManualPanelHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualPanelHostTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009710 /* DragConversionPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragConversionPlanTests.swift; sourceTree = "<group>"; };
@@ -393,6 +429,8 @@
 		A00000000000000000000014 /* StripItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripItem.swift; sourceTree = "<group>"; };
 		A00000000000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000016 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Resources/Info.plist; sourceTree = SOURCE_ROOT; };
+		A00000000000000000000F10 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		A00000000000000000000F11 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		A00000000000000000000017 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A00000000000000000000018 /* macos-dock-cc-v2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "macos-dock-cc-v2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000019 /* window-lab */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "window-lab"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -405,6 +443,7 @@
 		B72000000000000000000003 /* AppDisplayNameCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDisplayNameCache.swift; sourceTree = "<group>"; };
 		B72000000000000000000013 /* InstallationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationRecord.swift; sourceTree = "<group>"; };
 		C90000000000000000000005 /* ClickLatencyTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickLatencyTrace.swift; sourceTree = "<group>"; };
+		A00000000000000000009AB0 /* HoverTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoverTrace.swift; sourceTree = "<group>"; };
 		A00000000000000000009200 /* PinnedFolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedFolderStore.swift; sourceTree = "<group>"; };
 		A00000000000000000009210 /* DirectoryWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryWatcher.swift; sourceTree = "<group>"; };
 		A00000000000000000009220 /* FolderContentsLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderContentsLoader.swift; sourceTree = "<group>"; };
@@ -432,6 +471,11 @@
 		A0000000000000000000FB00 /* DockThemeTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockThemeTokens.swift; sourceTree = "<group>"; };
 		A0000000000000000000FC00 /* DockTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockTheme.swift; sourceTree = "<group>"; };
 		A0000000000000000000FE00 /* DockGlassBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockGlassBackdrop.swift; sourceTree = "<group>"; };
+		E10000000000000000000001 /* DockLiquidGlassConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockLiquidGlassConfiguration.swift; sourceTree = "<group>"; };
+		E10000000000000000000002 /* DockGlassRuntimeBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DockGlassRuntimeBridge.h; sourceTree = "<group>"; };
+		E10000000000000000000003 /* DockGlassRuntimeBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DockGlassRuntimeBridge.m; sourceTree = "<group>"; };
+		E10000000000000000000004 /* TungstenEdge-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "TungstenEdge-Bridging-Header.h"; sourceTree = "<group>"; };
+		E10000000000000000000005 /* DockLiquidGlassConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockLiquidGlassConfigurationTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000FD00 /* DockThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockThemeTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMembershipMenuPlanTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009310 /* ShelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStore.swift; sourceTree = "<group>"; };
@@ -445,6 +489,7 @@
 		A00000000000000000009570 /* DrawerOrderStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerOrderStoreTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009770 /* MessagingWindowOrderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingWindowOrderingTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009320 /* ShelfChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfChip.swift; sourceTree = "<group>"; };
+		A00000000000000000009AA0 /* ShelfTrayArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfTrayArt.swift; sourceTree = "<group>"; };
 		A00000000000000000009330 /* ShelfGridPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfGridPopupView.swift; sourceTree = "<group>"; };
 		A00000000000000000009340 /* StripDropRoutingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripDropRoutingTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009350 /* ShelfLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfLogicTests.swift; sourceTree = "<group>"; };
@@ -454,10 +499,11 @@
 		A00000000000000000009250 /* PinnedFolderChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedFolderChip.swift; sourceTree = "<group>"; };
 		A00000000000000000009280 /* FolderContentsLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderContentsLoaderTests.swift; sourceTree = "<group>"; };
 		A000000000000000000090B0 /* FullscreenClassificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenClassificationTests.swift; sourceTree = "<group>"; };
-		A00000000000000000009C00 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
-		A00000000000000000009C10 /* UpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCheckerTests.swift; sourceTree = "<group>"; };
 		B74000000000000000000003 /* SubscriptionSubmitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSubmitter.swift; sourceTree = "<group>"; };
 		B74000000000000000000013 /* SubscriptionSubmitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSubmitterTests.swift; sourceTree = "<group>"; };
+		B75000000000000000000003 /* WelcomeGuideDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideDecision.swift; sourceTree = "<group>"; };
+		B75000000000000000000013 /* WelcomeGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideView.swift; sourceTree = "<group>"; };
+		B75000000000000000000023 /* WelcomeGuideDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideDecisionTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000059 /* macos-dock-cc-v2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "macos-dock-cc-v2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -466,6 +512,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B76000000000000000000003 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -503,6 +550,7 @@
 		A0000000000000000000001D /* App */ = {
 			isa = PBXGroup;
 			children = (
+				E10000000000000000000004 /* TungstenEdge-Bridging-Header.h */,
 				A00000000000000000000024 /* Entry */,
 				A00000000000000000000025 /* Composition */,
 				A00000000000000000000026 /* Scenes */,
@@ -531,7 +579,7 @@
 				A000000000000000000019B0 /* MessagingAppStore.swift */,
 				A00000000000000000005010 /* StripOrderStore.swift */,
 				A00000000000000000006010 /* DragController.swift */,
-				A00000000000000000009740 /* DragCarrierView.swift */,
+				D10000000000000000000008 /* ChipSnapshotter.swift */,
 				A00000000000000000007010 /* DrawerOrderStore.swift */,
 				A00000000000000000008010 /* AppSettingsStore.swift */,
 				D10000000000000000000003 /* SettingsCoordinator.swift */,
@@ -539,8 +587,8 @@
 				A00000000000000000009F00 /* GlobalHotKeyMonitor.swift */,
 				A00000000000000000009010 /* LaunchAtLoginService.swift */,
 				A00000000000000000009020 /* NativeDockPreferencesService.swift */,
-				A00000000000000000009C00 /* UpdateChecker.swift */,
 				B74000000000000000000003 /* SubscriptionSubmitter.swift */,
+				B77000000000000000000003 /* SparkleUpdateService.swift */,
 				A00000000000000000009030 /* PanelVisibilityState.swift */,
 				A00000000000000000009080 /* PanelGeometry.swift */,
 				A00000000000000000009A10 /* WindowLiftAvoidanceController.swift */,
@@ -583,6 +631,7 @@
 			children = (
 				A00000000000000000000002 /* ContentView.swift */,
 				A000000000000000000000F1 /* PermissionOnboardingView.swift */,
+				B75000000000000000000013 /* WelcomeGuideView.swift */,
 				D10000000000000000000002 /* SettingsWindowView.swift */,
 				A00000000000000000000067 /* DockStripView.swift */,
 				A00000000000000000009D00 /* WindowTitleTooltip.swift */,
@@ -595,9 +644,12 @@
 				A00000000000000000009240 /* FolderGridPopupView.swift */,
 				A00000000000000000009250 /* PinnedFolderChip.swift */,
 				A00000000000000000009320 /* ShelfChip.swift */,
+				A00000000000000000009AA0 /* ShelfTrayArt.swift */,
 				A00000000000000000009330 /* ShelfGridPopupView.swift */,
 				A0000000000000000000FC00 /* DockTheme.swift */,
 				A0000000000000000000FE00 /* DockGlassBackdrop.swift */,
+				E10000000000000000000002 /* DockGlassRuntimeBridge.h */,
+				E10000000000000000000003 /* DockGlassRuntimeBridge.m */,
 			);
 			path = Scenes;
 			sourceTree = "<group>";
@@ -633,8 +685,11 @@
 				A0000000000000000000FF20 /* AppLaunchTargetDecision.swift */,
 				B72000000000000000000003 /* AppDisplayNameCache.swift */,
 				B72000000000000000000013 /* InstallationRecord.swift */,
+				B75000000000000000000003 /* WelcomeGuideDecision.swift */,
 				C90000000000000000000005 /* ClickLatencyTrace.swift */,
+				A00000000000000000009AB0 /* HoverTrace.swift */,
 				A0000000000000000000FB00 /* DockThemeTokens.swift */,
+				E10000000000000000000001 /* DockLiquidGlassConfiguration.swift */,
 				A00000000000000000009580 /* AppMembershipMenuPlan.swift */,
 				A00000000000000000009700 /* DragConversionPlan.swift */,
 				A00000000000000000000A100 /* MessagingZoneAdmission.swift */,
@@ -643,6 +698,11 @@
 				A00000000000000000009E07 /* BuildProvenance.swift */,
 				D10000000000000000000006 /* AccessoryWindowPresentation.swift */,
 				D10000000000000000000041 /* StripContextMenuZone.swift */,
+				D10000000000000000000061 /* StripHoverResolution.swift */,
+				D10000000000000000000063 /* DragLandingPlan.swift */,
+				D10000000000000000000000 /* CarrierSnapshot.swift */,
+				D10000000000000000000005 /* DragCarrierGeometry.swift */,
+				D10000000000000000000065 /* StripBlockLanding.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -811,6 +871,8 @@
 			children = (
 				A00000000000000000000015 /* Assets.xcassets */,
 				A00000000000000000000016 /* Info.plist */,
+				A00000000000000000000F10 /* Localizable.xcstrings */,
+				A00000000000000000000F11 /* InfoPlist.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -860,12 +922,16 @@
 				D10000000000000000000007 /* SettingsCoordinatorTests.swift */,
 				D10000000000000000000009 /* AccessoryWindowPresentationTests.swift */,
 				D10000000000000000000042 /* StripContextMenuZoneTests.swift */,
+				D10000000000000000000062 /* StripHoverResolutionTests.swift */,
+				D10000000000000000000064 /* DragLandingPlanTests.swift */,
+				D1000000000000000000000A /* DragCarrierGeometryTests.swift */,
+				D10000000000000000000066 /* StripBlockLandingTests.swift */,
 				A00000000000000000009F10 /* GlobalHotKeyMonitorTests.swift */,
 				A000000000000000000090A0 /* PanelGeometryTests.swift */,
 				A00000000000000000009D10 /* WindowTitleTooltipTests.swift */,
 				A000000000000000000090B0 /* FullscreenClassificationTests.swift */,
-				A00000000000000000009C10 /* UpdateCheckerTests.swift */,
 				B74000000000000000000013 /* SubscriptionSubmitterTests.swift */,
+				B75000000000000000000023 /* WelcomeGuideDecisionTests.swift */,
 				A00000000000000000009280 /* FolderContentsLoaderTests.swift */,
 				A00000000000000000009290 /* FolderSortTests.swift */,
 				A00000000000000000009340 /* StripDropRoutingTests.swift */,
@@ -877,6 +943,7 @@
 				A0000000000000000000FF30 /* AppLaunchTargetDecisionTests.swift */,
 				A0000000000000000000FF40 /* WindowDisplayTitleTests.swift */,
 				A0000000000000000000FD00 /* DockThemeTests.swift */,
+				E10000000000000000000005 /* DockLiquidGlassConfigurationTests.swift */,
 				A00000000000000000009590 /* AppMembershipMenuPlanTests.swift */,
 				A00000000000000000009350 /* ShelfLogicTests.swift */,
 				A00000000000000000009370 /* FolderChipDropZoneTests.swift */,
@@ -934,6 +1001,9 @@
 			dependencies = (
 			);
 			name = "macos-dock-cc-v2";
+			packageProductDependencies = (
+				B76000000000000000000002 /* Sparkle */,
+			);
 			productName = "macos-dock-cc-v2";
 			productReference = A00000000000000000000018 /* macos-dock-cc-v2.app */;
 			productType = "com.apple.product-type.application";
@@ -999,9 +1069,13 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = A0000000000000000000001C;
 			productRefGroup = A00000000000000000000023 /* Products */;
+			packageReferences = (
+				B76000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1018,6 +1092,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000001015 /* Assets.xcassets in Resources */,
+				A00000000000000000001F10 /* Localizable.xcstrings in Resources */,
+				A00000000000000000001F11 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1040,6 +1116,12 @@
 					D20000000000000000000004 /* AutoHideToggleMenuModel.swift in Sources */,
 					D20000000000000000000006 /* AccessoryWindowPresentation.swift in Sources */,
 					D20000000000000000000041 /* StripContextMenuZone.swift in Sources */,
+					D20000000000000000000061 /* StripHoverResolution.swift in Sources */,
+					D20000000000000000000064 /* DragLandingPlan.swift in Sources */,
+					D20000000000000000000000 /* CarrierSnapshot.swift in Sources */,
+					D20000000000000000000007 /* DragCarrierGeometry.swift in Sources */,
+					D20000000000000000000009 /* ChipSnapshotter.swift in Sources */,
+					D20000000000000000000068 /* StripBlockLanding.swift in Sources */,
 					A00000000000000000001046 /* PanelCoordinator.swift in Sources */,
 					A00000000000000000001041 /* DockStripView.swift in Sources */,
 					A00000000000000000009D01 /* WindowTitleTooltip.swift in Sources */,
@@ -1056,7 +1138,6 @@
 					A000000000000000000019A0 /* MessagingAppStore.swift in Sources */,
 					A00000000000000000005011 /* StripOrderStore.swift in Sources */,
 					A00000000000000000006011 /* DragController.swift in Sources */,
-					A00000000000000000009741 /* DragCarrierView.swift in Sources */,
 					A00000000000000000009751 /* NonConstrainingPanel.swift in Sources */,
 					A00000000000000000007011 /* DrawerOrderStore.swift in Sources */,
 					A00000000000000000008011 /* AppSettingsStore.swift in Sources */,
@@ -1070,8 +1151,8 @@
 					A00000000000000000009A01 /* WindowLiftAvoidance.swift in Sources */,
 				A00000000000000000009E1C /* BuildProvenance.swift in Sources */,
 					A00000000000000000008021 /* StatusMenuController.swift in Sources */,
-					A00000000000000000009C01 /* UpdateChecker.swift in Sources */,
 					B74000000000000000000001 /* SubscriptionSubmitter.swift in Sources */,
+					B77000000000000000000001 /* SparkleUpdateService.swift in Sources */,
 					A000000000000000000019A1 /* LauncherChip.swift in Sources */,
 					C90000000000000000000002 /* ChipPressFeedback.swift in Sources */,
 					A000000000000000000019D4 /* LauncherMembershipItem.swift in Sources */,
@@ -1091,10 +1172,15 @@
 					A0000000000000000000FF21 /* AppLaunchTargetDecision.swift in Sources */,
 					B72000000000000000000001 /* AppDisplayNameCache.swift in Sources */,
 					B72000000000000000000011 /* InstallationRecord.swift in Sources */,
+					B75000000000000000000001 /* WelcomeGuideDecision.swift in Sources */,
+					B75000000000000000000011 /* WelcomeGuideView.swift in Sources */,
 					C90000000000000000000006 /* ClickLatencyTrace.swift in Sources */,
+				A00000000000000000009AB1 /* HoverTrace.swift in Sources */,
 					A0000000000000000000FB01 /* DockThemeTokens.swift in Sources */,
+					E20000000000000000000001 /* DockLiquidGlassConfiguration.swift in Sources */,
 					A0000000000000000000FC01 /* DockTheme.swift in Sources */,
 					A0000000000000000000FE01 /* DockGlassBackdrop.swift in Sources */,
+					E20000000000000000000003 /* DockGlassRuntimeBridge.m in Sources */,
 					A00000000000000000009581 /* AppMembershipMenuPlan.swift in Sources */,
 					A00000000000000000009701 /* DragConversionPlan.swift in Sources */,
 					A00000000000000000000A101 /* MessagingZoneAdmission.swift in Sources */,
@@ -1104,6 +1190,7 @@
 					A00000000000000000009511 /* RunningApplicationStore.swift in Sources */,
 					A00000000000000000009521 /* AppMembershipController.swift in Sources */,
 					A00000000000000000009321 /* ShelfChip.swift in Sources */,
+				A00000000000000000009AA1 /* ShelfTrayArt.swift in Sources */,
 					A00000000000000000009331 /* ShelfGridPopupView.swift in Sources */,
 					A00000000000000000009241 /* FolderGridPopupView.swift in Sources */,
 					A00000000000000000009251 /* PinnedFolderChip.swift in Sources */,
@@ -1202,17 +1289,26 @@
 				D20000000000000000000014 /* AutoHideToggleMenuModel.swift in Sources */,
 				D20000000000000000000016 /* AccessoryWindowPresentation.swift in Sources */,
 				D20000000000000000000042 /* StripContextMenuZone.swift in Sources */,
+				D20000000000000000000062 /* StripHoverResolution.swift in Sources */,
+				D20000000000000000000065 /* DragLandingPlan.swift in Sources */,
+				D20000000000000000000005 /* CarrierSnapshot.swift in Sources */,
+				D20000000000000000000008 /* DragCarrierGeometry.swift in Sources */,
+				D2000000000000000000000A /* DragCarrierGeometryTests.swift in Sources */,
+				D20000000000000000000069 /* StripBlockLanding.swift in Sources */,
+				D20000000000000000000067 /* HoverTrace.swift in Sources */,
 				D20000000000000000000017 /* SettingsCoordinatorTests.swift in Sources */,
 				D20000000000000000000019 /* AccessoryWindowPresentationTests.swift in Sources */,
 				D20000000000000000000043 /* StripContextMenuZoneTests.swift in Sources */,
+				D20000000000000000000063 /* StripHoverResolutionTests.swift in Sources */,
+				D20000000000000000000066 /* DragLandingPlanTests.swift in Sources */,
+				D2000000000000000000006A /* StripBlockLandingTests.swift in Sources */,
 				A00000000000000000008041 /* AppSettingsStoreTests.swift in Sources */,
 				A00000000000000000009F02 /* GlobalHotKeyMonitor.swift in Sources */,
 				A00000000000000000009F11 /* GlobalHotKeyMonitorTests.swift in Sources */,
 				A00000000000000000009071 /* StatusMenuController.swift in Sources */,
-				A00000000000000000009C02 /* UpdateChecker.swift in Sources */,
-				A00000000000000000009C03 /* UpdateCheckerTests.swift in Sources */,
 				B74000000000000000000002 /* SubscriptionSubmitter.swift in Sources */,
 				B74000000000000000000011 /* SubscriptionSubmitterTests.swift in Sources */,
+				B75000000000000000000021 /* WelcomeGuideDecisionTests.swift in Sources */,
 				A00000000000000000009061 /* LaunchAtLoginService.swift in Sources */,
 				A00000000000000000009041 /* NativeDockPreferencesService.swift in Sources */,
 				A00000000000000000009051 /* PanelVisibilityState.swift in Sources */,
@@ -1233,7 +1329,9 @@
 				A0000000000000000000FF22 /* AppLaunchTargetDecision.swift in Sources */,
 				B72000000000000000000002 /* AppDisplayNameCache.swift in Sources */,
 				B72000000000000000000012 /* InstallationRecord.swift in Sources */,
+				B75000000000000000000002 /* WelcomeGuideDecision.swift in Sources */,
 				A0000000000000000000FB02 /* DockThemeTokens.swift in Sources */,
+				E20000000000000000000002 /* DockLiquidGlassConfiguration.swift in Sources */,
 				A0000000000000000000FC02 /* DockTheme.swift in Sources */,
 				C9000000000000000000000D /* ChipPressFeedback.swift in Sources */,
 				C9000000000000000000000C /* ClickLatencyTrace.swift in Sources */,
@@ -1250,6 +1348,7 @@
 				A0000000000000000000FF31 /* AppLaunchTargetDecisionTests.swift in Sources */,
 				A0000000000000000000FF41 /* WindowDisplayTitleTests.swift in Sources */,
 				A0000000000000000000FD01 /* DockThemeTests.swift in Sources */,
+				E20000000000000000000004 /* DockLiquidGlassConfigurationTests.swift in Sources */,
 				A00000000000000000009591 /* AppMembershipMenuPlanTests.swift in Sources */,
 				A00000000000000000009351 /* ShelfLogicTests.swift in Sources */,
 				A00000000000000000009371 /* FolderChipDropZoneTests.swift in Sources */,
@@ -1402,14 +1501,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "macos-dock-cc Local Code Signing";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "App/TungstenEdge-Bridging-Header.h";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1423,14 +1523,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "macos-dock-cc Local Code Signing";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "App/TungstenEdge-Bridging-Header.h";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1442,8 +1543,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
-				CURRENT_PROJECT_VERSION = 20;
-				MARKETING_VERSION = 0.8.0;
+				CURRENT_PROJECT_VERSION = 21;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.windowlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1454,8 +1555,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
-				CURRENT_PROJECT_VERSION = 20;
-				MARKETING_VERSION = 0.8.0;
+				CURRENT_PROJECT_VERSION = 21;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.windowlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -1540,6 +1641,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B76000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B76000000000000000000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B76000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A0000000000000000000003F /* Project object */;
 }

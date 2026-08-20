@@ -29,11 +29,11 @@ final class WindowDisplayTitleTests: XCTestCase {
     func testTaskbarNameUsesLocalizedDisplayName() {
         XCTAssertEqual(
             WindowDisplayTitle.resolve(rawTitle: "macos-dock-cc-v2", fallbackName: "Fallback"),
-            "任务条"
+            String(localized: "Taskbar")
         )
         XCTAssertEqual(
             WindowDisplayTitle.resolve(rawTitle: nil, fallbackName: "macos-dock-cc-v2"),
-            "任务条"
+            String(localized: "Taskbar")
         )
     }
 }

@@ -215,9 +215,9 @@ enum NativeDockPreferencesError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .sandboxed:
-            return "沙箱环境不能直接修改系统 Dock 设置。"
+            return String(localized: "Dock settings can’t be changed directly from a sandboxed environment.")
         case .commandFailed(let executable, let status):
-            return "\(executable) 执行失败（状态码 \(status)）。"
+            return String(format: String(localized: "%@ failed (status code %d)."), executable, status)
         }
     }
 }

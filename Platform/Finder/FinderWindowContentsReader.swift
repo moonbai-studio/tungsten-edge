@@ -29,17 +29,17 @@ enum FinderWindowContentsError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .missingAccessibilityPermission:
-            return "需要辅助功能权限"
+            return String(localized: "Accessibility permission required")
         case .missingFinderProcess:
-            return "访达暂时不可用"
+            return String(localized: "Finder is temporarily unavailable")
         case .missingWindowID, .windowNotFound:
-            return "无法定位这个访达窗口"
+            return String(localized: "Can’t locate this Finder window")
         case .unsupportedWindow:
-            return "不支持此访达窗口"
+            return String(localized: "This Finder window isn’t supported")
         case .automationPermissionRequired:
-            return "需要允许控制访达"
+            return String(localized: "Permission to control Finder is required")
         case .temporarilyUnavailable:
-            return "读取超时"
+            return String(localized: "Timed out while reading")
         }
     }
 }

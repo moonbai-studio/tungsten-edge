@@ -89,6 +89,48 @@ final class PanelCoordinator: NSObject {
     private var panelHeight: CGFloat { layoutMetrics.panelHeight }
     private var windowHeight: CGFloat { layoutMetrics.windowHeight }
     private var capsuleWidth: CGFloat { layoutMetrics.capsuleWidth }
+    /// 玻璃背景窗口的圆角。必须与 SwiftUI 侧任务条底板用同一个值，否则窗口模糊会在
+    /// 玻璃的圆角外露出方角。两边共同的来源是 `DockShape.panelCornerRadius`。
+    /// 五个悬浮面板走不走原生 Liquid Glass —— **单一来源**。
+    ///
+    /// 判据就是「任务条的玻璃合成建成功了没有」：背景窗口在 `setupDockPanel` 里建，
+    /// 抽屉 / 两个弹窗都是按需懒建的，创建时这个值早已确定。五个面板共用同一个判断，
+    /// 才不会出现「条是玻璃、紧挨着的胶囊还是毛玻璃」。
+    private var usesLiquidGlass: Bool { dockGlassBackgroundPanel != nil }
+
+    /// 建一块悬浮面板。**玻璃开着时必须用 `DockLiquidGlassPanel`，五块面板一个都不能漏。**
+    ///
+    /// Liquid Glass 的「活跃」外观是按**窗口**的 key / main / active 状态判的，而我们所有面板
+    /// 都是 `.nonactivatingPanel`、永远不会成为 key —— 用普通 `NonConstrainingPanel` 时玻璃
+    /// 退到「非活跃」那一档，渲染成一块几乎不透光的奶白板。`DockLiquidGlassPanel` 覆写那五个
+    /// 私有的外观判定，把窗口一直报成活跃。
+    ///
+    /// 2026-08-17 之前**只有任务条**用了这个子类，于是抽屉 / 胶囊 / 两个弹窗 / 气泡跟它不是
+    /// 一种材质（owner 报「抽屉区好像也不是液态玻璃」）。黑 / 白靶窗实测的透光量：
+    ///
+    /// | | 任务条 | 胶囊 | 抽屉 |
+    /// |---|---|---|---|
+    /// | 修复前 | 145 | **172** | **170** |
+    /// | 修复后 | 145 | 149 | 148 |
+    ///
+    /// 差 25–27 级 → 收敛到 4 级以内。**别用「同一块背景上看着差不多」当验证**：
+    /// 黑白条纹靶上两者都读中灰，我就是这么误判过一次「胶囊和任务条一致」。
+    /// 判据必须是**透光量**（同一块面板在纯黑与纯白背景上的读数之差）。
+    ///
+    /// SwiftUI 侧那两句 `.materialActiveAppearance(.active)` / `.environment(\.appearsActive,)`
+    /// **顶不掉这一层**——它们管的是视图环境，窗口状态得在窗口上解决。
+    private func makeFloatingPanel(contentRect: NSRect) -> NonConstrainingPanel {
+        let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
+        return usesLiquidGlass
+            ? DockLiquidGlassPanel(contentRect: contentRect, styleMask: styleMask,
+                                   backing: .buffered, defer: false)
+            : NonConstrainingPanel(contentRect: contentRect, styleMask: styleMask,
+                                   backing: .buffered, defer: false)
+    }
+
+    private var taskbarPlateCornerRadius: CGFloat {
+        DockShape.panelCornerRadius * settingsStore.dockSize.scale
+    }
     static let shadowPadding: CGFloat = PanelLayoutMetrics.shadowPadding
 
     private let runtime: AppRuntime
@@ -113,6 +155,8 @@ final class PanelCoordinator: NSObject {
     /// 这就是打开设置的唯一后路。
     var onRequestTaskbarMenu: ((NSEvent, NSView) -> Void)?
     private var dockPanel: NSPanel?
+    private var dockGlassBackgroundPanel: NonConstrainingPanel?
+    private var dockGlassBackgroundView: DockTaskbarLiquidGlassBackgroundView?
     /// 主任务条的 SwiftUI 承载器。窗口 frame 归 PanelCoordinator，内容尺寸只从这里读取。
     private var dockContentHost: ManualPanelHost?
     private var drawerPanel: NSPanel?
@@ -173,9 +217,14 @@ final class PanelCoordinator: NSObject {
     private var windowTitleTooltipPanel: NSPanel?
     private var windowTitleTooltipRequest: WindowTitleTooltipRequest?
     private var windowTitleTooltipSuppressedChipID: String?
-    private var windowTitleTooltipTimer: Timer?
+    private var windowTitleTooltipLingerTimer: Timer?
+    /// 只在气泡在屏上时跑的看门狗，见 `startWindowTitleTooltipWatchdog`。
+    private var windowTitleTooltipWatchdog: Timer?
     private var windowTitleTooltipLocalMonitor: Any?
     private var windowTitleTooltipGlobalMonitor: Any?
+    /// 复用同一棵托管视图：每次悬停新建 `NSHostingView` 会在换 chip 时闪一下，也白付一次构建成本。
+    private var windowTitleTooltipHosting: NSHostingView<WindowTitleTooltipView>?
+    private var windowTitleTooltipHost: ManualPanelHost?
     private var pinnedFolderStoreSubscription: AnyCancellable?
     private var pinnedFolderSortSubscription: AnyCancellable?
     private var snapshotWidthSubscription: AnyCancellable?
@@ -215,6 +264,10 @@ final class PanelCoordinator: NSObject {
     private var lastDrawerSize: CGSize = CGSize(width: 210, height: 60)
     /// 目标 frame 驱动布局：每次 layoutPanels 算齐三个目标并存这里。drop zone 命中、开抽屉定位都读**目标**
     /// 而非 live frame——动画中 live frame 是中途值,会和视觉/逻辑短暂不一致（Codex 二审 P2）。
+    /// `setFrames` 上一次真正提交过的目标 frame 序列。用来堵掉「目标没变还重启一遍动画」——
+    /// 实测启动 7 秒内有 8 次这种空转，其中 6 次挤在 1.1ms 内，等于把同一组窗口尺寸动画
+    /// 连着重启六遍，而它的每一帧都要重画玻璃底板和描边。
+    private var lastCommittedFrames: [NSRect] = []
     private var lastDockTargetFrame: NSRect = .zero
     private var lastCapsuleTargetFrame: NSRect = .zero
     private var lastDrawerTargetFrame: NSRect = .zero
@@ -234,7 +287,8 @@ final class PanelCoordinator: NSObject {
     private var fullscreenSpaceHoldGeneration: UInt64 = 0
     private var fullscreenSpaceHold: FullscreenSpaceHold?
     private var fullscreenSpaceHoldTimer: Timer?
-    /// Control+←/→ 预测隐藏实验（`DOCK_SPACE_INTENT_EXPERIMENT=1`）。与窗口级意图事务共用
+    /// Control+←/→ 预测隐藏。**默认开**，关掉用 `DOCK_SPACE_INTENT=0`
+    ///（判定在 `FullscreenIntentMonitor` 的 `spaceSwitchEnabled`）。与窗口级意图事务共用
     /// `visibilityState` 的 `.fullscreenTransitionPending` 槽位，因此两者互斥、同时只能有一个。
     private var fullscreenSpaceIntentGeneration: UInt64?
     private var fullscreenSpaceIntentTimer: Timer?
@@ -314,6 +368,7 @@ final class PanelCoordinator: NSObject {
             fullscreenIntentMonitor?.stop()
             removeHoverMouseMonitors()
             dismissWindowTitleTooltip()
+            tearDownTaskbarGlassBackground()
         }
         edgeIdleHideTimer?.invalidate()
         edgeWakeTimer?.invalidate()
@@ -349,8 +404,9 @@ final class PanelCoordinator: NSObject {
         fullscreenSpaceHold = nil
         clearFullscreenSpaceArrowIntent()
 
-        // 先回滚未提交的跨面板拖拽事务，再拆监视器。
+        // 先回滚未提交的跨面板拖拽事务，再拆监视器；常驻的载体面板也要显式收掉。
         dragController?.cancelDrag()
+        dragController?.closeCarrierSurfaces()
         closeDrawer()
         closeFolderPopup(immediately: true)
         dismissWindowTitleTooltip()
@@ -361,6 +417,9 @@ final class PanelCoordinator: NSObject {
         capsuleContentHost = nil
         drawerContentHost = nil
         folderPopupContentHost = nil
+        windowTitleTooltipHosting = nil
+        windowTitleTooltipHost = nil
+        tearDownTaskbarGlassBackground()
         for panel in [dockPanel, capsulePanel, drawerPanel, folderPopupPanel, windowTitleTooltipPanel] {
             guard let panel else { continue }
             panel.contentView = NSView()
@@ -372,6 +431,9 @@ final class PanelCoordinator: NSObject {
         drawerPanel = nil
         folderPopupPanel = nil
         windowTitleTooltipPanel = nil
+        // 面板全拆了，「上次提交过的目标」随之作废——留着会让重建后的第一次布局被误判成
+        // 「目标没变」而跳过，条就停在旧几何上。
+        lastCommittedFrames = []
     }
 
     /// 最大化避让只在钨极常驻且真正可见时取得上下文；一次性返回完整几何，避免切屏时撕裂读取。
@@ -411,11 +473,8 @@ final class PanelCoordinator: NSObject {
         drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
         if drawerPanel == nil {
-            let panel = NonConstrainingPanel(
-                contentRect: NSRect(origin: .zero, size: lastDrawerSize),
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
+            let panel = makeFloatingPanel(
+                contentRect: NSRect(origin: .zero, size: lastDrawerSize)
             )
             panel.level = .floating
             panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
@@ -440,6 +499,7 @@ final class PanelCoordinator: NSObject {
 
         // 每次打开都换一份新内容视图 → DrawerView 的 onAppear 重新触发淡入缩放,并拿到当前 maxContentHeight。
         let hosting = NSHostingView(rootView: DrawerView(maxContentHeight: maxContentHeight,
+                                                         usesLiquidGlass: usesLiquidGlass,
                                                          onPrimaryAction: { [weak self] in self?.closeDrawerAfterAction() })
             .environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore)
             .environmentObject(drawerOrderStore).environmentObject(dragController)
@@ -596,6 +656,7 @@ final class PanelCoordinator: NSObject {
                 initialEntries: preloadedEntries,
                 sortOrder: sortOrder,
                 maxContentHeight: maxContentHeight,
+                usesLiquidGlass: usesLiquidGlass,
                 onFileOpened: { [weak self] in self?.closeFolderPopup() },
                 onContentResize: { [weak self] in self?.repositionFolderPopup(animated: true) },
                 onPinFolder: { [weak self] url in self?.pinnedFolderStore.add(url.path) },
@@ -613,6 +674,7 @@ final class PanelCoordinator: NSObject {
             NSHostingView(rootView: ShelfGridPopupView(
                 shelfStore: shelfStore,
                 maxContentHeight: maxContentHeight,
+                usesLiquidGlass: usesLiquidGlass,
                 onClosePopup: { [weak self] in self?.closeFolderPopup() },
                 onContentResize: { [weak self] in self?.repositionFolderPopup(animated: true) },
                 onPinFolder: { [weak self] url in self?.pinnedFolderStore.add(url.path) },
@@ -638,11 +700,8 @@ final class PanelCoordinator: NSObject {
         }
 
         if folderPopupPanel == nil {
-            let panel = NonConstrainingPanel(
-                contentRect: NSRect(origin: .zero, size: lastPopupSize),
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
+            let panel = makeFloatingPanel(
+                contentRect: NSRect(origin: .zero, size: lastPopupSize)
             )
             panel.level = .floating
             panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
@@ -904,25 +963,11 @@ final class PanelCoordinator: NSObject {
             messagingStore: messagingStore,
             keptAppStore: keptAppStore,
             dropZonesProvider: { [weak self] source in self?.dragDropZones(for: source) ?? [] },
-            screenProvider: { [weak self] in self?.carrierTargetScreen() ?? (NSScreen.main ?? NSScreen.screens[0]) },
-            carrierFactory: { [runtime = self.runtime,
-                               drawerStore = self.drawerStore,
-                               messagingStore = self.messagingStore,
-                               folderCoverStore = self.folderCoverStore,
-                               keptAppStore = self.keptAppStore,
-                               runningApplicationStore = self.runningApplicationStore,
-                               appMembershipController = self.appMembershipController,
-                               settingsStore = self.settingsStore] controller in
-                NSHostingView(rootView: DragCarrierView(controller: controller)
-                    .environmentObject(runtime)
-                    .environmentObject(drawerStore)
-                    .environmentObject(messagingStore)
-                    .environmentObject(folderCoverStore)
-                    .environmentObject(keptAppStore)
-                    .environmentObject(runningApplicationStore)
-                    .environmentObject(appMembershipController)
-                    .environmentObject(settingsStore))
-            }
+            // 一块屏一套载体面板（`DragController.CarrierSurface`），按指针所在屏切换——
+            // 「显示器具有单独的空间」下一个窗口只属于一块屏，铺并集反而在另一块屏上画不出来。
+            screensProvider: { NSScreen.screens },
+            // 松在胶囊上收纳时图标吸进这里（胶囊可视帧，去掉投影边距）。
+            stashTargetProvider: { [weak self] in self?.capsuleVisibleFrame }
         )
         // 文件夹 chip 拖动落定：几何由 DockStripView 写入 DragController，最终 mouseUp/轮询兜底在
         // endDrag 里回调到这里执行副作用。保持 .folder 与 strip/drawer 收纳语义隔离。
@@ -950,6 +995,12 @@ final class PanelCoordinator: NSObject {
         dragController.onDrawerToStripCompleted = { [weak self] _ in
             self?.closeDrawerAfterAction()
         }
+        // 载体面板提前建好，别让用户的第一次拖动付那 20ms + 一次 39ms 主线程卡顿
+        // （理由与实测见 `DragController.prewarmCarrier`）。**排到下一轮 run loop**：
+        // 启动是一整笔首帧事务，不能往里塞额外的 SwiftUI 布局。
+        DispatchQueue.main.async { [weak dragController] in
+            dragController?.prewarmCarrier()
+        }
     }
 
     /// 投放候选区（屏幕坐标），按拖动来源分：
@@ -957,6 +1008,12 @@ final class PanelCoordinator: NSObject {
     ///   shadowPadding=20 透明边，减 20 得 52×52 可见区，再外扩 8 容错，不能更宽——胶囊紧挨任务条，太宽会
     ///   "拖到附近就被收走"）；抽屉打开时叠加抽屉可见内容区。任务条本身不是它们的投放区。
     /// - `.drawer`（抽屉图标找移回目标）= 任务条 dock 面板可见内容区（减 shadowPadding）。
+    /// 胶囊的可视帧（屏幕坐标，目标帧优先）。给 `DragController` 的「吸进胶囊」飞行当终点。
+    private var capsuleVisibleFrame: CGRect? {
+        let frame = lastCapsuleTargetFrame != .zero ? lastCapsuleTargetFrame : capsulePanel?.frame
+        return frame?.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding)
+    }
+
     private func dragDropZones(for source: DragSource) -> [CGRect] {
         // 读**目标** frame：动画中 live frame 是中途值,会和视觉/落点短暂错位（Codex 二审 P2）。目标未初始化时退回 live。
         func target(_ stored: NSRect, _ live: NSRect?) -> NSRect? { stored != .zero ? stored : live }
@@ -986,11 +1043,6 @@ final class PanelCoordinator: NSObject {
         }
     }
 
-    private func carrierTargetScreen() -> NSScreen {
-        if let dock = dockPanel { return panelCurrentScreen(panel: dock) }
-        return NSScreen.main ?? NSScreen.screens[0]
-    }
-
     // MARK: - 弹簧文件夹：拖卡悬停胶囊自动弹开抽屉
 
     /// strip 卡悬在胶囊上（抽屉关着时投放区只有胶囊）约 0.4s → 自动弹开抽屉,之后移进抽屉即接上精确定位;
@@ -998,7 +1050,7 @@ final class PanelCoordinator: NSObject {
     private func subscribeDragSpringLoad() {
         // 订阅 globalLocation（不是 isOverDropZone）——光标回到任务条上不改 isOverDropZone,
         // 必须靠位置才能实时收回抽屉（owner 2026-06-21：拖回任务条即收、再移回胶囊再开）。
-        dragSpringSubscription = dragController.$globalLocation
+        dragSpringSubscription = dragController.pointerMoves
             .combineLatest(dragController.$draggingPayload)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] location, payload in
@@ -1019,56 +1071,129 @@ final class PanelCoordinator: NSObject {
 
     // MARK: - Window title tooltip
 
+    /// 离开宽限：`.exit` 之后不立刻收，等这么久。**这条是「跟手」的关键。**
+    /// 横穿分区分隔线时指针短暂不在任何卡上，立刻 orderOut 就会闪一下；隔壁一发
+    /// `.update` 就接管，宽限自然作废。
+    ///
+    /// **配套的「冷启动延迟」已经删掉了，别再加回来。** 那里曾经留过 0.05s 去抖，
+    /// 想的是横扫一排时别每个都闪，实际是反效果：0.05s 正好撞上匀速扫过单个图标的停留时间
+    ///（中心间距 42pt，正常划手速度下每格只有几十毫秒），于是大多数格子在计时器到点前就已经
+    /// 离开了。原生 Dock 根本没有这个延迟。面板保活之后，换 chip 本来就不闪。
+    private static let windowTitleTooltipLingerDelay: TimeInterval = 0.09
+
     private func handleWindowTitleTooltipEvent(_ event: WindowTitleTooltipEvent) {
         switch event {
         case let .update(request):
+            // 这里**不再做归属判定**。请求现在只有一个来源：任务条整条那块跟踪区按指针位置
+            // 算出来的（`StripHoverResolution`），发出来时指针必定压在那张卡上。
+            // 以前每张卡各自发请求才需要守卫（卡住的 `isHovering` 会抢面板），
+            // 理由留在 `WindowTitleTooltipRequest` 的注释里。
             if windowTitleTooltipSuppressedChipID == request.chipID { return }
             windowTitleTooltipSuppressedChipID = nil
-            if windowTitleTooltipRequest?.chipID == request.chipID {
-                windowTitleTooltipRequest = request
-                if windowTitleTooltipPanel?.isVisible == true {
-                    presentWindowTitleTooltip(request, animated: false)
-                }
-                return
-            }
+            cancelWindowTitleTooltipLinger()
 
-            dismissWindowTitleTooltip()
+            HoverTrace.hover(chipID: request.chipID, entered: true)
             windowTitleTooltipRequest = request
             installWindowTitleTooltipMouseMonitors()
-            let chipID = request.chipID
-            let timer = Timer(timeInterval: 0.7, repeats: false) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self,
-                          let current = self.windowTitleTooltipRequest,
-                          current.chipID == chipID else { return }
-                    self.windowTitleTooltipTimer = nil
-                    self.presentWindowTitleTooltip(current, animated: true)
-                }
-            }
-            windowTitleTooltipTimer = timer
-            RunLoop.main.add(timer, forMode: .common)
+            // 立刻换文字换位置：不去抖、不淡入（见上面那条常量的注释）。
+            presentWindowTitleTooltip(request)
 
         case let .exit(chipID):
+            HoverTrace.hover(chipID: chipID, entered: false)
             if windowTitleTooltipSuppressedChipID == chipID {
                 windowTitleTooltipSuppressedChipID = nil
             }
             guard windowTitleTooltipRequest?.chipID == chipID else { return }
-            dismissWindowTitleTooltip()
+            // `.exit` 现在的含义很干脆：**指针没压在任何一张卡上**——分区分隔线那道宽缝、
+            // 条两端的留白，或者已经离开任务条。卡与卡之间那 2pt 窄缝不会走到这里：
+            // 归属判定把它桥接掉了（`StripHoverResolution`），所以「A → 空 → B」在源头上没了。
+            //
+            // 还留一个 90ms 宽限：横穿分隔线时别闪一下，隔壁一发 `.update` 就接管。
+            // 指针已经不在任务条上就立刻收，不挂一颗过期气泡。
+            if isPointInsideTaskbarPanels(NSEvent.mouseLocation) {
+                scheduleWindowTitleTooltipLinger()
+            } else {
+                dismissWindowTitleTooltip()
+            }
         }
     }
 
-    private func presentWindowTitleTooltip(_ request: WindowTitleTooltipRequest, animated: Bool) {
+    /// 延后收气泡；宽限内有别的 chip `.update` 进来就直接接管这块面板（见 `windowTitleTooltipLingerDelay`）。
+    private func scheduleWindowTitleTooltipLinger() {
+        cancelWindowTitleTooltipLinger()
+        let timer = Timer(timeInterval: Self.windowTitleTooltipLingerDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.windowTitleTooltipLingerTimer = nil
+                self.dismissWindowTitleTooltip()
+            }
+        }
+        windowTitleTooltipLingerTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func cancelWindowTitleTooltipLinger() {
+        windowTitleTooltipLingerTimer?.invalidate()
+        windowTitleTooltipLingerTimer = nil
+    }
+
+    /// 气泡在屏上时的看门狗：指针离开了会弹气泡的那些面板就收掉。
+    ///
+    /// 改造之后它只剩**兜底**这一个身份：条上谁拥有气泡由整条那块跟踪区实时算
+    /// （`StripHoverResolution`），它自己的 `mouseExited` 才是正常的收气泡路径。
+    /// 但面板被 `orderOut`（贴边隐藏、进全屏）、或 chip 从指针底下被抽走时，
+    /// 跟踪区不保证补一次 exit，那时就靠这条 10Hz 复核，免得气泡永远挂着
+    /// （owner 报过「有时候鼠标移走气泡还在」）。
+    ///
+    /// **判定用整块面板，不用锚点矩形**：条内的归属交给跟踪区，这里再按锚点判一次
+    /// 只会和它打架——指针停在分隔线或窄缝上时两边结论不同，气泡会被抢着收掉。
+    ///
+    /// 刻意用**只在气泡可见期间存活**的定时器，而不是常驻的 `.mouseMoved` 全局监视器：
+    /// 后者是事件 tap，我们自己的菜单弹起时会把鼠标事件拖慢（AGENTS《Menus, Panels, And Screens》
+    /// 那条 100ms 粘滞就是这么来的），为一颗 tooltip 不值得再开一个。
+    private func startWindowTitleTooltipWatchdog() {
+        guard windowTitleTooltipWatchdog == nil else { return }
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard self.windowTitleTooltipPanel?.isVisible == true,
+                      self.windowTitleTooltipRequest != nil else {
+                    self.stopWindowTitleTooltipWatchdog()
+                    return
+                }
+                guard !self.isPointInsideTaskbarPanels(NSEvent.mouseLocation) else { return }
+                self.dismissWindowTitleTooltip()
+            }
+        }
+        windowTitleTooltipWatchdog = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    /// 指针是否还落在「会弹气泡的那些面板」上（任务条本体 + 胶囊 + 打开着的抽屉）。
+    /// 用整窗 frame 就够：多算进去的只有 20pt 透明阴影边，宽限到点自然会收。
+    private func isPointInsideTaskbarPanels(_ point: CGPoint) -> Bool {
+        if let dock = dockPanel, dock.frame.contains(point) { return true }
+        if let capsule = capsulePanel, capsule.frame.contains(point) { return true }
+        if drawerWantsOpen, let drawer = drawerPanel, drawer.frame.contains(point) { return true }
+        return false
+    }
+
+    private func stopWindowTitleTooltipWatchdog() {
+        windowTitleTooltipWatchdog?.invalidate()
+        windowTitleTooltipWatchdog = nil
+    }
+
+    private func presentWindowTitleTooltip(_ request: WindowTitleTooltipRequest) {
         guard request.anchorVisibleRect != .zero else { return }
+        let traceStart = CACurrentMediaTime()
+        let traceCold = windowTitleTooltipPanel?.isVisible != true
+        defer { HoverTrace.present(chipID: request.chipID, cold: traceCold,
+                                   elapsed: CACurrentMediaTime() - traceStart) }
         let panel: NSPanel
         if let existing = windowTitleTooltipPanel {
             panel = existing
         } else {
-            let created = NonConstrainingPanel(
-                contentRect: .zero,
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
+            let created = makeFloatingPanel(contentRect: .zero)
             created.level = .floating
             created.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
             created.isFloatingPanel = true
@@ -1082,41 +1207,58 @@ final class PanelCoordinator: NSObject {
             panel = created
         }
 
-        let hosting = NSHostingView(rootView: WindowTitleTooltipView(title: request.title))
-        hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        let contentHost = ManualPanelHost(contentView: hosting, in: panel)
+        // 气泡整颗随任务条档位缩放（owner 2026-08-17）。`DockSize.scale` 已经是中档归一的，
+        // 中档恒为 1.0 → 中档逐字保持实测的原生像素。档位切换走既有的 `beginDockSizeChange`
+        // 事务，它会先收掉气泡，所以这里不需要额外的失效处理。
+        let style = WindowTitleTooltipStyle(scale: settingsStore.dockSize.scale)
+        let contentHost: ManualPanelHost
+        if let hosting = windowTitleTooltipHosting, let existingHost = windowTitleTooltipHost {
+            hosting.rootView = WindowTitleTooltipView(title: request.title, style: style,
+                                                    usesLiquidGlass: usesLiquidGlass)
+            contentHost = existingHost
+        } else {
+            let hosting = NSHostingView(rootView: WindowTitleTooltipView(title: request.title, style: style,
+                                                          usesLiquidGlass: usesLiquidGlass))
+            hosting.wantsLayer = true
+            hosting.layer?.backgroundColor = NSColor.clear.cgColor
+            contentHost = ManualPanelHost(contentView: hosting, in: panel)
+            windowTitleTooltipHosting = hosting
+            windowTitleTooltipHost = contentHost
+        }
         panel.layoutIfNeeded()
         let size = contentHost.fittingSize
         guard size.width > 0, size.height > 0 else { return }
 
         let anchorPoint = CGPoint(x: request.anchorVisibleRect.midX, y: request.anchorVisibleRect.midY)
+        // **锚点必须落在任务条所在的那块屏上。** 弹气泡的 chip 全都住在任务条 / 抽屉里，
+        // 两者永远同屏；锚点跑到别的屏上只可能是那张卡缓存的屏幕矩形过期了（面板换过屏）。
+        // 此时宁可这一帧不弹——`ScreenRectReader` 现在会在窗口移动时补一次上报，
+        // 下一帧就正确。真弹出去就是 owner 报的「气泡跑到没有任务条的那块屏上」。
+        let dockScreen = dockPanel.map { panelCurrentScreen(panel: $0) }
+        if let dockScreen, !dockScreen.frame.contains(anchorPoint) { return }
         let screen = NSScreen.screens.first(where: { $0.frame.contains(anchorPoint) })
-            ?? dockPanel.map { panelCurrentScreen(panel: $0) }
+            ?? dockScreen
             ?? NSScreen.main
             ?? NSScreen.screens[0]
         let target = PanelGeometry.windowTitleTooltipTargetFrame(
             anchorVisibleRect: request.anchorVisibleRect,
             size: size,
+            tipGap: style.tipGap,
             on: Self.screenGeometry(screen)
         )
         panel.setFrame(target, display: true)
 
-        guard animated, !panel.isVisible else {
-            panel.alphaValue = 1
-            if !panel.isVisible { panel.orderFrontRegardless() }
-            return
-        }
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.1
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().alphaValue = 1
-        }
+        // **不淡入。** 实测输入 → 气泡上屏只要 2.9–9.5ms，链路本来就是即时的；
+        // owner 说的「没有原生那么干脆」是这 0.1s 淡入带来的**软**，不是慢
+        // （原生 Dock 的应用名是直接出现的）。同理离开也是直接收，见 `.exit` 分支。
+        panel.alphaValue = 1
+        if !panel.isVisible { panel.orderFrontRegardless() }
+        startWindowTitleTooltipWatchdog()
     }
 
+    /// **幂等**：每次 `.update` 都会调它（换 chip 不再先 dismiss 后重装），重复装会漏掉旧监视器。
     private func installWindowTitleTooltipMouseMonitors() {
+        guard windowTitleTooltipLocalMonitor == nil, windowTitleTooltipGlobalMonitor == nil else { return }
         let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         windowTitleTooltipLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
             self?.dismissWindowTitleTooltip(suppressCurrentUntilExit: true)
@@ -1131,8 +1273,8 @@ final class PanelCoordinator: NSObject {
         if suppressCurrentUntilExit, let chipID = windowTitleTooltipRequest?.chipID {
             windowTitleTooltipSuppressedChipID = chipID
         }
-        windowTitleTooltipTimer?.invalidate()
-        windowTitleTooltipTimer = nil
+        cancelWindowTitleTooltipLinger()
+        stopWindowTitleTooltipWatchdog()
         windowTitleTooltipRequest = nil
         if let monitor = windowTitleTooltipLocalMonitor {
             NSEvent.removeMonitor(monitor)
@@ -1241,13 +1383,33 @@ final class PanelCoordinator: NSObject {
     private func setupDockPanel() {
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let s = screen.frame
-
-        let panel = NonConstrainingPanel(
-            contentRect: NSRect(x: s.minX, y: s.minY + layoutMetrics.bottomGap - Self.shadowPadding, width: s.width, height: windowHeight),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
+        let legacyInitialFrame = NSRect(
+            x: s.minX,
+            y: s.minY + layoutMetrics.bottomGap - Self.shadowPadding,
+            width: s.width,
+            height: windowHeight
         )
+
+        let glassBackground = makeTaskbarGlassBackground(contentPanelFrame: legacyInitialFrame)
+        let usesLiquidGlass = glassBackground != nil
+
+        // 内容窗口**始终**用含 20pt 阴影透明边的 frame，玻璃态也不例外：落地阴影住在那里，
+        // 而且投放区/弹簧区/「鼠标还在条上」这些判定全都按「窗口 frame 减 shadowPadding」
+        // 换算（`dragDropZones` / `springZone` / `isMouseOutsideInteractivePanels`）。
+        // 缩窗口会让这一整批坐标一起错位。
+        let panel: NonConstrainingPanel = usesLiquidGlass
+            ? DockLiquidGlassPanel(
+                contentRect: legacyInitialFrame,
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            : NonConstrainingPanel(
+                contentRect: legacyInitialFrame,
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         panel.isFloatingPanel = true
@@ -1258,6 +1420,7 @@ final class PanelCoordinator: NSObject {
         panel.hidesOnDeactivate = false
 
         let hosting = NSHostingView(rootView: DockStripView(
+            usesLiquidGlass: usesLiquidGlass,
             onFolderPopupToggle: { [weak self] path, anchorRect in
                 self?.toggleFolderPopup(path: path, anchorVisibleRect: anchorRect)
             },
@@ -1281,6 +1444,102 @@ final class PanelCoordinator: NSObject {
         hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
         dockContentHost = ManualPanelHost(contentView: hosting, in: panel)
         dockPanel = panel
+
+        if let (backgroundPanel, backgroundView) = glassBackground {
+            dockGlassBackgroundPanel = backgroundPanel
+            dockGlassBackgroundView = backgroundView
+        }
+    }
+
+    private func makeTaskbarGlassBackground(
+        contentPanelFrame: NSRect
+    ) -> (NonConstrainingPanel, DockTaskbarLiquidGlassBackgroundView)? {
+        guard DockGlassPresentation.shouldAttemptTaskbarComposite else { return nil }
+
+        let configuration = DockGlassPresentation.configuration
+        let backgroundFrame = DockLiquidGlassPanelGeometry.backgroundFrame(
+            for: contentPanelFrame,
+            shadowPadding: Self.shadowPadding
+        )
+        guard backgroundFrame.width > 0, backgroundFrame.height > 0 else { return nil }
+
+        let panel = NonConstrainingPanel(
+            contentRect: backgroundFrame,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        panel.isFloatingPanel = true
+        panel.isMovable = false
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
+        panel.ignoresMouseEvents = true
+        // 下面的失败分支会 close() 一个从未 order in 过的窗口；NSWindow 默认 close 即释放，
+        // 而这里还持有着强引用。
+        panel.isReleasedWhenClosed = false
+
+        let backgroundView = DockTaskbarLiquidGlassBackgroundView(
+            frame: NSRect(origin: .zero, size: backgroundFrame.size),
+            cornerRadius: taskbarPlateCornerRadius,
+            configuration: configuration
+        )
+        backgroundView.autoresizingMask = [.width, .height]
+        panel.contentView = backgroundView
+
+        let blurRadius = UInt32(configuration.windowBlurRadius.rounded())
+        guard TEDockGlassSetWindowBackgroundBlurRadius(panel.windowNumber, blurRadius) else {
+            panel.contentView = nil
+            panel.close()
+            return nil
+        }
+        return (panel, backgroundView)
+    }
+
+    private func tearDownTaskbarGlassBackground() {
+        guard let background = dockGlassBackgroundPanel else { return }
+        _ = TEDockGlassSetWindowBackgroundBlurRadius(background.windowNumber, 0)
+        background.contentView = nil
+        background.orderOut(nil)
+        background.close()
+        dockGlassBackgroundView = nil
+        dockGlassBackgroundPanel = nil
+    }
+
+    private func orderDockSurfaceFront() {
+        let ordering = DockLiquidGlassPanelLifecyclePlan.ordering(
+            isCompositeActive: dockGlassBackgroundPanel != nil,
+            shouldShow: true
+        )
+        for role in ordering {
+            switch role {
+            case .background:
+                dockGlassBackgroundPanel?.orderFrontRegardless()
+            case .content:
+                dockPanel?.orderFrontRegardless()
+            }
+        }
+        if let background = dockGlassBackgroundPanel, let dock = dockPanel {
+            background.order(.below, relativeTo: dock.windowNumber)
+        }
+    }
+
+    private func orderDockSurfaceOut() {
+        let ordering = DockLiquidGlassPanelLifecyclePlan.ordering(
+            isCompositeActive: dockGlassBackgroundPanel != nil,
+            shouldShow: false
+        )
+        for role in ordering {
+            switch role {
+            case .background:
+                dockGlassBackgroundPanel?.orderOut(nil)
+            case .content:
+                dockPanel?.orderOut(nil)
+            }
+        }
     }
 
     private func moveExternalFiles(_ urls: [URL], into path: String) {
@@ -1295,11 +1554,10 @@ final class PanelCoordinator: NSObject {
     }
 
     private func setupCapsulePanel() {
-        let panel = NonConstrainingPanel(
-            contentRect: NSRect(origin: .zero, size: CGSize(width: capsuleWidth + Self.shadowPadding * 2, height: capsuleWidth + Self.shadowPadding * 2)),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
+        let panel = makeFloatingPanel(
+            contentRect: NSRect(origin: .zero,
+                                size: CGSize(width: capsuleWidth + Self.shadowPadding * 2,
+                                             height: capsuleWidth + Self.shadowPadding * 2))
         )
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
@@ -1314,6 +1572,7 @@ final class PanelCoordinator: NSObject {
                 onRequestTaskbarMenu: { [weak self] event, view in
                     self?.onRequestTaskbarMenu?(event, view)
                 },
+                usesLiquidGlass: usesLiquidGlass,
                 action: { [weak self] in self?.toggleDrawer() }
             )
                 .environmentObject(runtime)
@@ -1338,7 +1597,7 @@ final class PanelCoordinator: NSObject {
         dock.layoutIfNeeded()
         capsule.layoutIfNeeded()
         relayout(animated: false)
-        dock.orderFrontRegardless()
+        orderDockSurfaceFront()
         capsule.orderFrontRegardless()
     }
 
@@ -1537,7 +1796,23 @@ final class PanelCoordinator: NSObject {
         lastDockTargetFrame = dockT
         lastCapsuleTargetFrame = capsuleT
 
-        var pairs: [(NSPanel, NSRect)] = [(dock, dockT), (capsule, capsuleT)]
+        var pairs: [(NSPanel, NSRect)] = []
+        if let background = dockGlassBackgroundPanel {
+            dockGlassBackgroundView?.apply(
+                cornerRadius: taskbarPlateCornerRadius,
+                configuration: DockGlassPresentation.configuration
+            )
+            // 背景窗口贴着可视底板（内容窗口减掉 20pt 阴影透明边）。
+            pairs.append((
+                background,
+                DockLiquidGlassPanelGeometry.backgroundFrame(
+                    for: dockT,
+                    shadowPadding: Self.shadowPadding
+                )
+            ))
+        }
+        pairs.append((dock, dockT))
+        pairs.append((capsule, capsuleT))
         if let drawer = drawerPanel, drawer.isVisible, let hosting = drawerContentHost {
             let fitting = hosting.fittingSize
             let drawerSize = CGSize(width: max(fitting.width, 60), height: max(fitting.height, 60))
@@ -1552,7 +1827,14 @@ final class PanelCoordinator: NSObject {
     /// 量当前内容宽度后布局（内容变化的统一入口）。
     private func relayout(animated: Bool) {
         guard let panel = dockPanel, let hosting = dockContentHost else { return }
+        // `fittingSize` 是**主线程上把整条任务条同步布局一遍**，不是读一个缓存值。
+        // 探针量的就是它 + 宽度到底变没变（没变还跑动画就是纯浪费）。
+        let measureStart = CACurrentMediaTime()
         let measured = hosting.fittingSize.width - 2 * Self.shadowPadding
+        HoverTrace.relayout(measureMs: CACurrentMediaTime() - measureStart,
+                            width: measured,
+                            changed: measured != lastDesiredWidth,
+                            animated: animated)
         lastDesiredWidth = measured
         // 跨面板转正进行中 → 任务条宽度钳在拖动前的值（窗口卡溢出/留空而非改变面板宽度，owner 2026-06-22）；
         // 松手/还原解钳后，下一次 relayout 用真实测量值把任务条变到最终长度。
@@ -1561,7 +1843,26 @@ final class PanelCoordinator: NSObject {
     }
 
     /// 三面板同一个动画组提交,共用一条时间轴（Codex 二审 P2：避免各跑各的时间轴抖动）。
+    ///
+    /// **目标 frame 和现状完全一样时直接返回，一帧都不跑。**
+    /// 2026-08-17 实测（`DOCK_HOVER_TRACE=1`）：启动后 6 秒里 10 次 `relayout`，其中 **8 次**
+    /// 宽度根本没变却仍然 `animated: true`，还有连着 6 次挤在 1.1ms 内。每一次都会启动一组
+    /// 窗口尺寸动画，把三个面板"动画"到和现在一模一样的尺寸——**而窗口尺寸动画的每一帧都要
+    /// 重画玻璃底板和那圈描边**。测量本身很便宜（`fittingSize` 0.2ms），贵的是这个空动画。
+    ///
+    /// 判据用**最终 frame 全等**而不是「宽度没变」：换屏、改档位、边缘隐藏都会在宽度不变的
+    /// 情况下真的挪动面板，只比宽度会把它们一起吃掉。
     private func setFrames(_ pairs: [(NSPanel, NSRect)], animated: Bool) {
+        // **和上一次的目标比，不和面板的实时 frame 比。**
+        // 实时 frame 在动画途中是插值出来的中间值，永远和目标不等——那样这个短路一次都不会命中
+        // （实测 0 次）。AGENTS《Menus, Panels, And Screens》早写过同一条：relayout 是目标
+        // frame 驱动的，别在动画期间读面板的实时 frame。
+        let targets = pairs.map(\.1)
+        guard targets != lastCommittedFrames else {
+            HoverTrace.framesUnchanged()
+            return
+        }
+        lastCommittedFrames = targets
         guard animated else { for (p, f) in pairs { p.setFrame(f, display: true) }; return }
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = Self.layoutAnimationDuration
@@ -1888,7 +2189,7 @@ final class PanelCoordinator: NSObject {
         dismissWindowTitleTooltip(suppressCurrentUntilExit: true)
 
         panelsAreVisible = false
-        dockPanel?.orderOut(nil)
+        orderDockSurfaceOut()
         capsulePanel?.orderOut(nil)
         drawerPanel?.orderOut(nil)
         folderPopupPanel?.orderOut(nil)
@@ -2525,14 +2826,14 @@ final class PanelCoordinator: NSObject {
         panelsAreVisible = shouldShow
         if Self.edgeHoverTraceEnabled { logEdgeHoverTrace(shouldShow: shouldShow) }
         if shouldShow {
-            dockPanel?.orderFrontRegardless()
+            orderDockSurfaceFront()
             capsulePanel?.orderFrontRegardless()
             if drawerWantsOpen { drawerPanel?.orderFrontRegardless() }
         } else {
             if visibilityState.hideReasons.contains(.fullscreen) { closeDrawer() }
             closeFolderPopup()
             dismissWindowTitleTooltip(suppressCurrentUntilExit: true)
-            dockPanel?.orderOut(nil)
+            orderDockSurfaceOut()
             capsulePanel?.orderOut(nil)
         }
     }

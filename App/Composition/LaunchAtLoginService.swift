@@ -24,22 +24,22 @@ struct LaunchAtLoginMenuPresentation: Equatable {
     init(state: LaunchAtLoginState) {
         switch state {
         case .unsupported:
-            title = "登录时启动（macOS 13+）"
+            title = String(localized: "Open at Login (macOS 13+)")
             isEnabled = false
             isChecked = false
             showsSettingsItem = false
         case .off:
-            title = "登录时启动"
+            title = String(localized: "Open at Login")
             isEnabled = true
             isChecked = false
             showsSettingsItem = false
         case .on:
-            title = "登录时启动"
+            title = String(localized: "Open at Login")
             isEnabled = true
             isChecked = true
             showsSettingsItem = false
         case .requiresApproval:
-            title = "登录时启动（待批准）"
+            title = String(localized: "Open at Login (Pending Approval)")
             isEnabled = true
             isChecked = false
             showsSettingsItem = true
@@ -126,7 +126,7 @@ enum LaunchAtLoginError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupported:
-            return "登录时启动需要 macOS 13 或更新系统。"
+            return String(localized: "Open at Login requires macOS 13 or later.")
         }
     }
 }

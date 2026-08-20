@@ -166,6 +166,10 @@ final class AppRuntime: ObservableObject {
     // MARK: - Private
 
     private func trigger(_ intent: UserIntent) {
+        // 手感诊断的时间窗起点（默认关，`DOCK_HOVER_TRACE=1`）。没有它，日志里一堆主线程卡顿
+        // 不知道该算在谁头上——owner 报的是「点击 / 最小化之后的动作卡」，先得能圈出「之后」。
+        HoverTrace.action("\(intent.action)", phase: "begin")
+        defer { HoverTrace.action("\(intent.action)", phase: "dispatched") }
         // 可打断（2026-06-13）：显隐类动作不再锁 pending —— 执行本身是几十毫秒的
         // 一次性 AX 调用，没有需要取消的并发；一致性靠乐观 overlay 驱动规划 +
         // 真实快照最终对账。只有 close / quit（窗口会消失）保持锁到确认。

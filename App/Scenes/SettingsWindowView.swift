@@ -4,6 +4,11 @@ import SwiftUI
 struct SettingsWindowView: View {
     static let contentWidth: CGFloat = 560
 
+    /// 公开仓库主页。**只给「求 Star」用**——用户可见的「去下载」永远指向官网
+    /// （2026-08-13 起 GitHub release 页不再附安装包，指过去是个空页面），
+    /// 别顺手把下载入口也改到 GitHub 来。
+    static let repositoryURL = URL(string: "https://github.com/moonbai-studio/tungsten-edge")!
+
     @ObservedObject var store: AppSettingsStore
     @ObservedObject var coordinator: SettingsCoordinator
 
@@ -30,48 +35,41 @@ struct SettingsWindowContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            settingsSection("通用") {
+            settingsSection(String(localized: "General")) {
                 launchAtLoginRow
-
-                Picker("外观", selection: binding(get: { store.appearanceMode }, set: store.setAppearanceMode)) {
-                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
             }
 
             Divider()
 
-            settingsSection("任务条") {
-                settingRow(note: "任务条上多一个临时存放文件的格子。拖进去的文件不会被移动或复制，只是记住位置。") {
-                    Toggle("显示中转站", isOn: binding(get: { store.showShelf }, set: store.setShowShelf))
+            settingsSection(String(localized: "Taskbar")) {
+                settingRow(note: String(localized: "Adds a spot on the taskbar for parking files. Dropping a file there doesn’t move or copy it — Tungsten Edge just remembers where it lives.")) {
+                    Toggle("Show Shelf", isOn: binding(get: { store.showShelf }, set: store.setShowShelf))
                 }
 
-                settingRow(note: "关闭后，鼠标划过任务条不再有放大和名称提示。") {
+                settingRow(note: String(localized: "When off, moving the pointer across the taskbar no longer shows app names.")) {
                     Toggle(
-                        "鼠标悬停显示应用名",
+                        "Show app name on hover",
                         isOn: binding(get: { store.hoverStyle.isExpressive }) {
                             store.setHoverStyle($0 ? .standard : .quiet)
                         }
                     )
                 }
 
-                settingRow(note: "把铺满屏幕的窗口底边抬到任务条上方。这会改动其他应用的窗口尺寸，所以默认关闭。") {
+                settingRow(note: String(localized: "Lifts the bottom edge of a screen-filling window above the taskbar. This resizes other apps’ windows, so it is off by default.")) {
                     Toggle(
-                        "最大化窗口避开任务条",
+                        "Keep maximized windows above the taskbar",
                         isOn: binding(get: { store.windowLiftEnabled }, set: store.setWindowLiftEnabled)
                     )
                 }
 
-                settingRow(note: "关闭后，访达不再常驻任务条：没有打开任何访达窗口时，它会和普通应用一样从任务条上消失。\n点击无窗口的访达卡打开个人文件夹的行为也会一并取消。") {
+                settingRow(note: String(localized: "When off, Finder no longer stays in the taskbar: once every Finder window is closed, it disappears from the taskbar like any other app. Clicking a windowless Finder card to open your home folder is disabled as well.")) {
                     Toggle(
-                        "任务条常驻访达",
+                        "Keep Finder in the taskbar",
                         isOn: binding(get: { store.finderAlwaysInDock }, set: store.setFinderAlwaysInDock)
                     )
                 }
 
-                Picker("任务条大小", selection: binding(get: { store.dockSize }, set: store.setDockSize)) {
+                Picker("Taskbar Size", selection: binding(get: { store.dockSize }, set: store.setDockSize)) {
                     ForEach(DockSize.allCases, id: \.self) { size in
                         Text(size.title).tag(size)
                     }
@@ -83,15 +81,12 @@ struct SettingsWindowContent: View {
 
             // 「高级」= 需要额外能力、默认就对、基本不用碰的开关。放这里不是为了藏，
             // 而是让主设置面只留日常会调的东西；真想拒绝这个能力的人找得到（owner 2026-08-09）。
-            settingsSection("高级") {
+            settingsSection(String(localized: "Advanced")) {
                 settingRow(
-                    note: "为了不让任务条在切进全屏时闪一下，钨极需要在你的输入送到应用之前先把它藏起来。"
-                        + "因此会监听全局的鼠标左键按下、键盘按下和触控板手势，只识别窗口绿灯、"
-                        + "Control-Command-F、Control-左右方向键和三指水平滑动这四种；"
-                        + "不记录输入内容，也不写日志、不发送到任何地方。关闭后这些监听会被完全停用。"
+                    note: String(localized: "To keep the taskbar from flashing when you switch into full screen, Tungsten Edge has to hide it before your input reaches the app. It therefore watches global left-clicks, key presses and trackpad gestures, and recognizes only four of them: the window’s green button, Control-Command-F, Control-Left/Right arrow, and a three-finger horizontal swipe. What you type is never recorded, logged, or sent anywhere. Turning this off disables the watching completely.")
                 ) {
                     Toggle(
-                        "预测全屏切换，消除任务条闪烁",
+                        "Predict full-screen transitions to prevent taskbar flicker",
                         isOn: binding(
                             get: { store.fullscreenIntentEnabled },
                             set: store.setFullscreenIntentEnabled
@@ -102,9 +97,10 @@ struct SettingsWindowContent: View {
 
             Divider()
 
-            settingsSection("关于") {
+            settingsSection(String(localized: "About")) {
                 aboutRow
                 subscriptionRow
+                githubStarRow
             }
         }
         .padding(28)
@@ -114,14 +110,14 @@ struct SettingsWindowContent: View {
                 return Alert(
                     title: Text(alert.title),
                     message: Text(alert.message),
-                    dismissButton: .default(Text("好"))
+                    dismissButton: .default(Text("OK"))
                 )
             }
             return Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
                 primaryButton: .default(Text(openButtonTitle)) { NSWorkspace.shared.open(openURL) },
-                secondaryButton: .cancel(Text("稍后"))
+                secondaryButton: .cancel(Text("Later"))
             )
         }
     }
@@ -142,7 +138,7 @@ struct SettingsWindowContent: View {
                     ) else { return }
                     if case .failure(let error) = coordinator.setLaunchAtLogin(enable) {
                         presentedAlert = SettingsAlert(
-                            title: "登录时启动设置失败",
+                            title: String(localized: "Couldn’t Change Open at Login"),
                             message: error.localizedDescription
                         )
                     }
@@ -155,31 +151,37 @@ struct SettingsWindowContent: View {
             Button {
                 coordinator.openLoginItemsSettings()
             } label: {
-                Label("打开登录项设置…", systemImage: "arrow.up.forward.app")
+                Label("Open Login Items Settings…", systemImage: "arrow.up.forward.app")
             }
         }
     }
 
     @ViewBuilder
     private var aboutRow: some View {
-        let updatePresentation = coordinator.updateCheckState.presentation
         HStack(spacing: 12) {
             if let versionTitle = coordinator.versionTitle {
                 Text(versionTitle)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button(updatePresentation.title) {
-                // 在飞守卫在共享层：菜单里那条「检查更新」用的是同一个。
-                guard coordinator.beginUpdateCheck() else { return }
-                Task {
-                    let content = await coordinator.performUpdateCheck()
-                    coordinator.finishUpdateCheck()
-                    presentedAlert = SettingsAlert(content)
-                }
+            // Sparkle 自带结果界面（有新版 / 已是最新 / 查不到），所以这里不再接
+            // `SettingsAlert`——原来那条「去官网手动下载」的提示随之删掉了。
+            Button("Check for Updates…") {
+                coordinator.checkForUpdates()
             }
-            .disabled(!updatePresentation.isEnabled)
+            .disabled(!coordinator.canCheckForUpdates)
         }
+
+        // 自动检查默认是开的（`SUEnableAutomaticChecks`）。**必须给关的入口**：
+        // 一个用户关不掉的后台定期联网检查，比多一个勾选项糟糕得多。
+        // 真值在 Sparkle 那边，这里不做镜像。
+        Toggle(
+            "Check for updates automatically",
+            isOn: Binding(
+                get: { coordinator.automaticallyChecksForUpdates },
+                set: { coordinator.automaticallyChecksForUpdates = $0 }
+            )
+        )
     }
 
     /// 「原始用户，永久免费」的留邮箱入口。
@@ -199,15 +201,15 @@ struct SettingsWindowContent: View {
         if store.hasSubscribed {
             // 已经留过的人不该被同一段话反复看见。这只是本机的显示状态，
             // 不是「是否原始用户」的凭据。
-            Text("已订阅。将来的授权会直接发送到你的邮箱。")
+            Text("You’re subscribed. When licensing arrives, it will be sent straight to your inbox.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Text("原始用户，永久免费")
+                Text("Founding Users · Free Forever")
                     .font(.callout.weight(.medium))
-                Text("请留下邮箱地址，届时授权将直接发送给你，更换设备或重装系统均不会丢失。")
+                Text("Leave your email address and your license will be sent directly to you. It survives switching devices or reinstalling macOS.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -224,12 +226,38 @@ struct SettingsWindowContent: View {
 
                 // ⚠️ 上报首装日期这件事必须写在界面上。一个常驻工具偷偷上报安装日期
                 // 被人发现，损失远大于这份名单的价值。
-                Text("只发送邮箱地址与首次安装日期，用于确认你的原始用户身份。不发送营销邮件。")
+                Text("Only your email address and first-launch date are sent, to confirm you as a founding user. No marketing email.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    /// GitHub 的 Star 请求。**常驻**，和有没有订阅过无关——所以它是 `subscriptionRow` 的
+    /// 同级兄弟，不塞进那个 if/else 里。
+    ///
+    /// ⚠️ 调子沿用官网 tungstenedge.app 订阅区那段（`index.html` 里的 `.sub-star`）已经定死的
+    /// 三条规矩，别在这里重新发挥：
+    /// 1. **常驻**，不是订阅成功之后才冒出来——用户得先在视野里见过它，回头点起来才顺理成章。
+    /// 2. **比订阅正文更淡**。它是"顺手帮个忙"，不能压过留邮箱的真实理由。官网用
+    ///    `opacity .5 / font-weight 300 / 12.5px`；这里对应 `.caption`，而订阅正文是 `.callout`。
+    /// 3. **只说这一次**。订阅结果的 `SettingsAlert` 里不要再提 Star——它一直在视野里，
+    ///    重复只会变吵，还会跟"去邮箱点确认"抢注意力（那一步不点就进不了名单，是承重的）。
+    ///
+    /// ⚠️ 链接用 `Button` 而不是 SwiftUI 的 `Link`：`Scripts/check_localization.py` 的正则
+    /// 不扫 `Link(...)`，改成 `Link` 会让这条文案悄悄绕过本地化检查、在中文系统上露出英文。
+    ///
+    /// ⚠️ 整句是**一个**本地化条目，不要拆成「前半句 + GitHub 按钮 + 后半句」：
+    /// 中英文里 GitHub 出现的位置不一样，拆开就没法翻译了。
+    private var githubStarRow: some View {
+        Button {
+            NSWorkspace.shared.open(SettingsWindowView.repositoryURL)
+        } label: {
+            Text("Star Tungsten Edge on GitHub — a free way to help it get better.")
+        }
+        .buttonStyle(.link)
+        .font(.caption)
     }
 
     private func submitSubscription() {
@@ -292,15 +320,6 @@ private struct SettingsAlert: Identifiable {
         self.message = message
         self.openButtonTitle = openButtonTitle
         self.openURL = openURL
-    }
-
-    init(_ content: UpdateCheckAlertContent) {
-        self.init(
-            title: content.title,
-            message: content.message,
-            openButtonTitle: content.openButtonTitle,
-            openURL: content.openURL
-        )
     }
 
     init(_ content: SubscriptionAlertContent) {

@@ -147,7 +147,7 @@ final class AppMembershipControllerTests: XCTestCase {
             isMessaging: false,
             controller: controller
         ).last)
-        XCTAssertEqual(unchecked.label, "标记为消息应用")
+        XCTAssertEqual(unchecked.label, String(localized: "Mark as Messaging App"))
         XCTAssertEqual(unchecked.isChecked, false)
         unchecked.action()
         XCTAssertTrue(messaging.contains(bundleID))
@@ -161,7 +161,7 @@ final class AppMembershipControllerTests: XCTestCase {
             isMessaging: true,
             controller: controller
         ).last)
-        XCTAssertEqual(checked.label, "标记为消息应用")
+        XCTAssertEqual(checked.label, String(localized: "Mark as Messaging App"))
         XCTAssertEqual(checked.isChecked, true)
         checked.action()
         XCTAssertFalse(messaging.contains(bundleID))

@@ -6,6 +6,22 @@ struct NativeDockApplyOutcome {
     let error: Error?
 }
 
+/// 更新器的注入口。
+///
+/// ⚠️ **这个协议存在的理由是让 Sparkle 不进测试 target。** `SettingsCoordinator.swift`
+/// 同时编进 App 和测试两个 target，而 `SparkleUpdateService` 要 `import Sparkle`；
+/// 直接依赖具体类型会逼着测试 target 也去链接这个框架。和这个文件里其它三个服务
+///（登录项 / 系统 Dock / 邮箱订阅）用协议注入是同一条理由。
+@MainActor
+protocol UpdateControlling: AnyObject {
+    /// 现在能不能发起检查（正在检查 / 正在下载时为 false）。
+    var canCheckForUpdates: Bool { get }
+    var automaticallyChecksForUpdates: Bool { get set }
+    func checkForUpdates()
+    /// 上面那些值变了就发一下，供上层转给界面。
+    var changes: AnyPublisher<Void, Never> { get }
+}
+
 /// 状态栏菜单与设置窗口**共用**的动作层。
 ///
 /// 职责刻意收窄到「会写到本 App 之外」的三件事：登录项、系统 Dock、检查更新。
@@ -16,17 +32,18 @@ final class SettingsCoordinator: ObservableObject {
     /// 最近一次系统读取或本 App 成功写入的结果。系统 I/O 在服务的专用队列执行，
     /// 菜单与设置窗口先显示这份缓存，再异步刷新。
     @Published private(set) var launchAtLoginState: LaunchAtLoginState
-    /// 在飞守卫放在共享层：两套界面各有一个「检查更新」入口，
-    /// 各自守卫的话同时点两下会发两次请求。
-    @Published private(set) var updateCheckState = UpdateCheckMenuState()
     /// 同理：订阅按钮连点两下不能发两次请求。
     @Published private(set) var subscriptionState = SubscriptionSubmitState()
 
     private let store: AppSettingsStore
     private let launchAtLoginService: LaunchAtLoginServicing
     private let nativeDockPreferencesService: NativeDockPreferencesServicing
-    private let updateChecker: UpdateChecking
+    /// 更新走 Sparkle。**在飞守卫也归它**（`canCheckForUpdates`），所以这里不再自备一个——
+    /// 原来那套 `UpdateCheckMenuState` 存在的理由是两套界面各有一个入口、各自守卫会发两次
+    /// 请求；现在两套界面都问同一个 `SparkleUpdateService`，理由自动满足。
+    private let updateService: any UpdateControlling
     private let subscriptionSubmitter: SubscriptionSubmitting
+    private var updateServiceSubscription: AnyCancellable?
     private var launchRefreshGeneration: UInt64 = 0
     private var nativeDockRefreshGeneration: UInt64 = 0
     private var nativeDockWriteInFlight = false
@@ -35,13 +52,13 @@ final class SettingsCoordinator: ObservableObject {
         store: AppSettingsStore,
         launchAtLoginService: LaunchAtLoginServicing,
         nativeDockPreferencesService: NativeDockPreferencesServicing,
-        updateChecker: UpdateChecking,
+        updateService: any UpdateControlling,
         subscriptionSubmitter: SubscriptionSubmitting
     ) {
         self.store = store
         self.launchAtLoginService = launchAtLoginService
         self.nativeDockPreferencesService = nativeDockPreferencesService
-        self.updateChecker = updateChecker
+        self.updateService = updateService
         self.subscriptionSubmitter = subscriptionSubmitter
         // **镜像只作首帧种子，不是真值来源。** `SMAppService.mainApp.status` 是 XPC，
         // 放在 init 里同步读会把开销带进每一次界面构造；而每个展示入口（菜单 `menuWillOpen`、
@@ -57,6 +74,12 @@ final class SettingsCoordinator: ObservableObject {
         } else {
             launchAtLoginState = .unsupported
         }
+
+        // `canCheckForUpdates` 住在 `SparkleUpdateService` 里，但两套界面观察的是本对象。
+        // 把它的变更转发上来，调用方就不用同时盯两个 ObservableObject。
+        // （这条通道只喂状态栏菜单和设置窗口，不碰任务条的渲染链路。）
+        updateServiceSubscription = updateService.changes
+            .sink { [weak self] _ in self?.objectWillChange.send() }
     }
 
     // MARK: 登录项
@@ -196,23 +219,25 @@ final class SettingsCoordinator: ObservableObject {
         )
     }
 
-    /// 返回 false = 已经有一次检查在飞，本次忽略。
-    func beginUpdateCheck() -> Bool {
-        updateCheckState.begin()
+    /// 用户主动检查更新。**结果界面完全由 Sparkle 自己出**（有新版 / 已是最新 / 查不到），
+    /// 所以这里既不返回文案也不需要 alert——原来那份 `UpdateCheckAlertContent` 连同
+    /// 「去官网手动下载」的措辞一起删掉了，因为现在真的不用手动下载了。
+    func checkForUpdates() {
+        updateService.checkForUpdates()
     }
 
-    func finishUpdateCheck() {
-        updateCheckState.finish()
+    /// 两套界面的「检查更新」按钮共用的可用态。
+    var canCheckForUpdates: Bool {
+        updateService.canCheckForUpdates
     }
 
-    func performUpdateCheck() async -> UpdateCheckAlertContent {
-        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-        do {
-            let outcome = try await updateChecker.check(currentVersion: currentVersion)
-            return UpdateCheckAlertContent(outcome: outcome)
-        } catch {
-            return .failure
-        }
+    /// 设置窗口那个「自动检查更新」勾选项。
+    ///
+    /// 真值存在 Sparkle 那边，**不在 `AppSettingsStore` 里另存镜像**：两份状态必然漂，
+    /// 而且 Sparkle 自己也会写这个偏好。
+    var automaticallyChecksForUpdates: Bool {
+        get { updateService.automaticallyChecksForUpdates }
+        set { updateService.automaticallyChecksForUpdates = newValue }
     }
 
     // MARK: 邮箱订阅

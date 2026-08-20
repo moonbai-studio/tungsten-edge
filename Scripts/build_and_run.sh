@@ -8,18 +8,44 @@ PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/macos-dock-cc-v2.
 DERIVED_DATA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/build/DerivedData"
 APP_BUNDLE="$DERIVED_DATA_DIR/Build/Products/Debug/$APP_NAME.app"
 APP_EXECUTABLE="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
-LOCAL_SIGNING_IDENTITY="macos-dock-cc Local Code Signing"
+# 必须和 install_local_release.sh 用同一张证书：开发构建与已安装包 bundle id 相同，
+# 共用一条辅助功能授权记录，两边身份不一致就会互相作废。
+DEVELOPER_ID="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Suzhou Mubai Creativity Design Co., Ltd. (DRPT2MJQD5)}"
+FALLBACK_SIGNING_IDENTITY="macos-dock-cc Local Code Signing"
 
 build_app() {
   xcodebuild -project "$PROJECT_PATH" -scheme "$APP_NAME" -configuration Debug -derivedDataPath "$DERIVED_DATA_DIR" build >/tmp/macos-dock-cc-v2-build.log 2>&1
 }
 
 sign_app() {
-  if security find-identity -v -p codesigning | grep -Fq "\"$LOCAL_SIGNING_IDENTITY\""; then
-    /usr/bin/codesign --force --deep --sign "$LOCAL_SIGNING_IDENTITY" "$APP_BUNDLE" >/tmp/macos-dock-cc-v2-codesign.log 2>&1
+  local identities identity
+  identities="$(security find-identity -v -p codesigning 2>&1)"
+  if grep -Fq "\"$DEVELOPER_ID\"" <<<"$identities"; then
+    identity="$DEVELOPER_ID"
+  elif grep -Fq "\"$FALLBACK_SIGNING_IDENTITY\"" <<<"$identities"; then
+    identity="$FALLBACK_SIGNING_IDENTITY"
   else
-    echo "warning: local signing identity not found; keeping Xcode's build signature" >&2
+    echo "warning: no signing identity found; keeping Xcode's build signature" >&2
+    return 0
   fi
+  # 刻意不加 --options runtime / --entitlements。hardened runtime 会挡住调试器附加
+  # （我们的 entitlements 文件会整个替换掉 Xcode 给 Debug 自动注入的 get-task-allow），
+  # --debug 模式下的 lldb 就废了。TCC 认的是证书链 + bundle id，跟 runtime 标志无关，
+  # 所以只要证书一致，授权就和日常包共用。
+  #
+  # 自 Sparkle 落地起 bundle 里**不再只有一个可执行文件**：Sparkle.framework 里还有
+  # Updater.app 和 Autoupdate。Xcode 在 Debug 构建时用的是项目里配的本地证书，
+  # 这里若只重签外层，框架和外层就会挂着两张不同的证书——Sparkle 会因为更新器与宿主
+  # 签名不一致而拒绝启动它。所以嵌套代码也要跟着重签一遍，顺序同样由内向外。
+  # 依旧不加 --deep：该参数已被苹果废弃，且会把外层的签名选项错误地套到嵌套代码上。
+  local framework="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+  if [[ -d "$framework" ]]; then
+    for nested in "$framework/Versions/B/Updater.app" "$framework/Versions/B/Autoupdate"; do
+      [[ -e "$nested" ]] && /usr/bin/codesign --force --sign "$identity" "$nested" >>/tmp/macos-dock-cc-v2-codesign.log 2>&1
+    done
+    /usr/bin/codesign --force --sign "$identity" "$framework" >>/tmp/macos-dock-cc-v2-codesign.log 2>&1
+  fi
+  /usr/bin/codesign --force --sign "$identity" "$APP_BUNDLE" >>/tmp/macos-dock-cc-v2-codesign.log 2>&1
 }
 
 run_cli() {

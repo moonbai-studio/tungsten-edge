@@ -13,10 +13,10 @@ enum FolderSortOrder: String, CaseIterable {
 
     var menuTitle: String {
         switch self {
-        case .name: return "名称"
-        case .dateAdded: return "添加日期"
-        case .dateModified: return "修改日期"
-        case .kind: return "种类"
+        case .name: return String(localized: "Name")
+        case .dateAdded: return String(localized: "Date Added")
+        case .dateModified: return String(localized: "Date Modified")
+        case .kind: return String(localized: "Kind")
         }
     }
 }

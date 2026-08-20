@@ -127,12 +127,12 @@ enum AppMenuBuilder {
         onForceQuit: (() -> Void)? = nil,
         onQuit: @escaping () -> Void
     ) {
-        let quit = ClosureMenuItem("退出 App", handler: onQuit)
+        let quit = ClosureMenuItem(String(localized: "Quit App"), handler: onQuit)
         quit.keyEquivalentModifierMask = []
         menu.addItem(quit)
 
         guard let bid = bundleID, bid != Bundle.main.bundleIdentifier else { return }
-        let force = ClosureMenuItem("强制退出") {
+        let force = ClosureMenuItem(String(localized: "Force Quit")) {
             if let onForceQuit {
                 onForceQuit()
             } else {
@@ -154,12 +154,12 @@ enum AppMenuBuilder {
         let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid)
         let entries = RecentDocumentsReader.recentDocuments(for: bid)
             .map { RecentMenuEntry(title: $0.lastPathComponent, url: $0) }
-        appendRecentItems(to: menu, title: "最近使用的文件", entries: entries) { openRecent($0, appURL: appURL) }
+        appendRecentItems(to: menu, title: String(localized: "Recent Files"), entries: entries) { openRecent($0, appURL: appURL) }
     }
 
     /// Top recent-folders section for the Finder chip, inline. Opens each folder in Finder.
     static func appendFinderRecentFolders(to menu: NSMenu) {
-        appendRecentItems(to: menu, title: "最近使用的文件夹",
+        appendRecentItems(to: menu, title: String(localized: "Recent Folders"),
                           entries: RecentDocumentsReader.recentFinderFolders()) { NSWorkspace.shared.open($0) }
     }
 
@@ -196,8 +196,8 @@ enum AppMenuBuilder {
 
     /// Finder-only shortcuts at the top of the Finder chip menu, plus a separator.
     static func appendFinderItems(to menu: NSMenu) {
-        menu.addItem(ClosureMenuItem("前往文件夹\u{2026}") { triggerFinderShortcut(goToFolder: true) })
-        menu.addItem(ClosureMenuItem("连接服务器\u{2026}") { triggerFinderShortcut(goToFolder: false) })
+        menu.addItem(ClosureMenuItem(String(localized: "Go to Folder…")) { triggerFinderShortcut(goToFolder: true) })
+        menu.addItem(ClosureMenuItem(String(localized: "Connect to Server…")) { triggerFinderShortcut(goToFolder: false) })
         menu.addItem(.separator())
     }
 

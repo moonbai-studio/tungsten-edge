@@ -10,7 +10,7 @@ struct MacOSDockCCV2App: App {
         }
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("设置…") {
+                Button("Settings…") {
                     appDelegate.openSettings(nil)
                 }
                 .keyboardShortcut(",", modifiers: .command)

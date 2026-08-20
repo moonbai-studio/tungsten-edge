@@ -7,16 +7,21 @@ import Foundation
 /// - **两端空白**：最左 chip 左边、最右 chip 右边的内缩边距；
 /// - **区域分割线周围**：分割线所在的那道宽缝。
 ///
-/// 刻意**不认 chip 之间的窄缝**：那里只有 8pt，用户瞄图标差几 pt 落进去时弹出钨极菜单
+/// 刻意**不认 chip 之间的窄缝**：用户瞄图标差几 pt 落进去时弹出钨极菜单
 /// （而不是那个 app 自己的菜单）比什么都不弹更糟。代价是窄缝右键完全没反应，这是已知取舍。
 ///
-/// 两种缝靠宽度分辨，分离度很大：分割线两侧的空当是
-/// `8(HStack 间距) + 5(1pt 发丝线 + 左右各 2pt 内边距) + 8(HStack 间距) = 21pt`，
-/// 普通 chip 间距只有 `8pt`；阈值取两者之间即可，且随档位一起缩放。
+/// 两种缝靠宽度分辨：分割线两侧的空当是
+/// `2(HStack 间距) + 5(1pt 发丝线 + 左右各 2pt 内边距) + 2(HStack 间距) = 9pt`，
+/// 普通 chip 间距只有 `2pt`；阈值取两者之间即可，且随档位一起缩放。
+///
+/// **阈值必须严格落在两者之间，改 `Style.chipSpacing` 就要同步改它。**
+/// 2026-08-16 图标间距对齐原生 Dock（中心间距 52→42pt，`chipSpacing` 8→2）时，
+/// 分割线缝从 21pt 缩到 9pt，而阈值还是 12pt —— 那会让分割线那道缝也认不出来，
+/// 于是整条任务条右键完全失效。
 enum StripContextMenuZone {
     /// 中档基线。调用方传 `defaultMinimumGapWidth * scale`。
-    /// 12pt：大于普通缝 8pt，小于分割线缝 21pt。
-    static let defaultMinimumGapWidth: CGFloat = 12
+    /// 5pt：大于普通缝 2pt，小于分割线缝 9pt。
+    static let defaultMinimumGapWidth: CGFloat = 5
 
     /// `point` 与 `chipFrames` 都在 "strip" 坐标空间（左上原点、y 向下）。
     static func claims(

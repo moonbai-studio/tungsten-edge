@@ -33,17 +33,16 @@ tmp/
 #   Docs/27 28         —— 产品决策与理由、工作方式踩坑，属战略信息
 #   其余 Docs           —— 工程参考与发版流程
 # 留在公开仓库的：源码、Scripts/、LICENSE、两个 README、Docs/Archive/Releases/
+#
+# ⚠️ `Docs/*.md` 是**模式**，不是逐个列举（2026-08-18 改）。原先一行一个文件名，
+#    新加一份文档就得记得补一行，忘了它就直接进公开提交——`Docs/30-i18n-glossary.md`
+#    刚这么漏过一次。方向不对称：漏 ignore 一旦 push 出去就撤不回来，多 ignore 一份
+#    只是本地少了个公开文件，所以默认全挡，要公开的单独开白名单（下面的 ! 行）。
+#    `Docs/*.md` 只匹配 Docs 根一层，Docs/Archive/Releases/ 的发布说明不受影响。
 AGENTS.md
 CLAUDE.md
 .codex/
-Docs/README.md
-Docs/05-known-platform-quirks.md
-Docs/22-window-focus-flicker-debugging.md
-Docs/23-rollback-ledger.md
-Docs/26-idle-performance-polling.md
-Docs/27-product-decisions.md
-Docs/28-process-pitfalls.md
-Docs/29-release-runbook.md
+Docs/*.md
 Docs/Archive/Diagnostics/
 Docs/Archive/Engineering/
 Docs/Archive/Planning/

@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import QuartzCore
 import SwiftUI
 import os
 
@@ -40,11 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowLiftAvoidanceController: WindowLiftAvoidanceController?
     private lazy var launchAtLoginService = LaunchAtLoginService()
     private lazy var nativeDockPreferencesService = NativeDockPreferencesService()
+    private let updateService = SparkleUpdateService()
     private lazy var settingsCoordinator = SettingsCoordinator(
         store: settingsStore,
         launchAtLoginService: launchAtLoginService,
         nativeDockPreferencesService: nativeDockPreferencesService,
-        updateChecker: GitHubUpdateChecker(),
+        updateService: updateService,
         subscriptionSubmitter: WebsiteSubscriptionSubmitter()
     )
     private lazy var settingsWindowController = SettingsWindowController(
@@ -56,13 +58,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var edgeToggleHotKey: GlobalHotKeyMonitor?
     private var terminationTask: Task<Void, Never>?
     private var debugWindow: NSWindow?
+    /// 只在 `DOCK_HOVER_TRACE=1` 时存在，见 `startMainLoopStallProbeIfTracing`。
+    private var mainLoopStallProbe: Timer?
     private var permissionWindow: NSWindow?
     private var permissionHostingView: NSHostingView<PermissionOnboardingWindowContent>?
+    private var welcomeWindow: NSWindow?
     private var workspaceObservers: [NSObjectProtocol] = []
     private var messagingAutoRegisterSubscription: AnyCancellable?
     private var windowLiftSettingSubscription: AnyCancellable?
     private var finderPersistenceSubscription: AnyCancellable?
-    private var appearanceSubscription: AnyCancellable?
+
     private let permissionService = PermissionService()
     private var installLocation: AppInstallLocation = .other
     private var permissionCoordinator: PermissionRecoveryCoordinator?
@@ -92,15 +97,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 日志要攒满缓冲区才落盘。改成行缓冲后每条 print 立即写出，便于实时读日志。
         setvbuf(stdout, nil, _IOLBF, 0)
 
+        startMainLoopStallProbeIfTracing()
+
         // 首装时间戳：**故意放在所有分支判断之前**，搬家引导、权限引导、正常启动都要记。
         // 这三条分支的用户都是真的运行过钨极的人，将来转收费判定老用户时不该把谁漏掉。
         // 只写一次、之后永不覆盖，理由见 `InstallationRecord`。
         InstallationRecord.recordFirstLaunchIfNeeded()
 
-        // 外观档位排在最前面：搬家引导、权限引导、正常启动三条分支的第一个窗口就得是对的外观。
-        // `@Published` 订阅时先发一次当前值，所以这一句同时完成「启动时应用」和「之后跟随」。
-        appearanceSubscription = settingsStore.$appearanceMode
-            .sink { NSApp.appearance = $0.nsAppearance }
+        // **无条件钉死浅色，这一句不能省。** 产品固定浅色（owner 2026-08-16 删掉深色模式），
+        // 而 `NSVisualEffectView` 和 Liquid Glass 跟的是**窗口的 effectiveAppearance**、
+        // 不看 SwiftUI 环境。系统处于深色时若不钉，材质会渲染成深色，而 `DockThemeTokens`
+        // 只有一套浅色数值 —— 结果就是「文字是浅色的、底板是深色的」那种对不上
+        //（实测同屏同壁纸，底板亮度 37.7 对 143.2）。
+        //
+        // 钉在 `NSApp` 这一处就够：所有面板与窗口都没覆写自己的 `appearance`，会一路回落到
+        // 这里——**包括之后才按需新建的**抽屉、两个弹窗、tooltip、拖动载体，以及状态栏与
+        // 右键菜单。状态栏图标是 template image，仍由菜单栏按系统外观自己染色，不受影响。
+        //
+        // 排在最前面：搬家引导、权限引导、正常启动三条分支的第一个窗口就得是对的外观。
+        NSApp.appearance = NSAppearance(named: .aqua)
 
         // 「任务条常驻访达」开关变化时主动重算快照：开关本身不产生窗口事件，tracker 的周期
         // reconcile 不会 rebuild，不主动刷新会让旧的 Finder 常驻卡一直留在任务条上（issue #7）。
@@ -142,6 +157,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             _ = statusMenuController
+
+            // 自动更新只在正常安装的副本上跑。挂载在 DMG 里的临时副本更新自己毫无意义
+            // ——它卸载就没了——和上面不给它注册全局热键、不向系统申请权限是同一条理由。
+            updateService.start()
         }
 
         let coordinator = PermissionRecoveryCoordinator(
@@ -233,6 +252,132 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionCoordinator?.terminationRequested()
         windowLiftAvoidanceController?.stop()
         runtime.stop()
+    }
+
+    // MARK: - 首次运行欢迎引导
+
+    /// 首次运行的一次性引导：建议把系统 Dock 收起来。
+    ///
+    /// 只在 `startTaskbarRuntime()` 末尾调一次，也就是「权限已授、面板已建、任务条真的在跑」
+    /// 的那一刻。临时副本（DMG 里双击运行的那份）永远走不到这里——它在
+    /// `PermissionRecoveryMachine` 里只有 `showGuide` 一条效果——这是对的，那份副本
+    /// 卸载就没了，不该教它配置系统。
+    private func presentWelcomeGuideIfNeeded() {
+        // 先用不需要 I/O 的两个条件挡一道，省掉绝大多数启动的那次异步读。
+        guard !settingsStore.hasSeenWelcome else { return }
+
+        let canWrite = nativeDockPreferencesService.isAvailable
+        guard canWrite else {
+            _ = WelcomeGuideDecision.evaluate(
+                hasSeenWelcome: false,
+                canWriteDockPreferences: false,
+                dockAutohideEnabled: nil
+            )
+            settingsStore.setHasSeenWelcome(true)
+            return
+        }
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let state = await self.nativeDockPreferencesService.currentAutohideState()
+            // 这一轮 await 期间用户可能已经从别处看过/改过了，所以重新读一遍标记。
+            switch WelcomeGuideDecision.evaluate(
+                hasSeenWelcome: self.settingsStore.hasSeenWelcome,
+                canWriteDockPreferences: true,
+                dockAutohideEnabled: state?.enabled
+            ) {
+            case .present:
+                self.showWelcomeWindow()
+            case .skipAndMarkSeen:
+                self.settingsStore.setHasSeenWelcome(true)
+            case .skipWithoutMarking:
+                break
+            }
+        }
+    }
+
+    private func showWelcomeWindow() {
+        if let welcomeWindow {
+            welcomeWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let content = WelcomeGuideWindowContent(
+            onHideDock: { [weak self] in self?.applyRecommendedDockSetting() },
+            onDismiss: { [weak self] in self?.dismissWelcomeGuide() }
+        )
+        let hosting = NSHostingView(rootView: content)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: WelcomeGuideView.contentWidth, height: 320),
+            // 和权限引导不同，这一扇**可关**：权限没授时 app 根本不能用，那扇窗关掉没有意义；
+            // 这一扇只是个建议，用户有权直接叉掉（叉掉等同「以后再说」，见 windowWillClose）。
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Tungsten Edge 钨极"
+        window.isReleasedWhenClosed = false
+        window.contentView = hosting
+        window.delegate = self
+        welcomeWindow = window
+
+        // 高度量法同权限引导：根视图外面套了 ScrollView，得用一次性探针量不加滚动时的自然高度。
+        let probe = NSHostingView(rootView: WelcomeGuideView(onHideDock: {}, onDismiss: {}))
+        probe.setFrameSize(NSSize(width: WelcomeGuideView.contentWidth, height: 0))
+        probe.layoutSubtreeIfNeeded()
+        let available = (window.screen ?? NSScreen.main)?.visibleFrame.height ?? 900
+        window.setContentSize(NSSize(
+            width: WelcomeGuideView.contentWidth,
+            height: max(200, min(probe.fittingSize.height, available - 80))
+        ))
+
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        // 钨极此刻是 accessory app，不主动 activate 的话这扇窗会被压在前台应用后面，
+        // 和 2026-07-29 那次「检查更新看起来失效」是同一个坑。
+        // 注意**不要**顺手改成 .regular——那会让程序坞里冒出一个钨极图标，
+        // 正好和这扇窗要讲的事情自相矛盾。
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// 「帮我隐藏」：把系统 Dock 设成自动隐藏 + 不唤醒（owner 2026-08-20 定的推荐档位）。
+    ///
+    /// 走 `applyNativeDock(target:)` 这个唯一写入口，四象限回读和镜像同步都是白拿的；
+    /// 别在这里另起一条 defaults 写入。
+    private func applyRecommendedDockSetting() {
+        settingsStore.setHasSeenWelcome(true)
+        closeWelcomeWindow()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let outcome = await self.settingsCoordinator.applyNativeDock(
+                target: AppSettingsStore.neverWakeDelay
+            )
+            guard let error = outcome.error else { return }
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "Couldn’t Change Dock Settings")
+            alert.informativeText = error.localizedDescription
+            alert.addButton(withTitle: String(localized: "OK"))
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+    }
+
+    /// 「以后再说」，以及直接叉掉窗口。**照样记成已看过**——不再骚扰；
+    /// 想改的人走状态栏菜单里那条系统 Dock 滑杆。
+    private func dismissWelcomeGuide() {
+        settingsStore.setHasSeenWelcome(true)
+        closeWelcomeWindow()
+    }
+
+    private func closeWelcomeWindow() {
+        guard let window = welcomeWindow else { return }
+        welcomeWindow = nil
+        window.delegate = nil
+        window.orderOut(nil)
+        window.close()
     }
 
     /// 引导窗口。文案长度随状态变化很大（排障区展开时几乎翻倍），
@@ -372,6 +517,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.windowLiftAvoidanceController?.setEnabledBySetting(enabled)
             }
         badgeStore.start()
+        // 任务条真的起来了才谈得上「建议怎么配」。放在这里而不是启动那一刻，是因为
+        // 用户得先看见任务条长什么样，那句「它俩都在屏幕底边会互相遮挡」才有所指。
+        presentWelcomeGuideIfNeeded()
         // 探针结论（2026-07-06,阶段0探针3）：访达窗口 AX 属性表虽列有 AXDocument 但恒无值
         // （kAXErrorNoValue），AXProxy/AXTitleUIElement 也只有文件夹名无路径——「拖任务条访达
         // 窗口图标固定文件夹」不可行,已按预案砍掉,拖入固定区只走真实文件 URL（系统拖放）。
@@ -433,6 +581,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         debugWindow = window
+    }
+
+    /// 主线程卡顿探针：只在 `DOCK_HOVER_TRACE=1` 时才装（`HoverTrace.isEnabled` 是常量，
+    /// 关闭时这个计时器根本不创建，日常一分钱开销都没有）。
+    ///
+    /// 8ms 一次、跑在 `.common`——**必须是 `.common`**，否则菜单/拖拽期间它自己先停了，
+    /// 而那正是最想量的时段。
+    private func startMainLoopStallProbeIfTracing() {
+        guard HoverTrace.isEnabled else { return }
+        var expected = CACurrentMediaTime() + 0.008
+        let timer = Timer(timeInterval: 0.008, repeats: true) { _ in
+            let now = CACurrentMediaTime()
+            HoverTrace.mainLoopStall(lateMs: (now - expected) * 1000)
+            expected = now + 0.008
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        mainLoopStallProbe = timer
     }
 
 }
@@ -526,6 +691,8 @@ extension AppDelegate: PermissionEffectHandler {
         // 设置窗口也要一起收：权限一丢任务条整条被拆掉，留着一扇改任务条外观的窗
         // 既没有意义，也会挡住紧接着弹出的恢复引导。
         settingsWindowController.close()
+        // 欢迎引导同理，而且更刺眼：任务条已经没了，屏幕上还留着一扇教你怎么配置它的窗。
+        closeWelcomeWindow()
         messagingAutoRegisterSubscription?.cancel()
         messagingAutoRegisterSubscription = nil
         runtime.onToggleDrawer = nil
@@ -562,5 +729,20 @@ extension AppDelegate: PermissionEffectHandler {
                 }
             }
         }
+    }
+}
+
+extension AppDelegate: NSWindowDelegate {
+    /// 用户直接叉掉欢迎引导，等同「以后再说」——**照样要记成已看过**，
+    /// 否则叉一次、下次启动又弹一次。
+    ///
+    /// 程序主动关窗那条路（`closeWelcomeWindow()`）不会走到这里：它先把 `welcomeWindow`
+    /// 置 nil、把 delegate 摘掉，然后才 `close()`。所以这个回调只代表「用户自己关的」，
+    /// 不会和 `applyRecommendedDockSetting()` / `dismissWelcomeGuide()` 重复标记。
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === welcomeWindow else { return }
+        welcomeWindow = nil
+        window.delegate = nil
+        settingsStore.setHasSeenWelcome(true)
     }
 }

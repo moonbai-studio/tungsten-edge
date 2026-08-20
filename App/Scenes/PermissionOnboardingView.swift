@@ -59,7 +59,7 @@ struct PermissionOnboardingView: View {
 
     private func troubleshootingBox(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("已经打开开关，却还是没反应？")
+            Text("Switch already on but nothing happens?")
                 .font(.callout.weight(.semibold))
             Text(text)
                 .font(.callout)
@@ -88,42 +88,43 @@ struct PermissionOnboardingView: View {
 
     private var title: String {
         switch presentation {
-        case .moveToApplications: return "请先移到“应用程序”"
-        case .waiting, .stalled: return "需要开启辅助功能权限"
-        case .recoveryWaiting, .recoveryStalled: return "辅助功能权限已失效"
-        case .restoringWindows: return "正在还原窗口…"
-        case .relaunching: return "正在重启钨极…"
-        case .relaunchFailed: return "重启失败"
+        case .moveToApplications: return String(localized: "Move Tungsten Edge to Applications")
+        case .waiting, .stalled: return String(localized: "Turn On Accessibility Permission")
+        case .recoveryWaiting, .recoveryStalled: return String(localized: "Accessibility Permission Was Revoked")
+        case .restoringWindows: return String(localized: "Restoring Windows…")
+        case .relaunching: return String(localized: "Restarting Tungsten Edge…")
+        case .relaunchFailed: return String(localized: "Restart Failed")
         }
     }
 
     private var subtitle: String {
         switch presentation {
-        case .moveToApplications: return "当前副本位于临时或只读位置。"
-        case .waiting, .stalled: return "Tungsten Edge 需要这项权限来读取和操作窗口。"
-        case .recoveryWaiting, .recoveryStalled: return "重新授权后钨极会自动重启。"
-        case .restoringWindows: return "正在把之前让开过的窗口放回原位。"
-        case .relaunching: return "马上就好。"
-        case .relaunchFailed: return "钨极还在运行，可以重试。"
+        case .moveToApplications: return String(localized: "This copy is running from a temporary or read-only location.")
+        case .waiting, .stalled: return String(localized: "Tungsten Edge needs this permission to read and manage your windows.")
+        case .recoveryWaiting, .recoveryStalled: return String(localized: "Tungsten Edge will restart itself once you grant it again.")
+        case .restoringWindows: return String(localized: "Putting the windows it moved back where they were.")
+        case .relaunching: return String(localized: "This will only take a moment.")
+        case .relaunchFailed: return String(localized: "Tungsten Edge is still running. You can try again.")
         }
     }
 
     private var message: String {
         switch presentation {
         case .moveToApplications:
-            return """
-            macOS 会把辅助功能授权绑定到具体的应用副本上。当前这份钨极跑在一个临时或只读的位置，\
-            就算你打开了开关也不会生效，而且卸载磁盘映像后那条授权记录还会留在系统里。\
-            请把 Tungsten Edge 拖到“应用程序”文件夹，再从那里重新打开。
-            """
+            return String(localized: """
+            macOS ties Accessibility permission to one specific copy of an app. This copy is running from a \
+            temporary or read-only location, so turning the switch on will not take effect — and the permission \
+            record stays behind in System Settings after the disk image is ejected. \
+            Drag Tungsten Edge to your Applications folder and open it from there.
+            """)
         case .waiting, .stalled:
-            return "请在\(settingsPath)中，打开 Tungsten Edge 钨极的开关。开启后本窗口会自动关闭，任务条会继续启动。"
+            return String(format: String(localized: "Turn on Tungsten Edge in %@. This window closes by itself once you do, and the taskbar finishes starting."), settingsPath)
         case .recoveryWaiting, .recoveryStalled:
-            return "钨极刚才失去了辅助功能权限，任务条已经收起。请在\(settingsPath)中重新打开 Tungsten Edge 钨极的开关。"
+            return String(format: String(localized: "Tungsten Edge just lost its Accessibility permission, so the taskbar has been put away. Turn Tungsten Edge back on in %@."), settingsPath)
         case .restoringWindows, .relaunching:
-            return "请稍候，不用操作。"
+            return String(localized: "Nothing to do here — just a moment.")
         case let .relaunchFailed(message):
-            return "没能启动新的钨极实例：\(message)\n\n可以点“重试”，或者退出后从“应用程序”手动打开。"
+            return String(format: String(localized: "Couldn’t start a new instance of Tungsten Edge: %@\n\nYou can click Retry, or quit and open it manually from your Applications folder."), message)
         }
     }
 
@@ -131,23 +132,28 @@ struct PermissionOnboardingView: View {
     /// 既证明不了用户有没有打开开关，也证明不了旧记录已经失配。文案必须保持不确定语气，
     /// 也不能预设签名方式——固定证书签的包授权是跨版本有效的。
     private var troubleshooting: String? {
-        let steps = """
-        如果你已经打开了开关却还是没生效，可能是旧版本留下的授权记录不再匹配当前这份钨极。可以这样重置一次：
+        let steps = String(localized: """
+        If the switch is already on and nothing happens, a permission record left by an older version may no \
+        longer match this copy of Tungsten Edge. You can reset it:
 
-        1. 先退出钨极——应用还在运行时，列表里的减号是灰的，删不掉。
-        2. 在“隐私与安全性 → 辅助功能”里把列表中的 Tungsten Edge 用减号删掉，可能不止一条，都删掉。
-        3. 从“应用程序”重新打开钨极，按提示重新添加并打开开关。
-        """
+        1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the \
+        entry cannot be removed.
+        2. In Privacy & Security > Accessibility, select Tungsten Edge in the list and remove it with the minus \
+        button. There may be more than one entry; remove them all.
+        3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.
+        """)
         switch presentation {
         case .stalled:
             return steps
         case .recoveryStalled:
-            return steps + """
+            return steps + String(localized: """
 
 
-            如果直接把开关打开就生效了，钨极会自己重启，不用管；走上面的清理步骤则需要退出后手动重开。
-            另外，之前被任务条让开过的窗口可能会矮一条边——重新最大化一次就复原了。
-            """
+            If simply turning the switch back on works, Tungsten Edge restarts itself and there is nothing else \
+            to do; going through the cleanup above means reopening it manually afterwards.
+            Also, windows the taskbar had moved out of its way may sit one taskbar height short — maximizing \
+            them once puts them back.
+            """)
         default:
             return nil
         }
@@ -155,9 +161,9 @@ struct PermissionOnboardingView: View {
 
     private var settingsPath: String {
         if #available(macOS 13, *) {
-            return "系统设置的“隐私与安全性 > 辅助功能”"
+            return String(localized: "System Settings > Privacy & Security > Accessibility")
         }
-        return "系统偏好设置的“安全性与隐私 > 隐私 > 辅助功能”"
+        return String(localized: "System Preferences > Security & Privacy > Privacy > Accessibility")
     }
 
     // MARK: - 按钮
@@ -167,18 +173,18 @@ struct PermissionOnboardingView: View {
         switch presentation {
         case .moveToApplications:
             quitButton
-            Button("打开“应用程序”") { coordinator.openApplications() }
+            Button("Open Applications Folder") { coordinator.openApplications() }
                 .keyboardShortcut(.defaultAction)
 
         case .waiting, .recoveryWaiting:
             quitButton
-            Button("打开系统设置") { coordinator.openSettings() }
+            Button("Open System Settings") { coordinator.openSettings() }
                 .keyboardShortcut(.defaultAction)
 
         case .stalled, .recoveryStalled:
             quitButton
-            Button("重新检测") { coordinator.recheck() }
-            Button("打开系统设置") { coordinator.openSettings() }
+            Button("Check Again") { coordinator.recheck() }
+            Button("Open System Settings") { coordinator.openSettings() }
                 .keyboardShortcut(.defaultAction)
 
         case .restoringWindows, .relaunching:
@@ -187,13 +193,13 @@ struct PermissionOnboardingView: View {
 
         case .relaunchFailed:
             quitButton
-            Button("重试") { coordinator.retryRelaunch() }
+            Button("Retry") { coordinator.retryRelaunch() }
                 .keyboardShortcut(.defaultAction)
         }
     }
 
     private var quitButton: some View {
-        Button("退出") { coordinator.quit() }
+        Button("Quit") { coordinator.quit() }
             .keyboardShortcut(.cancelAction)
     }
 }
