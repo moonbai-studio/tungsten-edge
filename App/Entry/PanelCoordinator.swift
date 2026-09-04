@@ -173,6 +173,13 @@ final class PanelCoordinator: NSObject {
     private var capsuleContentHost: ManualPanelHost?
     /// 抽屉真正承载 SwiftUI 的 hosting view（抽屉 contentView 是普通 NSView 容器,故 fittingSize 要读这个）。
     private var drawerContentHost: NSView?
+    /// 同一个宿主的带类型引用，给「每次打开只换 rootView」用。**只建一次**（2026-09-04）：
+    /// 之前每次打开都现建一棵抽屉视图树 + 同步量尺寸 + 渲染首帧，主线程停顿 55～135ms，
+    /// 正压在 0.18s 淡入的开头——owner 报的「抽屉弹开掉帧」主因。关着时它和 ③④ 下
+    /// 关着那块屏的抽屉一样继续活着，拖拽回调都先问 `isDrawerOpen()`，不是新状态。
+    private var drawerHosting: NSHostingView<DrawerRootView>?
+    /// 宿主里现在这份 rootView 用的可用高度；没变就连 rootView 都不换，打开时 SwiftUI 一次图更新都不做。
+    private var drawerHostedMaxContentHeight: CGFloat?
     /// 跨面板拖动（拖卡进抽屉 路线 C）的唯一权威：载体面板 + 鼠标监视器 + 落点收尾都在它里面。
     /// 必须在 setupDockPanel/setupCapsulePanel 之前建好，因为要注入进这两个面板的 hosting。
     /// 跨面板拖动权威。**整个进程只有一个**，由编排层创建、注入给每个单元
@@ -383,6 +390,7 @@ final class PanelCoordinator: NSObject {
         setupCapsulePanel()
         presentInitialPanels()
         pinResidentPanelsIfNeeded()
+        prewarmDrawerHost()
         subscribeSnapshotWidth()
         subscribeDrawerStoreWidth()
         subscribeMessagingStoreWidth()
@@ -460,6 +468,8 @@ final class PanelCoordinator: NSObject {
         dockContentHost = nil
         capsuleContentHost = nil
         drawerContentHost = nil
+        drawerHosting = nil
+        drawerHostedMaxContentHeight = nil
         folderPopupContentHost = nil
         windowTitleTooltipHosting = nil
         windowTitleTooltipHost = nil
@@ -525,6 +535,79 @@ final class PanelCoordinator: NSObject {
         setAutoHideInhibitor(.drawerOpen, active: true)
         drawerSpringOpened = false   // 默认手动开；弹簧路径在 springOpenDrawer 里再置 true
 
+        let screen = panelCurrentScreen(panel: mainPanel)
+        let (capsuleRef, maxContentHeight) = drawerAnchor(on: screen)
+
+        // 宿主只建一次；之后打开只在可用高度变了才换 rootView。
+        // 各阶段打 `HoverTrace.action("drawerOpen")` 标记：打开这一转的主线程停顿由哪段贡献，只有它能分出来。
+        HoverTrace.action("drawerOpen", phase: "begin")
+        guard let host = ensureDrawerHost(maxContentHeight: maxContentHeight) else { return }
+        let (panel, hosting) = host
+        HoverTrace.action("drawerOpen", phase: "host")
+
+        // 首帧就位（owner 2026-07-06「不丝滑」主因之一）：orderFront **前**同步量真实尺寸,
+        // 首帧即最终大小,不再「旧尺寸弹出→瞬间校正」。量不到合理值退回 lastDrawerSize,
+        // 后面的 double-defer 复测仍在,作兜底校正。
+        panel.layoutIfNeeded()
+        HoverTrace.action("drawerOpen", phase: "layout")
+        let sync = hosting.fittingSize
+        HoverTrace.action("drawerOpen", phase: "fitting")
+        if sync.width >= 60, sync.height >= 60 {
+            lastDrawerSize = sync
+        }
+        let initialFrame = drawerTargetFrame(forCapsule: capsuleRef, size: lastDrawerSize, on: screen)
+        lastDrawerTargetFrame = initialFrame
+
+        panel.setFrame(initialFrame, display: false)
+        // 打开无动画（owner 2026-09-04，理由见 `DrawerView` 与 `Docs/27`）：直接以 alpha 1 上屏。
+        // 淡出中途重开也直接回到 1；`closeDrawer` 的 completion 有 `!drawerWantsOpen` 守卫，不会把它 orderOut。
+        panel.alphaValue = 1
+        panel.orderFrontRegardless()
+        HoverTrace.action("drawerOpen", phase: "ordered")
+        pinOverlappingPanelIfNeeded(panel)
+        HoverTrace.action("drawerOpen", phase: "shown")
+        // 弹出后复测 fittingSize 重新布局（瞬时,刚弹出不滑）——同步量偏差时的兜底校正。
+        DispatchQueue.main.async { [weak self] in
+            HoverTrace.action("drawerOpen", phase: "turn1")
+            DispatchQueue.main.async { [weak self] in
+                HoverTrace.action("drawerOpen", phase: "turn2")
+                self?.relayout(animated: false)
+            }
+        }
+
+        drawerLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.dismissDrawerIfOutside()
+            return event
+        }
+        drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
+            self?.dismissDrawerIfOutside()
+        }
+    }
+
+    /// 抽屉的定位输入：胶囊**目标** frame（不读 live：用户可能在任务条宽度动画中触发弹簧开抽屉,Codex 二审 P1）
+    /// 和抽屉最大内容高度 = 胶囊上方锚点 → 屏幕上沿的可用高度。超出由 DrawerView 内部滚动,
+    /// 绝不靠下压底边来塞下（否则压向胶囊/任务条 = 重叠,Codex 二审第 4 点）。
+    /// 顶部上限仍避让菜单栏 / 刘海；底部锚点不避让原生 Dock，避免 Command+Option+D 或侧边 Dock 推动抽屉。
+    private func drawerAnchor(on screen: NSScreen) -> (capsuleRef: NSRect, maxContentHeight: CGFloat) {
+        let screenGeometry = Self.screenGeometry(screen)
+        let capsuleRef = lastCapsuleTargetFrame == .zero ? (capsulePanel?.frame ?? .zero) : lastCapsuleTargetFrame
+        return (capsuleRef, PanelGeometry.maxDrawerContentHeight(forCapsule: capsuleRef, on: screenGeometry))
+    }
+
+    private func makeDrawerRootView(maxContentHeight: CGFloat) -> DrawerRootView {
+        DrawerRootView(maxContentHeight: maxContentHeight,
+                       usesLiquidGlass: usesLiquidGlass,
+                       isDrawerOpen: { [weak self] in self?.drawerPanel?.isVisible == true },
+                       onPrimaryAction: { [weak self] in self?.closeDrawerAfterAction() },
+                       runtime: runtime, drawerStore: drawerStore, messagingStore: messagingStore,
+                       drawerOrderStore: drawerOrderStore, dragController: dragController,
+                       keptAppStore: keptAppStore, runningApplicationStore: runningApplicationStore,
+                       appMembershipController: appMembershipController)
+    }
+
+    /// 抽屉面板 + SwiftUI 宿主，**只建一次**；之后只在可用高度变了才换 rootView。
+    /// 2026-09-04 之前每次打开都现建一棵视图树，主线程停顿 55～135ms 压在淡入开头（弹开掉帧主因）。
+    private func ensureDrawerHost(maxContentHeight: CGFloat) -> (NSPanel, NSHostingView<DrawerRootView>)? {
         if drawerPanel == nil {
             let panel = makeFloatingPanel(
                 contentRect: NSRect(origin: .zero, size: lastDrawerSize)
@@ -539,26 +622,18 @@ final class PanelCoordinator: NSObject {
             panel.hidesOnDeactivate = false
             drawerPanel = panel
         }
-        guard let panel = drawerPanel else { return }
+        guard let panel = drawerPanel else { return nil }
 
-        let screen = panelCurrentScreen(panel: mainPanel)
-        let screenGeometry = Self.screenGeometry(screen)
-        // 用胶囊**目标** frame 定位（不读 live：用户可能在任务条宽度动画中触发弹簧开抽屉,Codex 二审 P1）。
-        let capsuleRef = lastCapsuleTargetFrame == .zero ? (capsulePanel?.frame ?? .zero) : lastCapsuleTargetFrame
-        // 抽屉最大内容高度 = 胶囊上方锚点 → 屏幕上沿的可用高度。超出由 DrawerView 内部滚动,
-        // 绝不靠下压底边来塞下（否则压向胶囊/任务条 = 重叠,Codex 二审第 4 点）。
-        // 顶部上限仍避让菜单栏 / 刘海；底部锚点不避让原生 Dock，避免 Command+Option+D 或侧边 Dock 推动抽屉。
-        let maxContentHeight = PanelGeometry.maxDrawerContentHeight(forCapsule: capsuleRef, on: screenGeometry)
+        if let hosting = drawerHosting {
+            if drawerHostedMaxContentHeight != maxContentHeight {
+                hosting.rootView = makeDrawerRootView(maxContentHeight: maxContentHeight)
+                drawerHostedMaxContentHeight = maxContentHeight
+            }
+            return (panel, hosting)
+        }
 
-        // 每次打开都换一份新内容视图 → DrawerView 的 onAppear 重新触发淡入缩放,并拿到当前 maxContentHeight。
-        let hosting = NSHostingView(rootView: DrawerView(maxContentHeight: maxContentHeight,
-                                                         usesLiquidGlass: usesLiquidGlass,
-                                                         isDrawerOpen: { [weak self] in self?.drawerPanel?.isVisible == true },
-                                                         onPrimaryAction: { [weak self] in self?.closeDrawerAfterAction() })
-            .environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore)
-            .environmentObject(drawerOrderStore).environmentObject(dragController)
-            .environmentObject(keptAppStore).environmentObject(runningApplicationStore)
-            .environmentObject(appMembershipController))
+        let hosting = NSHostingView(rootView: makeDrawerRootView(maxContentHeight: maxContentHeight))
+        drawerHostedMaxContentHeight = maxContentHeight
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.0).cgColor
 
@@ -573,40 +648,21 @@ final class PanelCoordinator: NSObject {
         container.addSubview(hosting)
         panel.contentView = container
         drawerContentHost = hosting
+        drawerHosting = hosting
+        return (panel, hosting)
+    }
 
-        // 首帧就位（owner 2026-07-06「不丝滑」主因之一）：orderFront **前**同步量真实尺寸,
-        // 首帧即最终大小,不再「旧尺寸弹出→瞬间校正」。量不到合理值退回 lastDrawerSize,
-        // 后面的 double-defer 复测仍在,作兜底校正。
-        panel.layoutIfNeeded()
-        let sync = hosting.fittingSize
-        if sync.width >= 60, sync.height >= 60 {
-            lastDrawerSize = sync
-        }
-        let initialFrame = drawerTargetFrame(forCapsule: capsuleRef, size: lastDrawerSize, on: screen)
-        lastDrawerTargetFrame = initialFrame
-
-        panel.setFrame(initialFrame, display: false)
-        if !panel.isVisible { panel.alphaValue = 0 }   // 重开中途若仍可见,从当前 alpha 续上,不跳回 0
-        panel.orderFrontRegardless()
-        pinOverlappingPanelIfNeeded(panel)
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = PopoverAnimation.openDuration
-            ctx.timingFunction = PopoverAnimation.curve()
-            panel.animator().alphaValue = 1
-        }
-        // 弹出后复测 fittingSize 重新布局（瞬时,刚弹出不滑）——同步量偏差时的兜底校正。
-        DispatchQueue.main.async { [weak self] in
-            DispatchQueue.main.async { [weak self] in
-                self?.relayout(animated: false)
-            }
-        }
-
-        drawerLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            self?.dismissDrawerIfOutside()
-            return event
-        }
-        drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
-            self?.dismissDrawerIfOutside()
+    /// 启动后把抽屉宿主预热出来（不 orderFront、不动任何开合状态），让本次会话**第一次**打开也不用现建。
+    /// 排在启动首帧事务之后 1 秒，不碰它。关着的抽屉视图活着不是新状态（③④ 下本来就有），拖拽回调都先问 `isDrawerOpen()`。
+    private func prewarmDrawerHost() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self, !self.isSuspendedForPermissionLoss, self.drawerHosting == nil,
+                  let mainPanel = self.dockPanel, self.capsulePanel != nil else { return }
+            let anchor = self.drawerAnchor(on: self.panelCurrentScreen(panel: mainPanel))
+            guard let host = self.ensureDrawerHost(maxContentHeight: anchor.maxContentHeight) else { return }
+            let (panel, hosting) = host
+            panel.layoutIfNeeded()
+            _ = hosting.fittingSize
         }
     }
 

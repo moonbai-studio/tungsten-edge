@@ -387,7 +387,27 @@ final class DragController: ObservableObject {
         clearStripClaims()
         setStripSlotCollapsed(false)   // 吸进胶囊的那张此刻已是抽屉成员，条上本来就没它了
         lastKnownSlotAnchor = nil
+        hideCarrierInSlotRevealCommit()
         retireCarrierAfterHandoff()
+    }
+
+    /// 副本的消失和卡的显形必须落在**同一次** CA 提交里。
+    ///
+    /// 卡的显形是 SwiftUI 在本轮 run loop 收尾时随隐式事务一起提交的；载体若等下一轮再收
+    /// （`retireCarrierAfterHandoff`），两次提交之间只要隔着一个 vsync，屏幕上就是「卡已显形、
+    /// 手里还拎着一个」的一帧。以前显形那一帧要重新解码图标（`AppIconResolver` 的缓存一直失效），
+    /// 自己就慢，副本收掉时卡往往还没画出来；2026-09-04 缓存修好后显形变快、而下一轮又常被整条
+    /// 重算压住 25～30ms，这一帧就从偶尔变成常见（owner 当天报「抽屉拖进任务条有几率重影」）。
+    ///
+    /// 所以这里**故意用隐式事务**赋值：它和 SwiftUI 的显形走同一次收尾提交。不能包 `instantly`——
+    /// 显式事务在没有外层隐式事务时会立即上送，副本先于卡消失，就成了反向的空档。落地是定时器
+    /// 回调、没有事件洪流，隐式事务本轮必刷（那条「载体改动必须显式事务」的规矩针对的是拖动中）。
+    /// 隐式动作由 `carrierActionGate` 只在这一次赋值期间关掉，否则 opacity 会走默认的 0.25s 淡出。
+    private func hideCarrierInSlotRevealCommit() {
+        guard let layer = carrierLayer else { return }
+        carrierActionGate.suppressesImplicitActions = true
+        layer.opacity = 0
+        carrierActionGate.suppressesImplicitActions = false
     }
 
     /// 晚一轮 run loop 收载体，并在这一轮里继续压着悬停（`carrierRetiring`）。
@@ -792,6 +812,16 @@ final class DragController: ObservableObject {
         let frame: CGRect
     }
     private var surfaces: [CarrierSurface] = []
+    /// 载体图层的 delegate，只干一件事：`hideCarrierInSlotRevealCommit` 那一次赋值期间把隐式动作关掉。
+    /// 不用 `layer.actions = […NSNull]`（会把归位飞行的隐式动画一起杀掉，见 `makeCarrierPanel`），
+    /// 也不用 `instantly`（显式事务在没有外层隐式事务时**立即上送**，那正是这里要避开的）。
+    private final class CarrierLayerActionGate: NSObject, CALayerDelegate {
+        var suppressesImplicitActions = false
+        func action(for layer: CALayer, forKey event: String) -> CAAction? {
+            suppressesImplicitActions ? NSNull() : nil   // nil = 交回默认查找，平时完全不干预
+        }
+    }
+    private let carrierActionGate = CarrierLayerActionGate()
     private var activeSurface: CarrierSurface?
     /// 载体面板建好并 order front 之后交给编排层钉进**任务条所在的私有空间**（`OverlaySpaceHost`）。
     /// 任务条钉进私有空间后，留在桌面空间的窗口不论 `level` 都被合成在它下面——载体一压进玻璃底板
@@ -1833,6 +1863,7 @@ final class DragController: ObservableObject {
         layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         layer.isOpaque = false
         layer.allowsEdgeAntialiasing = true
+        layer.delegate = carrierActionGate
         // **不要在这里 `layer.actions = […NSNull]` 一刀切关掉隐式动作**：归位飞行与进出投放区的缩放
         // 走的正是「事务里设时长 + 直接赋值」的隐式动画，全关掉它们就变成瞬移（2026-08-19 踩过一次：
         // 松手后图标一帧跳回卡槽，飞行没了）。瞬时赋值统一包在 `instantly` 里关动画即可。

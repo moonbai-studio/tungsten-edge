@@ -435,14 +435,15 @@ struct DebugConsoleView: View {
 }
 
 enum AppIconResolver {
-    private static let cache: NSCache<NSString, NSImage> = {
-        let c = NSCache<NSString, NSImage>()
-        c.countLimit = 100
-        return c
-    }()
+    /// **普通字典，不是 `NSCache`。** 2026-09-04 主线程采样（120s）：`NSCache` 版本实测在不停地失效——
+    /// `iconForFile:` 占了约 1 秒主线程（LaunchServices 绑定 + IconServices 解析，每次约 1ms），而每张
+    /// 卡的 body 每重算一次就查一次：抽屉打开重算全部卡、拖拽起落整条重算十几遍、每秒一次的快照心跳
+    /// 重算两块屏的条——全都在付这笔钱。它是「面板动画帧率感」那张卡里可量化的最大单项。
+    /// 条目数 = 出现过的 bundle id 数（几十个），永远住得下；只在主线程（SwiftUI body / 位图快照）调用。
+    private static var cache: [String: NSImage] = [:]
 
     static func icon(for bundleIdentifier: String) -> NSImage {
-        if let cached = cache.object(forKey: bundleIdentifier as NSString) {
+        if let cached = cache[bundleIdentifier] {
             return cached
         }
 
@@ -454,7 +455,8 @@ enum AppIconResolver {
         }
 
         icon.size = NSSize(width: 32, height: 32)
-        cache.setObject(icon, forKey: bundleIdentifier as NSString)
+        if cache.count >= 512 { cache.removeAll() }   // 只防无限增长；正常一辈子都碰不到
+        cache[bundleIdentifier] = icon
         return icon
     }
 }

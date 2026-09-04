@@ -50,8 +50,6 @@ struct DrawerView: View {
     /// 抽屉根视图的屏幕 frame（bottom-left），判"光标在不在抽屉体" + 屏幕坐标→`"drawer"` 空间换算。
     @State private var drawerRootScreenRect: CGRect = .zero
 
-    /// 入场动画：onAppear 翻 true,内容从胶囊那角轻微放大入场（配合面板 alpha 淡入）。
-    @State private var isPresented = false
     /// 网格自然高度（量出来）。超过 maxContentHeight 就内部滚动。
     @State private var contentHeight: CGFloat = 0
 
@@ -149,14 +147,13 @@ struct DrawerView: View {
             updateLandingAnchor()
         })
         .coordinateSpace(name: "drawer")
-        // 入场：从贴胶囊的右下角轻微放大入场（配合面板 alpha 淡入）。scaleEffect 是渲染变换,不改布局/命中。
-        .scaleEffect(isPresented ? 1 : 0.96, anchor: .bottomTrailing)
+        // **抽屉打开没有入场动画**（owner 2026-09-04：优先保任务条的动画，抽屉区可能重做）。
+        // 之前的「面板淡入 + 内容 0.96→1 放大 + 卡片阶梯浮现」每次打开都要把整棵抽屉按入场前状态重算一遍，
+        // 主线程停顿压在淡入开头（视图树复用后仍 22～40ms），动画本身反而是掉帧的来源。理由见 `Docs/27`。
         // 阴影延伸(radius+|y|)必须 ≤ shadowPadding(20),否则底部在透明边处被硬切（同弹窗）。
         // 数值见 DockThemeTokens.popupShadow（浅/深各一套）。
         .dockShadow(theme.popupShadow)
         .padding(PanelCoordinator.shadowPadding)
-        // 入场用弹窗同款快出缓停参数（PopoverAnimation）;网格重排等内容动画仍用 DrawerAnimation.duration。
-        .onAppear { withAnimation(.easeOut(duration: PopoverAnimation.openDuration)) { isPresented = true } }
         // 格子帧变了就重报落点锚点（理由同任务条那侧：松手后指针没事件了，网格还在重排）。
         .onPreferenceChange(DrawerChipFramePreferenceKey.self) { frames in
             drawerFrames = frames
@@ -365,11 +362,7 @@ struct DrawerView: View {
 
     @ViewBuilder
     private func drawerChip(_ id: String, index: Int, zone: [String], running: Bool) -> some View {
-        let delay = Double(min(index, 6)) * 0.018
         drawerChipContent(id, running: running)
-            .offset(y: isPresented ? 0 : 20)
-            .opacity(isPresented ? 1 : 0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8).delay(delay), value: isPresented)
             .opacity(isDragging(id) ? 0 : 1)
             // `"drawer"` 空间里的 frame，背景 GeometryReader（不夺点击），喂抓取偏移 + 同区落点。
             .background(
@@ -516,5 +509,36 @@ private struct DrawerContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+/// 抽屉宿主的根视图：`DrawerView` + 它的八个环境对象。
+///
+/// 存在的唯一理由是给 `PanelCoordinator` 一个**可命名**的宿主类型 `NSHostingView<DrawerRootView>`：
+/// 宿主只建一次、之后每次打开只换 `rootView`（2026-09-04，抽屉弹开掉帧的修法），而
+/// `DrawerView(...).environmentObject(...)` 链出来的是写不出名字的 `ModifiedContent<…>`。
+struct DrawerRootView: View {
+    let maxContentHeight: CGFloat
+    let usesLiquidGlass: Bool
+    let isDrawerOpen: () -> Bool
+    let onPrimaryAction: () -> Void
+    let runtime: AppRuntime
+    let drawerStore: DrawerStore
+    let messagingStore: MessagingAppStore
+    let drawerOrderStore: DrawerOrderStore
+    let dragController: DragController
+    let keptAppStore: KeptAppStore
+    let runningApplicationStore: RunningApplicationStore
+    let appMembershipController: AppMembershipController
+
+    var body: some View {
+        DrawerView(maxContentHeight: maxContentHeight,
+                   usesLiquidGlass: usesLiquidGlass,
+                   isDrawerOpen: isDrawerOpen,
+                   onPrimaryAction: onPrimaryAction)
+            .environmentObject(runtime).environmentObject(drawerStore).environmentObject(messagingStore)
+            .environmentObject(drawerOrderStore).environmentObject(dragController)
+            .environmentObject(keptAppStore).environmentObject(runningApplicationStore)
+            .environmentObject(appMembershipController)
     }
 }

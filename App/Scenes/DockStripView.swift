@@ -442,6 +442,20 @@ struct DockStripView: View {
             // **认 chip id，不认代表卡**：`keepPlacement` 路径物化出来的是 `.keptApp` 占位或
             // app 级兜底卡，两者都当不了 `StripItem` 代表卡，跟着代表卡走就永远不让位（双影）。
             draggingID = converted
+        } else if let bid = dragController.convertedDrawerBundleID,
+                  let materialized = entries.lazy.compactMap({ entry -> String? in
+                      switch entry {
+                      case let .window(item): return item.bundleIdentifier == bid ? item.id : nil
+                      case let .keptApp(id): return id == bid ? entry.id : nil
+                      default: return nil
+                      }
+                  }).first(where: { liveOrderIDs.contains($0) }) {
+            // 转正那一刻 `convertedChipID` 还是 nil——它在 `syncConvertedCarrier` 里、这一轮渲染**之后**才写。
+            // 只认它，刚物化出来的卡就先以 1.0 不透明度插进条里、下一轮才被藏掉；SwiftUI 给插入配淡入、
+            // 给藏掉配淡出，看到的就是「一个很淡的图标从末尾滑到落点」（owner 2026-09-04；图标缓存修好、
+            // 显形变快之后才露出来）。从转正状态直接推出要藏的那张（与 `liveEntryIDs(bundleID:).first`
+            // 同一条规则，保证和随后写入的 `convertedChipID` 是同一张），和插入同一轮生效。
+            draggingID = materialized
         } else {
             draggingID = nil
         }
