@@ -7,7 +7,11 @@ import SwiftUI
 /// 2026-08-17 删掉了 `isTruncated` / `needsTooltip` / `truncationTolerance`：那套是给
 /// 「标题被截断才弹 tooltip」用的门槛，而气泡先是改成「悬停就弹」、后又改成「只写应用名」，
 /// 截断与否已经不影响任何行为，生产代码里一个调用方都不剩。想找完整窗口标题看
-/// `ChipView` 上的 `.help(displayTitle)`（系统 tooltip 兜底）。
+/// `ChipView` 两个分支上的 `.help(fullTitle)`（系统 tooltip 兜底）。
+///
+/// 2026-09-04 订正：在此之前这里写的是「`.help(displayTitle)`」且只有 `bareIconChip`
+/// 真的挂了它——带标题的卡截断之后完整标题哪儿都看不到（issue #41）。现在两个分支都挂，
+/// 且给的是**未去掉应用名后缀**的完整标题。
 enum WindowTitleTextMetrics {
     /// 条内标题的最大宽度（中档基线）。任务条缩放后一律走 `maximumWidth(for:)`，
     /// 别在调用点另写一份字面值——两处各走各的曾经让药丸和判定对不上。

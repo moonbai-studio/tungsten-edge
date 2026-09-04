@@ -106,6 +106,7 @@
 		B10000000000000000000131 /* WindowDisplayAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000130 /* WindowDisplayAttribution.swift */; };
 		B1000000000000000000013F /* WindowDisplayMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000013E /* WindowDisplayMove.swift */; };
 		B10000000000000000000134 /* StripDisplayFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000133 /* StripDisplayFilter.swift */; };
+		B10000000000000000000202 /* StripSharedAffixTrim.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000201 /* StripSharedAffixTrim.swift */; };
 		B10000000000000000000144 /* StripPointerBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000143 /* StripPointerBox.swift */; };
 		B10000000000000000000137 /* DisplayTopologyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000136 /* DisplayTopologyStore.swift */; };
 		A0000000000000000000FF02 /* LaunchGateDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FF00 /* LaunchGateDecision.swift */; };
@@ -118,6 +119,7 @@
 		B10000000000000000000132 /* WindowDisplayAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000130 /* WindowDisplayAttribution.swift */; };
 		B10000000000000000000140 /* WindowDisplayMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000013E /* WindowDisplayMove.swift */; };
 		B10000000000000000000135 /* StripDisplayFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000133 /* StripDisplayFilter.swift */; };
+		B10000000000000000000203 /* StripSharedAffixTrim.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000201 /* StripSharedAffixTrim.swift */; };
 		B10000000000000000000145 /* StripPointerBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000143 /* StripPointerBox.swift */; };
 		A0000000000000000000FF11 /* LaunchGateDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FF10 /* LaunchGateDecisionTests.swift */; };
 		A0000000000000000000FF21 /* AppLaunchTargetDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000FF20 /* AppLaunchTargetDecision.swift */; };
@@ -398,6 +400,7 @@
 		B10000000000000000000139 /* WindowDisplayAttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000138 /* WindowDisplayAttributionTests.swift */; };
 		B10000000000000000000142 /* WindowDisplayMoveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000141 /* WindowDisplayMoveTests.swift */; };
 		B1000000000000000000013B /* StripDisplayFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000013A /* StripDisplayFilterTests.swift */; };
+		B10000000000000000000205 /* StripSharedAffixTrimTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000204 /* StripSharedAffixTrimTests.swift */; };
 		B10000000000000000000147 /* StripPointerBoxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000146 /* StripPointerBoxTests.swift */; };
 		B1000000000000000000013D /* AppTrackerDisplayAttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000013C /* AppTrackerDisplayAttributionTests.swift */; };
 /* End PBXBuildFile section */
@@ -507,6 +510,7 @@
 		B10000000000000000000138 /* WindowDisplayAttributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDisplayAttributionTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000141 /* WindowDisplayMoveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDisplayMoveTests.swift; sourceTree = "<group>"; };
 		B1000000000000000000013A /* StripDisplayFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripDisplayFilterTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000204 /* StripSharedAffixTrimTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripSharedAffixTrimTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000146 /* StripPointerBoxTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripPointerBoxTests.swift; sourceTree = "<group>"; };
 		B1000000000000000000013C /* AppTrackerDisplayAttributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTrackerDisplayAttributionTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009700 /* DragConversionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragConversionPlan.swift; sourceTree = "<group>"; };
@@ -636,6 +640,7 @@
 		B10000000000000000000130 /* WindowDisplayAttribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDisplayAttribution.swift; sourceTree = "<group>"; };
 		B1000000000000000000013E /* WindowDisplayMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDisplayMove.swift; sourceTree = "<group>"; };
 		B10000000000000000000133 /* StripDisplayFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripDisplayFilter.swift; sourceTree = "<group>"; };
+		B10000000000000000000201 /* StripSharedAffixTrim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripSharedAffixTrim.swift; sourceTree = "<group>"; };
 		B10000000000000000000143 /* StripPointerBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripPointerBox.swift; sourceTree = "<group>"; };
 		B10000000000000000000136 /* DisplayTopologyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTopologyStore.swift; sourceTree = "<group>"; };
 		A0000000000000000000FF20 /* AppLaunchTargetDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchTargetDecision.swift; sourceTree = "<group>"; };
@@ -883,6 +888,7 @@
 				B10000000000000000000130 /* WindowDisplayAttribution.swift */,
 				B1000000000000000000013E /* WindowDisplayMove.swift */,
 				B10000000000000000000133 /* StripDisplayFilter.swift */,
+				B10000000000000000000201 /* StripSharedAffixTrim.swift */,
 				B10000000000000000000143 /* StripPointerBox.swift */,
 				A0000000000000000000FF20 /* AppLaunchTargetDecision.swift */,
 				B72000000000000000000003 /* AppDisplayNameCache.swift */,
@@ -1197,6 +1203,7 @@
 				B10000000000000000000138 /* WindowDisplayAttributionTests.swift */,
 				B10000000000000000000141 /* WindowDisplayMoveTests.swift */,
 				B1000000000000000000013A /* StripDisplayFilterTests.swift */,
+				B10000000000000000000204 /* StripSharedAffixTrimTests.swift */,
 				B10000000000000000000146 /* StripPointerBoxTests.swift */,
 				B1000000000000000000013C /* AppTrackerDisplayAttributionTests.swift */,
 				A00000000000000000009710 /* DragConversionPlanTests.swift */,
@@ -1447,6 +1454,7 @@
 					B10000000000000000000131 /* WindowDisplayAttribution.swift in Sources */,
 					B1000000000000000000013F /* WindowDisplayMove.swift in Sources */,
 					B10000000000000000000134 /* StripDisplayFilter.swift in Sources */,
+					B10000000000000000000202 /* StripSharedAffixTrim.swift in Sources */,
 					B10000000000000000000144 /* StripPointerBox.swift in Sources */,
 					A0000000000000000000FF21 /* AppLaunchTargetDecision.swift in Sources */,
 					B72000000000000000000001 /* AppDisplayNameCache.swift in Sources */,
@@ -1637,6 +1645,7 @@
 				B10000000000000000000132 /* WindowDisplayAttribution.swift in Sources */,
 				B10000000000000000000140 /* WindowDisplayMove.swift in Sources */,
 				B10000000000000000000135 /* StripDisplayFilter.swift in Sources */,
+				B10000000000000000000203 /* StripSharedAffixTrim.swift in Sources */,
 				B10000000000000000000145 /* StripPointerBox.swift in Sources */,
 				A0000000000000000000FF22 /* AppLaunchTargetDecision.swift in Sources */,
 				B72000000000000000000002 /* AppDisplayNameCache.swift in Sources */,
@@ -1736,6 +1745,7 @@
 					B10000000000000000000139 /* WindowDisplayAttributionTests.swift in Sources */,
 					B10000000000000000000142 /* WindowDisplayMoveTests.swift in Sources */,
 					B1000000000000000000013B /* StripDisplayFilterTests.swift in Sources */,
+					B10000000000000000000205 /* StripSharedAffixTrimTests.swift in Sources */,
 					B10000000000000000000147 /* StripPointerBoxTests.swift in Sources */,
 					B1000000000000000000013D /* AppTrackerDisplayAttributionTests.swift in Sources */,
 					A00000000000000000009702 /* DragConversionPlan.swift in Sources */,

@@ -47,6 +47,9 @@ struct StripProjection {
     let liveNatural: [StripEntry]
     let liveOrderIDs: [String]
     let appKeyByChipID: [String: String]
+    /// 每张窗口卡最终显示的标签（去掉应用名后缀 + 同组公共段，issue #41）。
+    /// 按**这条 bar 上实际显示的卡**算出来的，所以只能来自投影层，不能在 `StripItem` 里算。
+    let labelTitleByChipID: [String: String]
     let entries: [StripEntry]
     let layoutKeys: [StripLayoutKey]
     let messagingIDs: [String]
@@ -384,6 +387,13 @@ struct DockStripView: View {
             }
             return displayFilter.shows(subject)
         }
+        // 卡片标签：同一应用的几张卡共享的那一段不承担区分作用，去掉（issue #41）。
+        //
+        // **按「这条 bar 上实际显示的卡」分组**，所以算在 `renderedLive` 定案之后：④ 下每块屏
+        // 只显示本屏的窗口，公共段各屏不同，按全集算会把某块屏上仅剩的一张卡剥掉唯一的区分信息。
+        // 也**必须在「拖出即合拢」的剔除之前**——拖走一张卡会让剩下的卡重算公共段，标签当场变长，
+        // 拖到一半文字跳动。
+        let labelTitleByChipID = Self.labelTitles(for: renderedLive)
         let folderEntries = (settingsStore.showShelf ? [StripEntry.shelf] : [])
             + pinnedFolderStore.folderPaths.map { StripEntry.pinnedFolder(path: $0) }
         // 拖出即合拢（owner 2026-09-03）：条上起拖的那张卡离开了条 → 从渲染里去掉（不是透明），
@@ -467,12 +477,34 @@ struct DockStripView: View {
             liveNatural: projectedLive,
             liveOrderIDs: liveOrderIDs,
             appKeyByChipID: appKeys,
+            labelTitleByChipID: labelTitleByChipID,
             entries: entries,
             layoutKeys: entries.map(StripLayoutKey.init),
             messagingIDs: messagingIDs,
             draggingID: draggingID,
             badgeEntryIDByBundle: badgeEntryIDByBundle
         )
+    }
+
+    /// 每张窗口卡最终显示的标签：先去掉尾部的应用名，再去掉同一应用几张卡共享的公共段。
+    ///
+    /// 两步都要留着：④ 下一条 bar 上可能只剩某应用的一张卡（`showsTitle` 仍为 true、照样显示
+    /// 标题），没有同伴可比对公共段，这时只有应用名那一步能生效。
+    private static func labelTitles(for entries: [StripEntry]) -> [String: String] {
+        var itemsByApp: [String: [(id: String, title: String)]] = [:]
+        for case let .window(item) in entries {
+            let appName = item.bundleIdentifier.map(AppDisplayNameResolver.displayName(for:)) ?? item.appID
+            let resolved = WindowDisplayTitle.resolve(rawTitle: item.title, fallbackName: appName)
+            let withoutApp = WindowDisplayTitle.trimmingAppNameSuffix(resolved, appName: appName)
+            itemsByApp[item.bundleIdentifier ?? item.appID, default: []].append((item.id, withoutApp))
+        }
+
+        var labels: [String: String] = [:]
+        for (_, group) in itemsByApp {
+            let trimmed = StripSharedAffixTrim.trimmingSharedAffixes(group.map(\.title))
+            for (entry, label) in zip(group, trimmed) { labels[entry.id] = label }
+        }
+        return labels
     }
 
     /// **`onChange` 闭包里必须用它，不能用闭包捕获的 `projection`。**
@@ -1678,6 +1710,7 @@ struct DockStripView: View {
                 projection.badgeEntryIDByBundle[bid] == item.id ? badgeStore.badgesByBundleID[bid] : nil
             }
             ChipView(item: item,
+                     labelTitle: projection.labelTitleByChipID[item.id] ?? item.title,
                      scale: dockScale,
                      hoverStyle: hoverStyle,
                      isHovered: hovered,
@@ -1735,7 +1768,9 @@ struct DockStripView: View {
                 if let main {
                     // 运行中有主窗 → app chip 即主窗卡：标准 toggle + 完整窗口菜单。iconOnly 保持消息区
                     // 定宽图标行，运行点标记它是 app 入口。
-                    ChipView(item: main, scale: dockScale, hoverStyle: hoverStyle,
+                    // 消息区这张永远 `iconOnly`、不显示文字，标签给原始标题即可（`.help` 仍走 `fullTitle`）。
+                    ChipView(item: main, labelTitle: main.title,
+                             scale: dockScale, hoverStyle: hoverStyle,
                              isHovered: hovered,
                              // 消息区图标恒代表整个应用（主窗开着也一样），列出全部窗口。
                              showsWindowListInMenu: true,
@@ -2006,6 +2041,11 @@ struct ChipView: View {
     @EnvironmentObject var appMembershipController: AppMembershipController
     private let theme = DockThemeTokens.standard
     let item: StripItem
+    /// 卡上要显示的那行字，由投影层算好（去掉应用名后缀 + 同一应用几张卡的公共段，issue #41）。
+    /// **故意不给默认值**：漏传会静默显示成未处理的长标题，而这里所有测试都是纯几何、
+    /// 没有一个检查 SwiftUI 调用点——缺的那个默认值就是回归测试本身（同 `scale` 那条铁律）。
+    /// 完整标题走 `fullTitle`，只给 `.help()` 的系统 tooltip。
+    let labelTitle: String
     /// 档位系数（`DockSize.scale`）。**故意不给默认值**：消息区曾因为它有默认值 1.0 而静默漏传，
     /// 在非中档下渲染成中档尺寸（见 AGENTS《Taskbar Size Tiers》）。漏传必须是编译错误。
     let scale: CGFloat
@@ -2111,7 +2151,7 @@ struct ChipView: View {
     // MARK: - Icon-only chip
 
     private var bareIconChip: some View {
-        let capturedDisplayTitle = displayTitle
+        let capturedFullTitle = fullTitle
         // **纯图标卡的悬停不改变任何像素**，所以这里不挂动画驱动器。
         //
         // 应用名挪进图标上方的气泡之后，图标不再缩、槽位不再变，图标也从不按状态淡化
@@ -2181,7 +2221,7 @@ struct ChipView: View {
             onEvent: recordPressEvent
         )
         .nativeContextMenu { buildChipMenu() }
-        .help(capturedDisplayTitle)
+        .help(capturedFullTitle)
     }
 
     // MARK: - Labeled chip
@@ -2216,6 +2256,7 @@ struct ChipView: View {
         // 图标恒为原色（不按状态淡化，owner 2026-08-02）；「在不在桌面上」只由标题颜色表达。
         let titleColor: Color = effectiveIsOnDesktop ? theme.labelActive.color : theme.effectiveLabelInactive.color
         let capturedDisplayTitle = displayTitle
+        let capturedFullTitle = fullTitle
         // **可动画标量只包住药丸的底和描边，不包整张卡。**
         //
         // `ChipHoverProgress` 是 `Animatable` 视图：它的 `animatableData` 每变一次就重跑一次
@@ -2280,6 +2321,9 @@ struct ChipView: View {
             onEvent: recordPressEvent
         )
         .nativeContextMenu { buildChipMenu() }
+        // 标签在 140pt 处截断，而这张卡上的标题还去掉了应用名后缀——完整标题只剩这一个出口。
+        // （悬停气泡不算：它显示的是应用名，而且新装用户默认是 `.quiet`、根本没有气泡。）
+        .help(capturedFullTitle)
     }
 
     // MARK: - Shared Icon
@@ -2393,7 +2437,15 @@ struct ChipView: View {
 
     // MARK: - Helpers
 
-    private var displayTitle: String {
+    /// 卡上渲染的标签（投影层算好的 `labelTitle`）。
+    ///
+    /// **这一个字符串同时喂三处**——渲染的 `Text`、`ChipPillMetrics.width(title:scale:)` 派生的
+    /// `chipQuietHoverScale`、以及 `ChipPillMetrics.pillRect` 算出的气泡锚点。任何一处改回
+    /// `fullTitle`，悬停缩放上限和气泡尾巴就锚在一个不存在的宽度上。
+    private var displayTitle: String { labelTitle }
+
+    /// 未截短的完整标题，只给系统 tooltip 用：纯图标卡不显示任何文字，截短了应用名就哪儿都看不到。
+    private var fullTitle: String {
         WindowDisplayTitle.resolve(rawTitle: item.title, fallbackName: appName)
     }
 

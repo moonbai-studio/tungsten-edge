@@ -8,6 +8,31 @@ enum WindowDisplayTitle {
         } ?? fallbackName
         return title == "macos-dock-cc-v2" ? String(localized: "Taskbar") : title
     }
+
+    /// 卡片标签用：去掉窗口标题尾部那截「分隔符 + 应用名」（`local-dc02 - Google Chrome`
+    /// → `local-dc02`）。图标已经表明是哪个应用，后缀是纯重复，而且它把真正区分窗口的前半截
+    /// 挤过 `WindowTitleTextMetrics.maximumWidth`（140pt）被截断——issue #41 的截图里两张
+    /// Chrome 卡就是这样，一张只剩「local-dc02 - Google C…」。
+    ///
+    /// **只作用于渲染出来的标签**：`.help()` 的系统 tooltip 仍显示未截短的完整标题，
+    /// 否则纯图标卡（不显示任何文字）的应用名就哪儿都看不到了。
+    /// 菜单里的窗口清单（`WindowListMenuPlan`）刻意不走这里——菜单行宽裕、不截断。
+    static func trimmingAppNameSuffix(_ title: String, appName: String) -> String {
+        let app = appName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !app.isEmpty, title.hasSuffix(app), title != app else { return title }
+
+        var head = Substring(title).dropLast(app.count)
+        // 只吃一个分隔符：`A - B - Chrome` 去掉尾巴后应当是 `A - B`，不是 `A`。
+        guard let separator = separators.first(where: { head.hasSuffix($0) }) else { return title }
+        head = head.dropLast(separator.count)
+
+        let remainder = head.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 去完只剩空白 = 这个标题本来就只有应用名，原样留着。
+        return remainder.isEmpty ? title : remainder
+    }
+
+    /// 尾部分隔符。长的排前面，免得 ` - ` 先命中把 `–` / `—` 的场景吃掉半个。
+    private static let separators = [" - ", " — ", " – ", " | ", " · ", "-", "—", "–", "|"]
 }
 
 struct StripItem: Hashable {
