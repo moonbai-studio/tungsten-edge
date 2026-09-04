@@ -147,7 +147,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
         DispatchQueue.main.async { [weak dragController] in
             dragController?.prewarmCarrier()
         }
-        observeMenuTrackingForHoverSuspension()
+        observeMenuTracking()
         reconcileHoverMouseMonitors()
         reconcileFullscreenIntentMonitor()
         placementSubscription = settingsStore.$taskbarScreenPlacement
@@ -420,13 +420,21 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
         }
     }
 
-    /// **菜单跟踪期间摘掉鼠标移动监视器**（owner 2026-08-04 报「菜单里两个选项之间来回晃有粘滞感」）。
-    /// `addGlobalMonitorForEvents` 在系统底层是一个事件拦截器；钨极自己弹菜单时主循环切进事件跟踪模式，
-    /// 拦截器的处理入口在该模式下不被服务，每个鼠标移动事件都要等到超时才继续送达——菜单高亮慢半拍。
-    /// 用 `NSMenu` 的应用级跟踪通知，一处覆盖全部菜单；子菜单会让通知嵌套，所以按深度计数。
-    /// 关掉这个优化：`DOCK_MENU_HOVER_SUSPEND=0`。
-    private func observeMenuTrackingForHoverSuspension() {
-        guard Self.menuHoverSuspensionEnabled else { return }
+    /// 任何一个钨极菜单开着时统一办两件事。用 `NSMenu` 的应用级跟踪通知，一处覆盖全部菜单
+    /// （图标 / 抽屉 / 文件夹 / 胶囊 / 状态栏）；子菜单会让通知嵌套，所以按深度计数。
+    ///
+    /// 1. **挂上「别自动隐藏」的保险**。菜单弹在任务条上方，鼠标一往上够菜单项，对边缘自动隐藏
+    ///    就算离开了任务条，0.2s 空闲计时照跑把条缩掉；而菜单是挂在条上那个图标的视图上的，
+    ///    条一没菜单跟着一起没（issue #42：右键图标后鼠标移到「新建窗口」上菜单就消失、点不着）。
+    ///    保险本身 2026-08-04 就有，但当时只接在状态栏那一个菜单上（`StatusMenuController`），
+    ///    图标菜单一直漏着。
+    /// 2. **摘掉鼠标移动监视器**（owner 2026-08-04 报「菜单里两个选项之间来回晃有粘滞感」）。
+    ///    `addGlobalMonitorForEvents` 在系统底层是一个事件拦截器；钨极自己弹菜单时主循环切进事件跟踪模式，
+    ///    拦截器的处理入口在该模式下不被服务，每个鼠标移动事件都要等到超时才继续送达——菜单高亮慢半拍。
+    ///
+    /// **`DOCK_MENU_HOVER_SUSPEND=0` 只关第 2 件**——它是那个手感优化的杀开关。通知注册本身
+    /// 必须无条件进行，否则关掉手感优化会连带把 #42 那个保险也关掉。
+    private func observeMenuTracking() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(menuTrackingDidBegin),
@@ -444,6 +452,8 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     @objc private func menuTrackingDidBegin() {
         menuTrackingDepth += 1
         guard menuTrackingDepth == 1 else { return }
+        setTaskbarMenuOpen(true)
+        guard Self.menuHoverSuspensionEnabled else { return }
         removeHoverMouseMonitorsOnly()
         startMenuTrackingPollIfNeeded()
     }
@@ -451,6 +461,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     @objc private func menuTrackingDidEnd() {
         menuTrackingDepth = max(0, menuTrackingDepth - 1)
         guard menuTrackingDepth == 0 else { return }
+        setTaskbarMenuOpen(false)
         stopMenuTrackingPoll()
         // 装回来（若仍需要）并立刻补一次判断——摘掉的这段时间里鼠标可能已经跨屏或离开热区。
         reconcileHoverMouseMonitors()
