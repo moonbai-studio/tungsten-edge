@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000004003 /* AXElementCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000003 /* AXElementCache.swift */; };
+		E90000000000000000004002 /* ClickLatencyTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000005 /* ClickLatencyTrace.swift */; };
+		E90000000000000000004001 /* MinimizeHandoffTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010D /* MinimizeHandoffTarget.swift */; };
+		E90000000000000000001006 /* DockSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000006 /* DockSnapshot.swift */; };
+		E90000000000000000002006 /* DockSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000006 /* DockSnapshot.swift */; };
+		E90000000000000000003006 /* DockSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000006 /* DockSnapshot.swift */; };
+		E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000001 /* StatusMenuWidgets.swift */; };
+		E90000000000000000002001 /* StatusMenuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000001 /* StatusMenuWidgets.swift */; };
+		E90000000000000000001002 /* TaskbarDebugSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000002 /* TaskbarDebugSnapshot.swift */; };
+		E90000000000000000001003 /* FullscreenWindowClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000003 /* FullscreenWindowClassifier.swift */; };
+		E90000000000000000002003 /* FullscreenWindowClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000003 /* FullscreenWindowClassifier.swift */; };
+		E90000000000000000001004 /* DefaultsValueParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000004 /* DefaultsValueParsing.swift */; };
+		E90000000000000000002004 /* DefaultsValueParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000004 /* DefaultsValueParsing.swift */; };
+		E90000000000000000001005 /* FilePathNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000005 /* FilePathNormalization.swift */; };
+		E90000000000000000002005 /* FilePathNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000005 /* FilePathNormalization.swift */; };
 		B77000000000000000000001 /* SparkleUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B77000000000000000000003 /* SparkleUpdateService.swift */; };
 		B76000000000000000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = B76000000000000000000002 /* Sparkle */; };
 		D20000000000000000000000 /* CarrierSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000000 /* CarrierSnapshot.swift */; };
@@ -416,6 +431,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000006 /* DockSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockSnapshot.swift; sourceTree = "<group>"; };
+		E90000000000000000000001 /* StatusMenuWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuWidgets.swift; sourceTree = "<group>"; };
+		E90000000000000000000002 /* TaskbarDebugSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskbarDebugSnapshot.swift; sourceTree = "<group>"; };
+		E90000000000000000000003 /* FullscreenWindowClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenWindowClassifier.swift; sourceTree = "<group>"; };
+		E90000000000000000000004 /* DefaultsValueParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsValueParsing.swift; sourceTree = "<group>"; };
+		E90000000000000000000005 /* FilePathNormalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePathNormalization.swift; sourceTree = "<group>"; };
 		B77000000000000000000003 /* SparkleUpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdateService.swift; sourceTree = "<group>"; };
 		D10000000000000000000000 /* CarrierSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarrierSnapshot.swift; sourceTree = "<group>"; };
 		D10000000000000000000005 /* DragCarrierGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragCarrierGeometry.swift; sourceTree = "<group>"; };
@@ -758,6 +779,7 @@
 		A00000000000000000000025 /* Composition */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000002 /* TaskbarDebugSnapshot.swift */,
 				A00000000000000000000003 /* AppComposition.swift */,
 				B10000000000000000000136 /* DisplayTopologyStore.swift */,
 				A0000000000000000000006B /* DrawerStore.swift */,
@@ -794,20 +816,9 @@
 				A00000000000000000009500 /* KeptAppStore.swift */,
 				A00000000000000000009510 /* RunningApplicationStore.swift */,
 				A00000000000000000009520 /* AppMembershipController.swift */,
-				A00000000000000000000027 /* ObservationPipeline */,
 				A00000000000000000000028 /* IntentPipeline */,
 			);
 			path = Composition;
-			sourceTree = "<group>";
-		};
-		A00000000000000000000027 /* ObservationPipeline */ = {
-			isa = PBXGroup;
-				children = (
-					A00000000000000000000004 /* ObservationPipeline.swift */,
-					A00000000000000000000052 /* PendingCloseTracker.swift */,
-					A00000000000000000000062 /* ObservationAdmissionGate.swift */,
-				);
-			path = ObservationPipeline;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000028 /* IntentPipeline */ = {
@@ -821,6 +832,7 @@
 		A00000000000000000000026 /* Scenes */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000001 /* StatusMenuWidgets.swift */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A000000000000000000000F1 /* PermissionOnboardingView.swift */,
 				B75000000000000000000013 /* WelcomeGuideView.swift */,
@@ -852,7 +864,6 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000029 /* Model */,
-				A0000000000000000000002A /* State */,
 				A0000000000000000000002B /* Identity */,
 				A0000000000000000000002C /* Placement */,
 				A0000000000000000000002D /* Lifecycle */,
@@ -864,6 +875,8 @@
 		A000000000000000000019E2 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000005 /* FilePathNormalization.swift */,
+				E90000000000000000000004 /* DefaultsValueParsing.swift */,
 				C30000000000000000000010 /* AppFallbackChipDecision.swift */,
 				C20000000000000000000010 /* RunningStateSweepDecision.swift */,
 				A000000000000000000019C2 /* RecentDocumentsReader.swift */,
@@ -926,6 +939,7 @@
 		A00000000000000000000029 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000006 /* DockSnapshot.swift */,
 				A00000000000000000000006 /* Identifiers.swift */,
 				A00000000000000000000007 /* WindowModels.swift */,
 					A00000000000000000000008 /* SystemBoundaryModels.swift */,
@@ -934,14 +948,6 @@
 					A00000000000000000000063 /* WindowFrameMatchPolicy.swift */,
 				);
 			path = Model;
-			sourceTree = "<group>";
-		};
-		A0000000000000000000002A /* State */ = {
-			isa = PBXGroup;
-			children = (
-				A0000000000000000000000A /* DockState.swift */,
-			);
-			path = State;
 			sourceTree = "<group>";
 		};
 		A0000000000000000000002B /* Identity */ = {
@@ -1039,6 +1045,7 @@
 		A00000000000000000000031 /* CoreGraphics */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000003 /* FullscreenWindowClassifier.swift */,
 				F10000000000000000000010 /* FullscreenIntentDecision.swift */,
 				F10000000000000000000011 /* FullscreenIntentMonitor.swift */,
 				F1D0000000000000000000E0 /* OverlaySpaceHost.swift */,
@@ -1108,9 +1115,21 @@
 			path = Tools;
 			sourceTree = "<group>";
 		};
+		E90000000000000000000F01 /* Pipeline */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000004 /* ObservationPipeline.swift */,
+				A00000000000000000000052 /* PendingCloseTracker.swift */,
+				A00000000000000000000062 /* ObservationAdmissionGate.swift */,
+				A0000000000000000000000A /* DockState.swift */,
+			);
+			path = Pipeline;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000036 /* WindowLab */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000F01 /* Pipeline */,
 				A00000000000000000000037 /* Entry */,
 			);
 			path = WindowLab;
@@ -1361,6 +1380,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001006 /* DockSnapshot.swift in Sources */,
+				E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */,
+				E90000000000000000001002 /* TaskbarDebugSnapshot.swift in Sources */,
+				E90000000000000000001003 /* FullscreenWindowClassifier.swift in Sources */,
+				E90000000000000000001004 /* DefaultsValueParsing.swift in Sources */,
+				E90000000000000000001005 /* FilePathNormalization.swift in Sources */,
 					F20000000000000000000001 /* FullscreenIntentDecision.swift in Sources */,
 					F20000000000000000000002 /* FullscreenIntentMonitor.swift in Sources */,
 					F1D0000000000000000000E1 /* OverlaySpaceHost.swift in Sources */,
@@ -1490,16 +1515,12 @@
 					A00000000000000000009251 /* PinnedFolderChip.swift in Sources */,
 					A000000000000000000019A2 /* BadgeStore.swift in Sources */,
 					A000000000000000000019A3 /* DockBadgeReader.swift in Sources */,
-					A00000000000000000001004 /* ObservationPipeline.swift in Sources */,
-					A00000000000000000001018 /* PendingCloseTracker.swift in Sources */,
-					A00000000000000000001032 /* ObservationAdmissionGate.swift in Sources */,
 					A00000000000000000001005 /* IntentPipeline.swift in Sources */,
 					A00000000000000000001006 /* Identifiers.swift in Sources */,
 					A00000000000000000001007 /* WindowModels.swift in Sources */,
 					A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
 					A00000000000000000001009 /* Decisions.swift in Sources */,
 					A00000000000000000001034 /* WindowFrameMatchPolicy.swift in Sources */,
-					A0000000000000000000100A /* DockState.swift in Sources */,
 					A0000000000000000000100B /* WindowIdentityEngine.swift in Sources */,
 					A00000000000000000001017 /* IdentityRuleEngine.swift in Sources */,
 					A00000000000000000001019 /* ObservationKindMergeRule.swift in Sources */,
@@ -1537,6 +1558,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E90000000000000000004003 /* AXElementCache.swift in Sources */,
+				E90000000000000000004002 /* ClickLatencyTrace.swift in Sources */,
+				E90000000000000000004001 /* MinimizeHandoffTarget.swift in Sources */,
+				E90000000000000000003006 /* DockSnapshot.swift in Sources */,
 				A00000000000000000001006 /* Identifiers.swift in Sources */,
 				A00000000000000000001007 /* WindowModels.swift in Sources */,
 					A00000000000000000001008 /* SystemBoundaryModels.swift in Sources */,
@@ -1567,6 +1592,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E90000000000000000002006 /* DockSnapshot.swift in Sources */,
+				E90000000000000000002001 /* StatusMenuWidgets.swift in Sources */,
+				E90000000000000000002003 /* FullscreenWindowClassifier.swift in Sources */,
+				E90000000000000000002004 /* DefaultsValueParsing.swift in Sources */,
+				E90000000000000000002005 /* FilePathNormalization.swift in Sources */,
 				F20000000000000000000003 /* FullscreenIntentDecision.swift in Sources */,
 				F20000000000000000000004 /* FullscreenIntentDecisionTests.swift in Sources */,
 				C30000000000000000000002 /* AppFallbackChipDecision.swift in Sources */,

@@ -292,6 +292,7 @@ final class PanelCoordinator: NSObject {
         category: "FullscreenIntent"
     )
     private var fullscreenReconcileTimer: Timer?
+    private var workspaceObserverTokens: [NSObjectProtocol] = []
     /// 编排层持有唯一的 `FullscreenIntentMonitor`（session 事件 tap），把请求路由进来；
     /// 这个标志 = 「路由已接通」，替代原来的 `fullscreenIntentMonitor != nil` 守卫。
     private var fullscreenIntentRoutingEnabled = false
@@ -422,6 +423,7 @@ final class PanelCoordinator: NSObject {
         springOpenTimer?.invalidate()
         springCloseTimer?.invalidate()
         folderPopupFrameTimer?.invalidate()
+        workspaceObserverTokens.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
     }
@@ -1988,8 +1990,19 @@ final class PanelCoordinator: NSObject {
 
     private func setupFullscreenMonitor() {
         let nc = NSWorkspace.shared.notificationCenter
-        nc.addObserver(self, selector: #selector(handleSpaceChange), name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
-        nc.addObserver(self, selector: #selector(handleAppActivated(_:)), name: NSWorkspace.didActivateApplicationNotification, object: nil)
+        // token 式观察者（全仓库统一写法；selector 式是 unowned-unsafe）。queue 传 nil = 在投递线程
+        // 同步执行，这两条通知本就在主线程投递，所以时序与原 selector 路径逐字一致；assumeIsolated 只是
+        // 把这一事实告诉编译器，不额外加一跳（全屏预测隐藏对这一跳敏感）。
+        workspaceObserverTokens.append(nc.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.handleSpaceChange() }
+        })
+        workspaceObserverTokens.append(nc.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: nil
+        ) { [weak self] note in
+            MainActor.assumeIsolated { self?.handleAppActivated(note) }
+        })
         lastActiveApplicationPID = NSWorkspace.shared.runningApplications.first(where: { $0.isActive })?.processIdentifier
         fullscreenReconcileTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.fullscreenReconcileIfNeeded() }
@@ -2009,7 +2022,7 @@ final class PanelCoordinator: NSObject {
         }
     }
 
-    @objc private func handleSpaceChange() {
+    private func handleSpaceChange() {
         let spaceHoldGeneration = beginFullscreenSpaceHold(
             pid: lastActiveApplicationPID,
             confirmationDelay: FullscreenSpaceHoldDecision.postSpaceConfirmationDelay
@@ -2035,7 +2048,7 @@ final class PanelCoordinator: NSObject {
         repairAllSpacesMembershipIfNeeded()
     }
 
-    @objc private func handleAppActivated(_ note: Notification) {
+    private func handleAppActivated(_ note: Notification) {
         // 用通知携带的"刚激活的 app"，不读滞后的 frontmostApplication（AGENTS 守则）
         let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
         lastActiveApplicationPID = activated?.processIdentifier

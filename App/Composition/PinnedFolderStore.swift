@@ -77,8 +77,6 @@ final class PinnedFolderStore: ObservableObject {
 
     /// 标准化：展开 ~ / 折叠 .. 并去尾斜杠，保证同一文件夹只固定一次。
     static func normalized(_ path: String) -> String {
-        var p = (path as NSString).standardizingPath
-        while p.count > 1 && p.hasSuffix("/") { p.removeLast() }
-        return p
+        FilePathNormalization.normalized(path)
     }
 }

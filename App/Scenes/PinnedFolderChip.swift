@@ -35,7 +35,7 @@ struct PinnedFolderChip: View {
 
     /// 悬停视觉的总闸：「安静」档下恒 false，整块放大不再发生。
     /// 投放高亮（`isDropTarget`）不受它管——那是拖放反馈，不是悬停。
-    private var showsHover: Bool { hoverStyle.isExpressive && isHovered }
+    private var showsHover: Bool { hoverStyle.showsExpressiveHover(isHovering: isHovered) }
     /// 本格**两档都放大**：安静档 2026-08-17 补悬停反馈时选的形式正好就是整块放大，
     /// 和这里既有的做法撞在一起，那就用同一条，不必为安静档另叠一个缩放。
     /// 幅度也不分档——分了反而要解释「为什么关掉名字之后放大得少一点」。

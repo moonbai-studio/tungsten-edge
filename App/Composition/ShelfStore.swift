@@ -49,11 +49,9 @@ final class ShelfStore: ObservableObject {
 
     // MARK: - 纯逻辑（单测覆盖）
 
-    /// 标准化：展开 ~ / 折叠 .. 并去尾斜杠（同 PinnedFolderStore 口径；不引它，免拉测试目标依赖）。
+    /// 标准化：展开 ~ / 折叠 .. 并去尾斜杠（与 PinnedFolderStore 同一口径，实现在 `FilePathNormalization`）。
     nonisolated static func normalized(_ path: String) -> String {
-        var p = (path as NSString).standardizingPath
-        while p.count > 1 && p.hasSuffix("/") { p.removeLast() }
-        return p
+        FilePathNormalization.normalized(path)
     }
 
     /// 暂存合并：新条目（自身去重、去空）插头部；已在列表里的移到头部（重复暂存 = 提到最前）。

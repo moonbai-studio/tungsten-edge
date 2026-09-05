@@ -85,7 +85,7 @@ struct LauncherChip: View {
     }
 
     /// 悬停视觉的总闸：「安静」档下恒 false，图标不缩、名字不浮出，连动画事务都不产生。
-    private var showsHover: Bool { hoverStyle.isExpressive && isHovering }
+    private var showsHover: Bool { hoverStyle.showsExpressiveHover(isHovering: isHovering) }
     /// 安静档的悬停反馈（标准档恒 false）。见 `HoverStyle.showsQuietHoverFeedback`。
     private var quietHoverFeedback: Bool {
         hoverStyle.showsQuietHoverFeedback(isHovering: isHovering)

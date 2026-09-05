@@ -23,7 +23,7 @@ struct ShelfChip: View {
 
     /// 悬停视觉的总闸：「安静」档下恒 false，图标不缩、名字气泡不出。
     /// 投放反馈（`isDropTargeted` 的提亮/描边/发光）不受它管。
-    private var showsHover: Bool { hoverStyle.isExpressive && isHovered }
+    private var showsHover: Bool { hoverStyle.showsExpressiveHover(isHovering: isHovered) }
     /// 安静档的悬停反馈（标准档恒 false）。见 `HoverStyle.showsQuietHoverFeedback`。
     private var quietHoverFeedback: Bool {
         hoverStyle.showsQuietHoverFeedback(isHovering: isHovered)

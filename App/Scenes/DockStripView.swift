@@ -2085,7 +2085,7 @@ struct ChipView: View {
 
     /// Visual hover state: the real pointer hover OR forced (drag copy)，再受悬停档位一道总闸。
     /// 「安静」档下恒 false，于是图标不缩、应用名不冒、胶囊底色不提亮、整行不重排。
-    private var showsHover: Bool { hoverStyle.isExpressive && isHovered }
+    private var showsHover: Bool { hoverStyle.showsExpressiveHover(isHovering: isHovered) }
     /// 安静档的悬停反馈（标准档恒 false，那一档的反馈是名字气泡）。
     private var quietHoverFeedback: Bool {
         hoverStyle.showsQuietHoverFeedback(isHovering: isHovered)

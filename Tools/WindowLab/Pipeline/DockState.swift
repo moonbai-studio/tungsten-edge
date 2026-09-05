@@ -1,12 +1,8 @@
 import Foundation
 
-struct DockSnapshot: Equatable, Sendable {
-    var windows: [WindowID: WindowRecord]
-    var orderedWindowIDs: [WindowID]
-
-    static let empty = DockSnapshot(windows: [:], orderedWindowIDs: [])
-}
-
+/// 旧观测管线（`ObservationPipeline`）的状态容器。**正式 App 不用它**——只有 window-lab
+/// 诊断工具实例化这条管线；App 的窗口真值由 `AppTracker.reconcile()` 内联构建并发布
+/// `DockSnapshot`（`Core/Model/DockSnapshot.swift`）。
 @MainActor
 final class DockState {
     private(set) var snapshot: DockSnapshot = .empty

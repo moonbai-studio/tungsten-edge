@@ -213,20 +213,11 @@ final class NativeDockPreferencesService: NativeDockPreferencesServicing {
     }
 
     nonisolated private static func strictBooleanValue(_ value: Any) -> Bool? {
-        guard CFGetTypeID(value as CFTypeRef) == CFBooleanGetTypeID(),
-              let number = value as? NSNumber else {
-            return nil
-        }
-        return number.boolValue
+        DefaultsValueParsing.strictBooleanValue(value)
     }
 
     nonisolated private static func finiteNumericValue(_ value: Any) -> Double? {
-        guard CFGetTypeID(value as CFTypeRef) != CFBooleanGetTypeID(),
-              let number = value as? NSNumber else {
-            return nil
-        }
-        let result = number.doubleValue
-        return result.isFinite ? result : nil
+        DefaultsValueParsing.finiteNumericValue(value)
     }
 }
 

@@ -26,6 +26,9 @@ enum HoverStyle: String, CaseIterable {
     /// 不各自比 case；菜单的勾选态也读它（`.on` ⟺ `isExpressive`）。
     var isExpressive: Bool { self == .standard }
 
+    /// 表现型悬停此刻是否在发生（名字气泡 / 文件夹格放大）。各 chip 共用，不各自写 `isExpressive && isHovered`。
+    func showsExpressiveHover(isHovering: Bool) -> Bool { isExpressive && isHovering }
+
     /// 安静档的悬停反馈：整块**轻微放大**。
     ///
     /// **标准档恒 false**——那一档的反馈是名字气泡，owner 2026-08-17 要求标准档一个像素不变。
@@ -427,14 +430,7 @@ final class AppSettingsStore: ObservableObject {
     }
 
     private static func storedNumericValue(_ value: Any?) -> Double? {
-        guard let value else { return nil }
-        // Bool/CFBoolean 也能桥接成 NSNumber，必须先按 CF 类型排除，否则 true 会被误读成 1.0。
-        guard CFGetTypeID(value as CFTypeRef) != CFBooleanGetTypeID(),
-              let number = value as? NSNumber else {
-            return nil
-        }
-        let result = number.doubleValue
-        return result.isFinite ? result : nil
+        DefaultsValueParsing.finiteNumericValue(value)
     }
 
     private static func migrateLegacyEnabledKey(defaults: UserDefaults, enabledKey: String, delayKey: String) {
