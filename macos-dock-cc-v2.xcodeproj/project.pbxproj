@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000001030 /* DockStripView+ExternalDrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000030 /* DockStripView+ExternalDrop.swift */; };
+		E90000000000000000001031 /* DockStripView+Projection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000031 /* DockStripView+Projection.swift */; };
+		E90000000000000000001032 /* DockStripView+Hover.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000032 /* DockStripView+Hover.swift */; };
+		E90000000000000000001033 /* DockStripView+Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000033 /* DockStripView+Actions.swift */; };
 		E90000000000000000002009 /* AppMembershipInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000009 /* AppMembershipInvariantTests.swift */; };
 		E9000000000000000000102A /* PanelCoordinator+Drawer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002A /* PanelCoordinator+Drawer.swift */; };
 		E9000000000000000000102B /* PanelCoordinator+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002B /* PanelCoordinator+Visibility.swift */; };
@@ -455,6 +459,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000030 /* DockStripView+ExternalDrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockStripView+ExternalDrop.swift"; sourceTree = "<group>"; };
+		E90000000000000000000031 /* DockStripView+Projection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockStripView+Projection.swift"; sourceTree = "<group>"; };
+		E90000000000000000000032 /* DockStripView+Hover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockStripView+Hover.swift"; sourceTree = "<group>"; };
+		E90000000000000000000033 /* DockStripView+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DockStripView+Actions.swift"; sourceTree = "<group>"; };
 		E90000000000000000000009 /* AppMembershipInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMembershipInvariantTests.swift; sourceTree = "<group>"; };
 		E9000000000000000000002A /* PanelCoordinator+Drawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Drawer.swift"; sourceTree = "<group>"; };
 		E9000000000000000000002B /* PanelCoordinator+Visibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Visibility.swift"; sourceTree = "<group>"; };
@@ -886,6 +894,10 @@
 		A00000000000000000000026 /* Scenes */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000030 /* DockStripView+ExternalDrop.swift */,
+				E90000000000000000000031 /* DockStripView+Projection.swift */,
+				E90000000000000000000032 /* DockStripView+Hover.swift */,
+				E90000000000000000000033 /* DockStripView+Actions.swift */,
 				E90000000000000000000010 /* StripProjection.swift */,
 				E90000000000000000000011 /* ChipView.swift */,
 				E90000000000000000000012 /* DrawerCapsuleButton.swift */,
@@ -1448,6 +1460,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001030 /* DockStripView+ExternalDrop.swift in Sources */,
+				E90000000000000000001031 /* DockStripView+Projection.swift in Sources */,
+				E90000000000000000001032 /* DockStripView+Hover.swift in Sources */,
+				E90000000000000000001033 /* DockStripView+Actions.swift in Sources */,
 				E9000000000000000000102A /* PanelCoordinator+Drawer.swift in Sources */,
 				E9000000000000000000102B /* PanelCoordinator+Visibility.swift in Sources */,
 				E9000000000000000000102C /* PanelCoordinator+Layout.swift in Sources */,

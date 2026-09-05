@@ -28,7 +28,7 @@ struct DockStripView: View {
     let displayUUID: String?
 
     /// 本条是不是当前拖动的活动表面。没人认领（抽屉起拖尚未转正）时人人可动——谁的条框含着指针谁转正并认领。
-    private var ownsActiveDrag: Bool {
+    var ownsActiveDrag: Bool {
         guard let active = dragController.activeStripSurfaceID else { return true }
         return active == stripSurfaceID
     }
@@ -36,14 +36,14 @@ struct DockStripView: View {
     /// 当前尺寸档位派生的面板几何与缩放系数。**条内不写裸尺寸数字**——凡是随任务条一起
     /// 放大缩小的值都乘 `dockScale`；发丝线（分隔线宽、描边）保持 1pt 不缩。
     private var metrics: PanelLayoutMetrics { settingsStore.dockSize.metrics }
-    private var dockScale: CGFloat { settingsStore.dockSize.scale }
+    var dockScale: CGFloat { settingsStore.dockSize.scale }
     /// 任务条圆角。**玻璃态与毛玻璃态同一个值** —— 几何只有 `DockSize.metrics` /
     /// `DockShape` 一个来源，换底板材质不改尺寸（否则四档缩放失效，`scale` 的定义
     /// 就是 `panelHeight / 52`）。
     private var taskbarCornerRadius: CGFloat { Style.cornerRadius * dockScale }
     /// 悬停效果档位。条内每个 chip 都显式接收它（同 `dockScale`，漏传是编译错误）；
     /// 抽屉面板与抽屉入口胶囊有意不受它影响（owner 2026-08-02）。
-    private var hoverStyle: HoverStyle { settingsStore.hoverStyle }
+    var hoverStyle: HoverStyle { settingsStore.hoverStyle }
     @EnvironmentObject var keptAppStore: KeptAppStore
     @EnvironmentObject var runningApplicationStore: RunningApplicationStore
     @EnvironmentObject var appMembershipController: AppMembershipController
@@ -71,17 +71,17 @@ struct DockStripView: View {
     /// Live chip frames by id in the `"strip"` space (含滚动偏移后的屏上位置), collected via
     /// preference — feeds the grab offset at drag start and the full-frame landing hit-test.
     /// `.background` GeometryReader (not overlay) so it never steals chip clicks.
-    @State private var chipFrames: [String: CGRect] = [:]
+    @State var chipFrames: [String: CGRect] = [:]
     /// 手势预览触发的按 chip 脉冲计数（重击/中键活访达窗口时 +1，给 ~200ms 反查一个即时"点到了"）。
-    @State private var chipPulseNonces: [String: Int] = [:]
+    @State var chipPulseNonces: [String: Int] = [:]
 
     /// 文件夹 chip 帧（弹窗锚点 + 外部拖入的 pin 落点路由）。**独立字典,绝不混入 chipFrames**——
     /// 那是 live 窗口区拖拽重排与抽屉拖回落点的输入,混入会让窗口拖动命中文件夹区、落点 no-op（评审 P1）。
-    @State private var folderChipFrames: [String: CGRect] = [:]
+    @State var folderChipFrames: [String: CGRect] = [:]
 
     /// 消息区 chip 帧（bundleID → "strip" 空间 frame）。**独立字典,同文件夹 chip 的理由绝不混入
     /// chipFrames**——喂消息区内重排 hit-test + 抽屉拖出的"消息区范围"释放判定。
-    @State private var messagingChipFrames: [String: CGRect] = [:]
+    @State var messagingChipFrames: [String: CGRect] = [:]
     /// 载体此刻画的是哪张消息区图标（释放回消息区那条路的换图去重）。见 `syncReleasedMessagingCarrier`。
     @State private var carriedMessagingChipID: String?
     /// 上一轮 body 见到的 `stripSlotCollapsed`（`.onChange` 里晚一轮更新）。body 里两者不等 = 这次
@@ -92,10 +92,10 @@ struct DockStripView: View {
 
     /// 中转格 frame（"strip" 空间）。**独立上报,不塞进 folderChipFrames**（评审：那个字典专属
     /// 文件夹 chip,后续还喂文件夹重排 hit-test,不能混 sentinel）。喂中转弹窗锚点 + drop 路由。
-    @State private var shelfFrame: CGRect = .zero
+    @State var shelfFrame: CGRect = .zero
 
     /// 外部文件拖入的实时落点目标（悬停高亮用;nil = 没有外部拖拽悬停）。
-    @State private var externalDropTarget: StripDropRouting.Target?
+    @State var externalDropTarget: StripDropRouting.Target?
 
     /// 外部拖入高亮的「拖放结束看门狗」+「点亮门控」。SwiftUI 文件 drop 有两种收尾异常:
     /// ①拖放在最后一次 dropUpdated 后不给任何 performDrop/dropExited 收尾回调 → 高亮遗留在 .pin;
@@ -103,342 +103,33 @@ struct DockStripView: View {
     /// 门控:高亮只能由 dropEntered 点亮（hoverActive），落定/离开后孤立的 dropUpdated 一律忽略（治②回闪）。
     /// 看门狗:可取消的 .common Timer,拖放悬停停更超时即清遗留高亮（治①永久白边）;generation 防旧 timer 误清。
     /// 逻辑见 externalDropHoverBegan/Moved/Ended + setExternalDropTarget。
-    @State private var externalDropWatchdog: Timer?
-    @State private var externalDropGeneration = 0
-    @State private var externalDropHoverActive = false
+    @State var externalDropWatchdog: Timer?
+    @State var externalDropGeneration = 0
+    @State var externalDropHoverActive = false
 
     /// 任务条内容区（"strip" 空间）在屏幕坐标系的 frame（bottom-left）。抽屉拖回任务条·精确落点用它把
     /// 全局鼠标位置映回 "strip" 空间命中卡片，并判进/出任务条区（迟滞）。与 "strip" 命名空间挂同一视图。
-    @State private var stripRootScreenRect: CGRect = .zero
+    @State var stripRootScreenRect: CGRect = .zero
 
     /// 悬停命中帧（`StripEntry.id` → "strip" 空间帧）。**又一本独立字典**，理由同上面那三本：
     /// 它们各有各的用途（重排 / 弹窗锚点 / 释放判定），谁也不能替谁。这一本是「指针落在谁身上」
     /// 的唯一依据，所以**四个区的卡全收进来**，由 `stripEntryView` 一处统一上报。
-    @State private var stripHoverFrames: [String: CGRect] = [:]
+    @State var stripHoverFrames: [String: CGRect] = [:]
 
     /// 指针当前压在哪张卡上。**全条唯一的悬停真相**——悬停视觉和名字气泡都读它。
     /// 每张卡不再各自挂 `.onHover`，成因与实测见 `StripHoverResolution`。
-    @State private var hoveredEntryID: String?
+    @State var hoveredEntryID: String?
 
     /// 最后一次指针位置（屏幕坐标）。**刻意放在引用盒里而不是 `@State` 值**：
     /// 指针每动一次都写 `@State` 就会以指针的频率重算整条 body，而真正需要重算的
     /// 只有「拥有者变了」那一刻——那一刻写的是上面的 `hoveredEntryID`。
-    @State private var pointerBox = PointerBox()
+    @State var pointerBox = PointerBox()
 
     /// 当前占着气泡面板的 chip。只用来在收气泡时报出正确的 id（`.exit` 要匹配才生效）。
     @State private var bubbleOwnerID: String?
 
     /// 记录已经播放过入场动画的固定区元素 ID（避免重复播，且支持新增元素播动画）。
     @State private var animatedEntryIDs: Set<String> = []
-
-    /// Pinned messaging zone (leftmost, in store order) + live window zone, in **natural**
-    /// snapshot order. Messaging apps show only while running (quit → chip gone; the future
-    /// drawer 待启动区 takes over the not-running role). Drawer membership hides a messaging
-    /// app from the strip without clearing its messaging flag.
-    ///
-    /// 方案 B: each messaging app pins exactly ONE app-level chip. Its main window
-    /// (title matches the app name) is absorbed into that chip; pop-out windows
-    /// (chat windows etc.) flow through the live zone as normal window chips so the
-    /// pinned zone keeps a stable width (muscle memory).
-    ///
-    /// Split out so the live zone can be reordered by `stripOrderStore` (任务条拖动重排
-    /// A 路线) while the pinned messaging zone keeps its own `MessagingAppStore` order —
-    /// the two zones never cross (拖动分区内进行).
-    private func makeProjection() -> StripProjection {
-        // This is the only snapshot-to-strip conversion in one body evaluation. Everything below,
-        // including drag callbacks captured by that body, consumes the same immutable projection.
-        let snapshotItems = StripItem.items(from: runtime.snapshot)
-        let snapshotBundleIDs = Set(snapshotItems.compactMap(\.bundleIdentifier))
-        let hiddenBundleIDs = Set(snapshotItems.compactMap { item in
-            item.status == "hidden" ? item.bundleIdentifier : nil
-        })
-        let keptIDs = keptAppStore.bundleIDs
-        let runningIDs = runningApplicationStore.runningBundleIDs
-        // 统一模型：消息区可见 = (messaging − drawer) ∩ (running ∪ kept)。消息身份不再独立保活，
-        // 由 kept 决定退出后留不留（首次标记即补 kept，默认观感不变）；抽屉例外仍隐藏（抽屉优先级更高）。
-        let msg = AppMembershipProjection.visibleMessagingIDs(
-            messagingIDs: messagingStore.bundleIDs,
-            drawerIDs: drawerStore.bundleIDs,
-            keptIDs: keptIDs,
-            runningIDs: runningIDs
-        )
-        let msgSet = Set(msg)
-        // 访达的应用级入口（无窗口时那张卡）只在勾了「在程序坞中保留」时显示（owner 2026-08-20）。
-        // 跟踪层照旧永远跟着访达，所以取消勾选后一开窗口，窗口卡瞬时回来。
-        let showsFinderEntry = FinderTaskbarPolicy.showsAppLevelEntry(
-            isKept: keptAppStore.contains(FinderTaskbarPolicy.bundleID)
-        )
-        let items = snapshotItems.filter { item in
-            let bid = item.bundleIdentifier ?? ""
-            if drawerStore.contains(bid) { return false }
-            if item.isAppLevelFallback, FinderTaskbarPolicy.isFinder(bid), !showsFinderEntry { return false }
-            return true
-        }
-
-        var messaging: [StripEntry] = []
-        var absorbedWindowIDs = Set<String>()
-        for bid in msg {
-            let appWindows = items.filter { $0.bundleIdentifier == bid && !$0.isAppLevelFallback }
-            // 认主窗口的三条规则在纯 `MessagingMainWindowDecision` 里（标题匹配 → 排除后唯一 → 认不出）；
-            // 这里只把窗口事实喂进去。
-            let mainID = MessagingMainWindowDecision.mainWindowID(
-                bundleID: bid,
-                windows: appWindows.map {
-                    .init(id: $0.id, title: $0.title,
-                          isMinimized: $0.status == WindowStatus.minimized.rawValue,
-                          area: ($0.bounds?.width ?? 0) * ($0.bounds?.height ?? 0))
-                },
-                titleMatchesAppName: { AppDisplayNameResolver.titleMatchesAppName($0, bundleID: bid) }
-            )
-            let main = appWindows.first { $0.id == mainID }
-            if let main { absorbedWindowIDs.insert(main.id) }
-            if main == nil || appWindows.count > 1 {
-                MessagingZoneDiagnostics.record(bundleID: bid, windows: appWindows, mainID: main?.id)
-            }
-            messaging.append(.messagingApp(bundleID: bid, mainWindow: main))
-        }
-
-        // Live zone: real windows (including kept app windows) + kept app placeholders
-        var liveNatural: [StripEntry] = []
-        for item in items {
-            guard !msgSet.contains(item.bundleIdentifier ?? "") else {
-                if item.isAppLevelFallback { continue }     // app chip replaces the app-* fallback
-                if absorbedWindowIDs.contains(item.id) { continue }
-                liveNatural.append(.window(item))
-                continue
-            }
-            liveNatural.append(.window(item))
-        }
-
-        // Kept app placeholders (D1 two sources):
-        // a. Unrunning: not in snapshot → inject placeholder
-        // b. Running but only isAppLevelFallback → replace the fallback .window with .keptApp
-        // 占位插在 liveNatural **头部**（按 kept store 顺序）：正常运行时顺序由记忆层决定，
-        // 数组位置只影响"无记忆的新 id"落点——即跨机器重启（boottime 丢档）后占位落 live 区头部。
-        let snapshotByBundle = Dictionary(grouping: snapshotItems, by: { $0.bundleIdentifier ?? "" })
-        var keptPlaceholders: [StripEntry] = []
-        for bid in keptIDs {
-            guard !drawerStore.contains(bid),
-                  !msgSet.contains(bid) else { continue }
-            // 访达有意留在 `.window` 兜底卡这条路径上：它带着专属菜单（最近使用的文件夹 /
-            // 新建窗口）和「点击开主目录」，换成 .keptApp 的 LauncherChip 会把这些全丢掉。
-            // kept 对访达只是上面那道可见性闸门。
-            if FinderTaskbarPolicy.isFinder(bid) { continue }
-            let appItems = snapshotByBundle[bid] ?? []
-            let hasRealWindow = appItems.contains { !$0.isAppLevelFallback }
-            if hasRealWindow { continue }  // Real windows render normally, no placeholder
-            if !appItems.isEmpty {
-                // Source b: replace fallback .window with .keptApp (same id "app-\(bid)")
-                liveNatural.removeAll { entry in
-                    if case let .window(item) = entry, item.bundleIdentifier == bid, item.isAppLevelFallback {
-                        return true
-                    }
-                    return false
-                }
-            }
-            // Both sources inject .keptApp with id "app-\(bid)"
-            keptPlaceholders.append(.keptApp(bundleID: bid))
-        }
-        let projectedLive = keptPlaceholders + liveNatural
-        let liveOrderIDs = projectedLive.map(\.id)
-        let appKeys = Self.appKeys(of: projectedLive)
-        let order = stripOrderStore.reconciled(
-            current: liveOrderIDs,
-            appKeyOf: appKeys,
-            headPreferred: Set(messagingStore.bundleIDs)
-        )
-        let byID = Dictionary(projectedLive.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let orderedLive = order.compactMap { byID[$0] }
-        if HoverTrace.isEnabled, dragController.carriedPayload != nil {
-            HoverTrace.liveOrder(orderedLive.map(\.id))
-        }
-        // 多屏 ④：按屏过滤**只在这里、只在顺序层之后**。上面喂给 `reconciled` 的 `liveOrderIDs` 和
-        // `reconcileLiveOrder` 喂给 `sync` 的都是全集——各屏一致，共享顺序层才不会把别的屏的卡
-        // 打成缺席（5s 后踢出记忆）、拖动重排也不会当帧截断。启动器类（保留占位、`app-*` 兜底卡、
-        // 消息区、文件夹、中转站）每屏都在；归属未知 / 所在屏已拔 → 只落主屏。
-        let displayFilter: StripDisplayFilter = {
-            guard settingsStore.taskbarScreenPlacement == .allScreensPerDisplay, let displayUUID else {
-                return .unfiltered
-            }
-            let table = displayTopologyStore.table
-            return StripDisplayFilter(scope: displayUUID, connectedUUIDs: table.connectedUUIDs,
-                                      primaryUUID: table.primaryUUID)
-        }()
-        // ④ 下正在拖动 / 归位飞行的那张窗口卡画在**认领**的那条上（指针悬上 B 条时 B 接管，B 开空槽、
-        // A 合拢），不看归属键——归属键在松手搬完窗口之后才换。
-        let carriedStripID = dragController.carriedPayload.flatMap { $0.source == .strip ? $0.id : nil }
-        let claimedStrip = dragController.activeStripSurfaceID
-        // 有运行圆点但没窗口的（应用级兜底卡、在运行却只剩占位的保留应用）只落主屏；
-        // 没运行的占位是纯启动器，每屏都在（owner 2026-09-02：有圆点 = 只在一条上）。
-        let renderedLive = orderedLive.filter { entry in
-            let subject: StripDisplayFilter.Subject
-            switch entry {
-            case let .window(item):
-                subject = item.isAppLevelFallback
-                    ? .runningWithoutWindow(displayUUID: runtime.noWindowHomeByBundle[item.bundleIdentifier ?? ""]
-                                                         ?? item.displayUUID)
-                    : .window(displayUUID: item.displayUUID)
-            case let .keptApp(bid):
-                subject = runningIDs.contains(bid)
-                    ? .runningWithoutWindow(displayUUID: runtime.noWindowHomeByBundle[bid]
-                                                         ?? snapshotByBundle[bid]?.first?.displayUUID)
-                    : .launcher
-            default:
-                return true
-            }
-            // 拖动中 / 归位飞行的那张卡按认领画（启动器类每屏都在，不用改）。
-            if displayFilter.scope != nil, subject != .launcher, entry.id == carriedStripID, let claimedStrip {
-                return claimedStrip == stripSurfaceID
-            }
-            return displayFilter.shows(subject)
-        }
-        // 卡片标签：同一应用的几张卡共享的那一段不承担区分作用，去掉（issue #41）。
-        //
-        // **按「这条 bar 上实际显示的卡」分组**，所以算在 `renderedLive` 定案之后：④ 下每块屏
-        // 只显示本屏的窗口，公共段各屏不同，按全集算会把某块屏上仅剩的一张卡剥掉唯一的区分信息。
-        // 也**必须在「拖出即合拢」的剔除之前**——拖走一张卡会让剩下的卡重算公共段，标签当场变长，
-        // 拖到一半文字跳动。
-        let labelTitleByChipID = Self.labelTitles(for: renderedLive)
-        let folderEntries = (settingsStore.showShelf ? [StripEntry.shelf] : [])
-            + pinnedFolderStore.folderPaths.map { StripEntry.pinnedFolder(path: $0) }
-        // 拖出即合拢（owner 2026-09-03）：条上起拖的那张卡离开了条 → 从渲染里去掉（不是透明），
-        // HStack 弹簧合拢、面板缩短（`PanelCoordinator` 订阅 `stripSlotCollapsed`）。**只在渲染数组里剔**：
-        // `liveOrderIDs` / `messagingIDs` 喂顺序层与区内判定的仍是全集——顺序层子集不同会把它打成缺席
-        // （5s 宽限后丢排名），消息区的「成员消失即取消拖动」监听也不能被它误触。只有认领的那条剔。
-        let collapsedEntryID: String? = {
-            guard ownsActiveDrag, dragController.stripSlotCollapsed,
-                  let p = dragController.hiddenSlotPayload else { return nil }
-            if p.source == .folder { return StripEntry.pinnedFolder(path: p.id).id }
-            return Self.stripEntryID(for: p)
-        }()
-        var zones = [messaging, folderEntries, renderedLive]
-            .map { zone in zone.filter { $0.id != collapsedEntryID } }
-            .filter { !$0.isEmpty }
-        var entries: [StripEntry] = []
-        if !zones.isEmpty {
-            entries = zones.removeFirst()
-            for (index, zone) in zones.enumerated() {
-                entries.append(.divider(id: "zone-divider-\(index)"))
-                entries += zone
-            }
-        }
-        let messagingIDs = messaging.compactMap { entry -> String? in
-            guard case let .messagingApp(bundleID, _) = entry else { return nil }
-            return bundleID
-        }
-        // 角标落点：常规区里每个 app 显示序最左的那张窗口卡 / 占位卡。消息区成员跳过——
-        // 它的红点在区里那枚图标上，独立聊天窗的卡不能再画一个。
-        var badgeEntryIDByBundle: [String: String] = [:]
-        for entry in entries {
-            switch entry {
-            case let .window(item):
-                guard let bid = item.bundleIdentifier, !msgSet.contains(bid) else { continue }
-                if badgeEntryIDByBundle[bid] == nil { badgeEntryIDByBundle[bid] = item.id }
-            case let .keptApp(bid):
-                guard !msgSet.contains(bid) else { continue }
-                if badgeEntryIDByBundle[bid] == nil { badgeEntryIDByBundle[bid] = entry.id }
-            default:
-                continue
-            }
-        }
-        let draggingID: String?
-        // `carriedPayload` 而不是 `draggingPayload`：松手后还有 0.26 秒的归位飞行，
-        // 那段时间原位必须继续空着，否则卡先显形、载体还在飞。
-        // **只有拖动的那条 strip 空槽**（多屏 ③④ 下别的屏上同一张卡照常显示、跟着共享顺序层挪位，
-        // owner 2026-09-02 报「另一块屏对应图标消失」）。
-        if !ownsActiveDrag {
-            draggingID = nil
-        } else if let payload = dragController.hiddenSlotPayload,
-           payload.source == .strip,
-           liveOrderIDs.contains(payload.id) {
-            draggingID = payload.id
-        } else if let converted = dragController.convertedChipID,
-                  liveOrderIDs.contains(converted) {
-            // **认 chip id，不认代表卡**：`keepPlacement` 路径物化出来的是 `.keptApp` 占位或
-            // app 级兜底卡，两者都当不了 `StripItem` 代表卡，跟着代表卡走就永远不让位（双影）。
-            draggingID = converted
-        } else if let bid = dragController.convertedDrawerBundleID,
-                  let materialized = entries.lazy.compactMap({ entry -> String? in
-                      switch entry {
-                      case let .window(item): return item.bundleIdentifier == bid ? item.id : nil
-                      case let .keptApp(id): return id == bid ? entry.id : nil
-                      default: return nil
-                      }
-                  }).first(where: { liveOrderIDs.contains($0) }) {
-            // 转正那一刻 `convertedChipID` 还是 nil——它在 `syncConvertedCarrier` 里、这一轮渲染**之后**才写。
-            // 只认它，刚物化出来的卡就先以 1.0 不透明度插进条里、下一轮才被藏掉；SwiftUI 给插入配淡入、
-            // 给藏掉配淡出，看到的就是「一个很淡的图标从末尾滑到落点」（owner 2026-09-04；图标缓存修好、
-            // 显形变快之后才露出来）。从转正状态直接推出要藏的那张（与 `liveEntryIDs(bundleID:).first`
-            // 同一条规则，保证和随后写入的 `convertedChipID` 是同一张），和插入同一轮生效。
-            draggingID = materialized
-        } else {
-            draggingID = nil
-        }
-        return StripProjection(
-            snapshotItems: snapshotItems,
-            snapshotBundleIDs: snapshotBundleIDs,
-            hiddenBundleIDs: hiddenBundleIDs,
-            messaging: messaging,
-            liveNatural: projectedLive,
-            liveOrderIDs: liveOrderIDs,
-            appKeyByChipID: appKeys,
-            labelTitleByChipID: labelTitleByChipID,
-            entries: entries,
-            layoutKeys: entries.map(StripLayoutKey.init),
-            messagingIDs: messagingIDs,
-            draggingID: draggingID,
-            badgeEntryIDByBundle: badgeEntryIDByBundle
-        )
-    }
-
-    /// 每张窗口卡最终显示的标签：先去掉尾部的应用名，再去掉同一应用几张卡共享的公共段。
-    ///
-    /// 两步都要留着：④ 下一条 bar 上可能只剩某应用的一张卡（`showsTitle` 仍为 true、照样显示
-    /// 标题），没有同伴可比对公共段，这时只有应用名那一步能生效。
-    private static func labelTitles(for entries: [StripEntry]) -> [String: String] {
-        var itemsByApp: [String: [(id: String, title: String)]] = [:]
-        for case let .window(item) in entries {
-            let appName = item.bundleIdentifier.map(AppDisplayNameResolver.displayName(for:)) ?? item.appID
-            let resolved = WindowDisplayTitle.resolve(rawTitle: item.title, fallbackName: appName)
-            let withoutApp = WindowDisplayTitle.trimmingAppNameSuffix(resolved, appName: appName)
-            itemsByApp[item.bundleIdentifier ?? item.appID, default: []].append((item.id, withoutApp))
-        }
-
-        var labels: [String: String] = [:]
-        for (_, group) in itemsByApp {
-            let trimmed = StripSharedAffixTrim.trimmingSharedAffixes(group.map(\.title))
-            for (entry, label) in zip(group, trimmed) { labels[entry.id] = label }
-        }
-        return labels
-    }
-
-    /// **`onChange` 闭包里必须用它，不能用闭包捕获的 `projection`。**
-    ///
-    /// 老式 `onChange(of:perform:)` 触发时跑的是**上一帧**装进去的闭包，里面那份 projection
-    /// 因此永远落后一代。平时无所谓（下一次变化会追上），但抽屉转正那一刻是致命的
-    /// （实测 2026-08-18：渲染已经是 12 张卡了，`sync` 收到的还是 11 张，不含刚冒出来的占位）：
-    ///
-    /// 1. `sync` 里 `next.contains("app-<bid>")` 为 false → **落点暂存一次都没被消费**；
-    /// 2. 记忆序 `liveOrder` 因此始终没有这个 id → 后续 `reorderBlock` 的 `movingBlock`
-    ///    找不到要移动的 id，**每一次都原样返回**（日志里五次 `ok` 全是空转）；
-    /// 3. 渲染只能退回 `reconciled` 的 kept 稳定名次，把它钉在一个跟光标无关的固定位置。
-    ///
-    /// 也就是 owner 说的「不容易触发把其他图标挤走」。这里重建一次 projection 的代价可以接受：
-    /// 它只在 live 区卡的集合真的变了时触发，不是每帧、更不是每次鼠标移动。
-    /// （AGENTS 那条「一次 body 只建一个 projection」管的是**渲染路径**，这里是副作用路径。）
-    private func freshProjection() -> StripProjection { makeProjection() }
-
-    /// 渲染路径（`reconciled`）与副作用路径（`sync`）**必须喂同一份 appKeyOf**，否则落盘的记忆序
-    /// 与显示序不一致。抽成一个函数，让两条路径无从写岔。
-    private static func appKeys(of liveNatural: [StripEntry]) -> [String: String] {
-        Dictionary(liveNatural.map { entry -> (String, String) in
-            switch entry {
-            case let .window(item): return (entry.id, item.bundleIdentifier ?? item.appID)
-            case let .keptApp(bid): return (entry.id, bid)
-            default: return (entry.id, entry.id)
-            }
-        }, uniquingKeysWith: { first, _ in first })
-    }
 
     var body: some View {
         let projection = makeProjection()
@@ -718,85 +409,10 @@ struct DockStripView: View {
         dragController.setFolderDragZone(geometry.classify(screenPoint: dragController.globalLocation))
     }
 
-    /// 任务条整条高亮：**只**服务「外部拖目录悬停文件夹区（pin）」。
-    ///
-    /// **抽屉图标拖回任务条不再点亮**（owner 2026-08-20，对齐原生程序坞）：原生拖图标进 Dock 时
-    /// Dock 本身不描边也不发光，反馈全部由图标让位表达——而我们已经有让位了
-    /// （`updateDrawerToStripConvert` 一进任务条就把卡转正、邻居实时让开），而且它的判定框比
-    /// 这圈高亮的判定框（正好是可见条矩形）还大一圈，两者信息完全重复。
-    /// 外部拖目录那条路径没有让位反馈，整条高亮是它唯一的「能放这儿」信号，所以留着。
-    private var stripHighlighted: Bool {
-        if case .pin = externalDropTarget { return true }
-        return false
-    }
-
-    /// 外部拖入高亮的三个生命周期入口 + 看门狗。`externalDropTarget` 只在这一组里改。
-    /// dropEntered：一次悬停会话开始 → 允许点亮。
-    private func externalDropHoverBegan(_ target: StripDropRouting.Target) {
-        externalDropHoverActive = true
-        setExternalDropTarget(target)
-    }
-
-    /// dropUpdated：只在会话进行中才更新;落定/离开后系统补发的孤立 dropUpdated（hoverActive=false）忽略 → 无回闪。
-    private func externalDropHoverMoved(_ target: StripDropRouting.Target) {
-        guard externalDropHoverActive else { return }
-        setExternalDropTarget(target)
-    }
-
-    /// performDrop/dropExited：会话结束 → 立即清高亮、作废看门狗、关门控（同步清,落定即灭,不留尾巴）。
-    private func externalDropHoverEnded() {
-        externalDropHoverActive = false
-        externalDropGeneration &+= 1
-        externalDropWatchdog?.invalidate()
-        externalDropWatchdog = nil
-        externalDropTarget = nil
-    }
-
-    /// 设落点目标 + 重置拖放结束看门狗。`dropUpdated` 悬停期每 ~50ms 来一次会不断把 0.35s Timer 推后
-    /// → 移动/静止悬停都不会误清;一旦拖放结束却没给收尾回调（dropUpdated 停），Timer 到点即清遗留高亮。
-    /// generation 仍匹配才清,避免已入队的旧 Timer 误清新拖放。只动 `externalDropTarget`,不碰抽屉 unstash 高亮。
-    private func setExternalDropTarget(_ target: StripDropRouting.Target) {
-        externalDropTarget = target
-        externalDropGeneration &+= 1
-        externalDropWatchdog?.invalidate()
-        let gen = externalDropGeneration
-        let timer = Timer(timeInterval: 0.35, repeats: false) { _ in
-            guard externalDropGeneration == gen else { return }
-            externalDropHoverActive = false
-            externalDropTarget = nil
-            externalDropWatchdog = nil
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        externalDropWatchdog = timer
-    }
-
-    /// 外部拖放落定（DropDelegate 异步取齐 URL 后回到主线程调）。
-    /// 中转收一切；命中 chip 移入；间隙/尾部固定只收目录。
-    private func handleExternalDrop(_ target: StripDropRouting.Target, urls: [URL]) {
-        switch target {
-        case .stash:
-            shelfStore.stash(paths: urls.map(\.path))
-        case .moveInto(let path):
-            onMoveExternalFiles(urls, path)
-        case .pin(let insertIndex):
-            var index = insertIndex
-            for url in urls where isDirectoryURL(url) {
-                pinnedFolderStore.insert(url.path, at: index)
-                index += 1
-            }
-        case .none:
-            break
-        }
-    }
-
-    private func isDirectoryURL(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? url.hasDirectoryPath
-    }
-
     /// Converge the remembered live order with the current snapshot (drop closed, append new).
     /// Called on every `liveOrderIDs` change **and** once on appear (the latter mirrors the old
     /// `onChange(of:initial:)` seed that pre-macOS-14 `onChange` doesn't provide).
-    private func reconcileLiveOrder(_ projection: StripProjection) {
+    func reconcileLiveOrder(_ projection: StripProjection) {
         let current = projection.liveOrderIDs
         let appKeys = projection.appKeyByChipID
         // 诊断载荷含整份 appKey 字典，**日志关着就别构造**（同 AppTracker 的 isEnabled 门控）。
@@ -885,7 +501,7 @@ struct DockStripView: View {
     /// 由 `onChange(globalLocation)` 和 `onChange(liveOrderIDs)` 两处驱动。后者不能省：
     /// 转正和这里在同一个闭包里跑，用的是**上一帧**的 projection（那时 app 还在抽屉里），
     /// 只靠鼠标驱动的话，光标停在边界不动就会一直双影。
-    private func syncConvertedCarrier(projection: StripProjection) {
+    func syncConvertedCarrier(projection: StripProjection) {
         let dc = dragController
         guard dc.isConvertedToStrip, let p = dc.draggingPayload, p.source == .drawer else { return }
         let rep = projection.liveChipIDs(bundleID: p.bundleID).first
@@ -931,7 +547,7 @@ struct DockStripView: View {
     /// （`convertDrawerToStrip` 有意不翻 source），静态那份对 `.drawer` 返回 nil——
     /// 于是落地那一刻悬停豁免失效，指针正压在刚显形的卡上、安静档当场放大到 1.10，
     /// 就是当年治过的「落位抖动」在这条路径上的形态（owner 2026-08-20）。
-    private func carriedStripEntryID(for payload: DragPayload) -> String? {
+    func carriedStripEntryID(for payload: DragPayload) -> String? {
         if payload.source == .drawer, let cid = dragController.convertedChipID { return cid }
         return Self.stripEntryID(for: payload)
     }
@@ -1046,111 +662,10 @@ struct DockStripView: View {
     }
 
     /// 屏幕坐标（bottom-left）→ "strip" 空间点（top-left, y-down）。
-    private func stripPoint(from global: CGPoint) -> CGPoint? {
+    func stripPoint(from global: CGPoint) -> CGPoint? {
         guard stripRootScreenRect != .zero else { return nil }
         return CGPoint(x: global.x - stripRootScreenRect.minX,
                        y: stripRootScreenRect.maxY - global.y)
-    }
-
-    // MARK: - 悬停归属（整条一块跟踪区）
-
-    /// 重新判一次「指针压在谁身上」，**只有结论变了才写 `@State`**。
-    /// 判定是纯函数 `StripHoverResolution`：缝隙里按到卡边的距离取近，边界与来向无关。
-    ///
-    /// 帧和原点显式传进来而不是读 `self`：它俩自己也是 `@State`，在 `onChange` /
-    /// `onPreferenceChange` 闭包里读到的是旧值。
-    private func refreshHoveredEntry(frames: [String: CGRect], origin: CGRect) {
-        // 起拖那一两帧**原地冻结**：载体正按卡槽此刻的「悬停 × 按压」姿态压在卡上，
-        // 这时候把悬停清掉、卡开始回落，两者就对不上了（owner 2026-08-19「上下残影」）。
-        guard !dragController.hoverFrozen else { return }
-        let resolved: String? = {
-            // 手里拎着东西时不判悬停，落地之后也**先按住、等指针真动了再判**。三个理由：
-            // ① 拖动途中指针扫过谁就给谁点亮、还弹名字气泡，本来就不对；
-            // ② 松手位置必然压在刚落定的那张卡上——载体画的是**非悬停**态，
-            //    卡一显形却已经是悬停态（安静档还要放大 1.10），两者尺寸不一样，
-            //    交接那一帧就"啵"地跳一下；
-            // ③ 卡以 1.0 停稳后立刻重判悬停，安静档会当场往上长 1.10——图标刚停稳又动一下，
-            //    就是 owner 2026-08-19 报的「落位抖动」。AppKit 自己对拖放结束后的悬停也是
-            //    等鼠标动了才发 mouseEntered。按住期由 `DragController.hoverHoldPayload` 管。
-            guard !dragController.hoverSuppressed else { return nil }
-            guard let pointer = pointerBox.value, origin != .zero else { return nil }
-            let point = CGPoint(x: pointer.x - origin.minX, y: origin.maxY - pointer.y)
-            let hit = StripHoverResolution.chip(
-                at: point,
-                frames: frames,
-                gapBridge: StripHoverResolution.defaultGapBridge * dockScale
-            )
-            // 正在飞回去的 / 刚落定还没等到指针移动的那**一张**不给悬停，别的卡照常
-            //（owner 2026-08-19：「图标飞行时鼠标划到其他图标上没有悬停效果」）。理由见
-            // `DragController.hoverExemptPayload`。
-            if let exempt = dragController.hoverExemptPayload,
-               carriedStripEntryID(for: exempt) == hit { return nil }
-            return hit
-        }()
-        if resolved != hoveredEntryID { hoveredEntryID = resolved }
-    }
-
-    /// 该 entry 的气泡文案。`nil` = 这类 chip 不弹气泡。
-    ///
-    /// **弹的是应用名，不是窗口标题**（owner 2026-08-17，原生 Dock 的标签永远只写应用名）。
-    /// 固定文件夹不弹——它的名字常驻在封面下方；分隔线不是 chip。
-    private func bubbleTitle(for entry: StripEntry) -> String? {
-        switch entry {
-        case let .window(item):
-            return appBubbleName(bundleID: item.bundleIdentifier, fallback: item.appID)
-        case let .messagingApp(bid, _):
-            return appBubbleName(bundleID: bid, fallback: bid)
-        case let .keptApp(bid):
-            return appBubbleName(bundleID: bid, fallback: bid)
-        case .shelf:
-            let count = shelfStore.itemPaths.count
-            return count > 0
-                ? String(format: String(localized: "Shelf · %d"), count)
-                : String(localized: "Shelf")
-        case .pinnedFolder, .divider:
-            return nil
-        }
-    }
-
-    private func appBubbleName(bundleID: String?, fallback: String) -> String {
-        let name = bundleID.map(AppDisplayNameResolver.displayName(for:)) ?? fallback
-        return WindowDisplayTitle.resolve(rawTitle: nil, fallbackName: name)
-    }
-
-    /// 这一帧该给气泡面板什么。`nil` = 收气泡。
-    ///
-    /// 由「指针位置 + 卡片几何 + 档位」整体推出来，所以锚点漂移、应用名变化、档位切换
-    /// 全都自动跟上，不需要每张卡各自补发 `.refresh`——那套「内容驱动的重发」连同它的
-    /// 归属守卫一起没了，因为现在**只有一个人**能占用这块面板。
-    ///
-    /// 安静档不弹气泡（`hoverStyle.isExpressive`），与改造前的 `showsHover` 门槛一致。
-    private func bubbleRequest(projection: StripProjection) -> WindowTitleTooltipRequest? {
-        guard hoverStyle.isExpressive,
-              let id = hoveredEntryID,
-              let frame = stripHoverFrames[id],
-              stripRootScreenRect != .zero,
-              let entry = projection.entries.first(where: { $0.id == id }),
-              let title = bubbleTitle(for: entry) else { return nil }
-        return WindowTitleTooltipRequest(chipID: id,
-                                         title: title,
-                                         anchorVisibleRect: stripFrameToScreen(frame))
-    }
-
-    /// 右键任务条底板时该不该弹钨极菜单。判定本身在纯 `StripContextMenuZone` 里，
-    /// 这里只负责换算坐标、把四个区的帧凑齐（消息区 / 固定文件夹 / 中转格的帧各有独立的
-    /// PreferenceKey，从来不合并进 `chipFrames`）。
-    private func taskbarMenuZoneClaims(atScreen global: CGPoint) -> Bool {
-        guard let point = stripPoint(from: global) else { return false }
-        var frames = Array(chipFrames.values)
-        frames.append(contentsOf: folderChipFrames.values)
-        frames.append(contentsOf: messagingChipFrames.values)
-        if shelfFrame != .zero { frames.append(shelfFrame) }
-        return StripContextMenuZone.claims(
-            point: point,
-            chipFrames: frames,
-            bounds: CGRect(origin: .zero, size: stripRootScreenRect.size),
-            minimumGapWidth: StripContextMenuZone.defaultMinimumGapWidth * dockScale
-        )
     }
 
     /// 抽屉整块落点：**只看 x、永远给得出答案**。判据与理由（以及为什么不能用整帧 `contains`）
@@ -1190,7 +705,7 @@ struct DockStripView: View {
     /// 进/出任务条区驱动转正/还原（迟滞防边界抖）。
     /// unstash 路径：进 → convertDrawerToStrip + 暂存落点；出 → cancelExternalBlock + revertDrawerToStrip。
     /// keepPlacement 路径：无真窗口时用现有 app fallback / kept placeholder 落位；全程不修改 kept。
-    private func updateDrawerToStripConvert(projection: StripProjection) {
+    func updateDrawerToStripConvert(projection: StripProjection) {
         let dc = dragController
         guard let p = dc.draggingPayload, p.source == .drawer, p.canExternalDrop,
               stripRootScreenRect != .zero else { return }
@@ -1750,158 +1265,6 @@ struct DockStripView: View {
                 onLaunch: { runtime.beginLaunch(bid) }
             )
         }
-    }
-
-    /// Kept launcher uses the same shared membership projection (strip surface).
-    private func keptAppMembershipItems(bundleID: String) -> [LauncherMembershipItem] {
-        LauncherMembershipItem.items(
-            surface: .strip,
-            bundleID: bundleID,
-            isKept: keptAppStore.contains(bundleID),
-            isMessaging: messagingStore.contains(bundleID),
-            controller: appMembershipController
-        )
-    }
-
-    /// 固定文件夹左键唯一入口：按 `FolderInteraction.primaryAction` 分派（现固定 = 内容预览）。
-    /// A/B「左键预览 vs 左键开 Finder」只改策略枚举，不动这里的调用点。
-    private func folderPrimaryTap(_ path: String) {
-        switch FolderInteraction.primaryAction {
-        case .openFinderWindow: openFolderInFinder(path)
-        case .preview: folderShowPreview(path)
-        }
-    }
-
-    /// 打开该路径的访达窗口（best-effort；左键与右键「在访达中打开」共用此入口）。
-    private func openFolderInFinder(_ path: String) {
-        NSWorkspace.shared.open(URL(fileURLWithPath: path))
-    }
-
-    /// 固定文件夹内容预览唯一入口（左键 A/B 的 preview 分支、右键「预览内容」、以后中键/重击都走它）。
-    /// 把 "strip" 空间帧（top-left,y-down）换算成屏幕坐标（bottom-left）传给弹窗。
-    /// 镜像 stripPoint(from:) 的逆映射。帧未就绪（首帧）就不弹,下次触发再说。
-    private func folderShowPreview(_ path: String) {
-        let entryID = StripEntry.pinnedFolder(path: path).id
-        guard let frame = folderChipFrames[entryID], stripRootScreenRect != .zero else { return }
-        let screenRect = CGRect(
-            x: stripRootScreenRect.minX + frame.minX,
-            y: stripRootScreenRect.maxY - frame.maxY,
-            width: frame.width,
-            height: frame.height
-        )
-        onFolderPopupToggle(path, screenRect)
-    }
-
-    /// strip 空间帧 → 屏幕矩形（stripPoint(from:) 的逆；弹窗锚点用）。
-    private func stripFrameToScreen(_ frame: CGRect) -> CGRect {
-        CGRect(x: stripRootScreenRect.minX + frame.minX,
-               y: stripRootScreenRect.maxY - frame.maxY,
-               width: frame.width, height: frame.height)
-    }
-
-    /// 手势（重击/中键）命中回调：全局屏幕坐标 → strip 空间 → 命中固定文件夹 / 具体访达窗口 → 预览。
-    /// 命中不到任何可预览 chip 就静默忽略。
-    private func handleGesturePreview(atScreen global: CGPoint) {
-        guard let p = stripPoint(from: global) else { return }
-        for path in pinnedFolderStore.folderPaths {
-            let entryID = StripEntry.pinnedFolder(path: path).id
-            if let frame = folderChipFrames[entryID], frame.contains(p) {
-                onFolderPopupToggle(path, stripFrameToScreen(frame))
-                return
-            }
-        }
-        for (cid, frame) in chipFrames where frame.contains(p) {
-            guard let item = StripItem.items(from: runtime.snapshot).first(where: { $0.id == cid }),
-                  FinderTaskbarPolicy.isFinder(item.bundleIdentifier), item.isAppLevelFallback == false else { return }
-            chipPulseNonces[cid, default: 0] += 1   // 立刻"点到了"反馈，兜住反查那 ~200ms
-            previewFinderWindow(item, anchor: stripFrameToScreen(frame))
-            return
-        }
-    }
-
-    /// 具体访达窗口 → 反查路径 → 预览。AX 定位 + 权限流在主线程，AppleEvents 枚举放后台，
-    /// 成功回主线程开预览；拒授权 / 无唯一匹配 / 超时 → beep + log，不弹空窗（spike#2 已验证）。
-    private func previewFinderWindow(_ item: StripItem, anchor: CGRect) {
-        let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.caye.macosdockcc.v2", category: "FinderWindowPreview")
-        let ref = FinderWindowReference(pid: item.pid, cgWindowID: item.cgWindowID, title: item.title, bounds: item.bounds)
-        let reader = FinderWindowContentsReader()
-        let onToggle = onFolderPopupToggle
-
-        func resolveViaAppleEvents(_ aeTarget: FinderWindowAppleEventsTarget) {
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    let url = try FinderWindowContentsReader.folderURLViaAppleEvents(for: aeTarget)
-                    DispatchQueue.main.async { onToggle(url.path, anchor) }
-                } catch {
-                    logger.error("finder-window-preview AppleEvents failed: \(String(describing: error), privacy: .public)")
-                    DispatchQueue.main.async { NSSound.beep() }
-                }
-            }
-        }
-        // 最小化窗口在 AX 里按 cgWindowID 定位不到（缺失/对不上）→ 用 StripItem 自带的 title+frame
-        // 直接走 AppleEvents 唯一匹配（AppleScript 的 `Finder windows` 含最小化窗口，报还原态 bounds）。
-        func resolveFromItem() {
-            guard let bounds = item.bounds else { NSSound.beep(); return }
-            resolveViaAppleEvents(FinderWindowAppleEventsTarget(title: item.title, cocoaFrame: bounds))
-        }
-
-        do {
-            switch try reader.target(for: ref) {
-            case .folderURL(let url):
-                onToggle(url.path, anchor)
-            case .appleEvents(let aeTarget):
-                resolveViaAppleEvents(aeTarget)
-            }
-        } catch FinderWindowContentsError.windowNotFound {
-            resolveFromItem()
-        } catch FinderWindowContentsError.missingWindowID {
-            resolveFromItem()
-        } catch FinderWindowContentsError.automationPermissionRequired {
-            if FinderWindowContentsReader.requestFinderAutomationPermission() { resolveFromItem() } else { NSSound.beep() }
-        } catch {
-            logger.error("finder-window-preview target failed: \(String(describing: error), privacy: .public)")
-            NSSound.beep()
-        }
-    }
-
-    /// 中转格点击：同 folderShowPreview 的坐标换算,锚点用独立的 shelfFrame。
-    private func shelfChipTapped() {
-        guard shelfFrame != .zero, stripRootScreenRect != .zero else { return }
-        let screenRect = CGRect(
-            x: stripRootScreenRect.minX + shelfFrame.minX,
-            y: stripRootScreenRect.maxY - shelfFrame.maxY,
-            width: shelfFrame.width,
-            height: shelfFrame.height
-        )
-        onShelfPopupToggle(screenRect)
-    }
-
-    /// Dock-icon-click equivalent: unhide + reopen. The app recreates its main window
-    /// even when other windows are visible (verified with WeChat, 2026-06-12).
-    /// 消息区图标**认不出主窗口**时的左键（第 3 条兜底，2026-08-23）：
-    /// - app 没有任何真窗口 → 叫回主窗口（owner 每天「关主窗 → 点图标叫回来」的流程，不能变）；
-    /// - 有窗口但认不出哪扇是主 → **整个 app 的开关**：在前台就收起、否则唤到前台。图标永远
-    ///   有反应，代价是独立聊天窗一起收——比改前「只能叫不能收」强。逻辑复用抽屉图标那份
-    ///   `LauncherChip.performDefaultTap`，不另抄一遍「前台就收起、否则唤出」。
-    private static func messagingFallbackTap(bundleID: String, hasRealWindow: Bool) {
-        guard hasRealWindow else {
-            reopenMainWindow(bundleID: bundleID)
-            return
-        }
-        LauncherChip.performDefaultTap(bundleID: bundleID, isRunning: true,
-                                       finderHasRealWindow: false,   // 访达进不了消息区
-                                       launch: {}, onOpen: nil)
-    }
-
-    private static func reopenMainWindow(bundleID: String) {
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-            .filter {
-                $0.activationPolicy == .regular
-                    && ProcessLiveness.isAlive(pid: $0.processIdentifier)
-            }
-        for app in runningApps { _ = app.unhide() }
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
-        NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
     }
 
 }
