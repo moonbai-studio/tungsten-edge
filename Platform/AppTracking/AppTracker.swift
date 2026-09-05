@@ -1412,10 +1412,9 @@ final class AppTracker: ObservableObject {
         elementCache.remove(pid: pid, cgWindowID: cgWindowID)
         // 不直接删座位：若这是某标签窗口的当前标签被关、而同一物理窗口还有别的标签顶上，
         // reconcileSeats 会让座位原地换 activeCgID、保住 token（卡不闪不换身份）。整窗关掉则真删。
-        let cgSnapshot = cgSnapshotProvider()
-        if reconcileSeats(pid: pid, cgSnapshot: cgSnapshot, now: Date(), source: .windowDestroyed) {
-            rebuildSnapshot(onScreenCGIDs: cgSnapshot.onScreenWindowIDs)
-        }
+        // 对账走限时后台事件读（同 created / focus / title）：以前这里在主 actor 上直接
+        // `reconcileSeats` 走不限时读，被关窗口的 App 若正卡住，任务条主线程最长冻 ~12s。
+        scheduleEventRead(pid: pid, source: .windowDestroyed)
     }
 
     private func handleWindowMinimized(pid: pid_t, cgWindowID: CGWindowID) {

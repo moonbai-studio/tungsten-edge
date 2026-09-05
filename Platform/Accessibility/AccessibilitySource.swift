@@ -1169,10 +1169,13 @@ private func axBoolAttribute(_ attribute: CFString, from element: AXUIElement) -
 }
 
 private func axElementAttribute(_ attribute: CFString, from element: AXUIElement) -> AXUIElement? {
-    guard let value = axCopyAttributeValue(attribute, from: element) else {
+    // 跨进程 AX 返回值的类型由对方进程决定，实现有 bug 的 App 可能返回别的 CF 类型。
+    // 不验类型直接 bitcast 是未定义行为，强制转换会直接 trap——代价都是整条任务条崩掉，先验类型再转。
+    guard let value = axCopyAttributeValue(attribute, from: element),
+          CFGetTypeID(value) == AXUIElementGetTypeID() else {
         return nil
     }
-    return unsafeBitCast(value, to: AXUIElement.self)
+    return (value as! AXUIElement)
 }
 
 private func axFrame(of element: AXUIElement) -> CGRect? {
@@ -1181,6 +1184,11 @@ private func axFrame(of element: AXUIElement) -> CGRect? {
         return nil
     }
 
+    // 同上：位置 / 尺寸也可能不是 AXValue，先验 CF 类型再转（`FrontmostWindowGeometryObserver` 同一条守则）。
+    guard CFGetTypeID(positionAX) == AXValueGetTypeID(),
+          CFGetTypeID(sizeAX) == AXValueGetTypeID() else {
+        return nil
+    }
     let position = positionAX as! AXValue
     let sizeValueRef = sizeAX as! AXValue
 

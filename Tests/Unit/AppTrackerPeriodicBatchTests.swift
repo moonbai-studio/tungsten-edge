@@ -402,6 +402,31 @@ final class AppTrackerPeriodicBatchTests: XCTestCase {
 
     // MARK: - Fixtures
 
+    /// 关窗口事件必须走限时后台读，不能在主 actor 上触发不限时读（被关窗口的 App 卡住时主线程会冻 ~12s）。
+    func testWindowDestroyedUsesTimedBackgroundReadNeverUntimedMainActorRead() async {
+        let reader = PeriodicBatchReader(resultsByPID: [pidA: .success([])])
+        let emptyCG = AppTrackerCGWindowSnapshot(
+            allWindowIDs: [], onScreenWindowIDs: [], windowIDsByPID: [:], alphaByWindowID: [:]
+        )
+        let tracker = AppTracker(
+            reader: reader,
+            processProvider: BatchFixedProcessProvider(),
+            cgSnapshotProvider: { emptyCG },
+            eventAXAsyncEnabled: true
+        )
+        tracker.installFixtureForTesting(makeApp(pid: pidA, cgWindowID: cgWindowA))
+
+        tracker.destroyForTesting(pid: pidA, cgWindowID: cgWindowA)
+
+        XCTAssertEqual(reader.untimedReadCount, 0, "destroy 处理器不得在主 actor 上做不限时 AX 读")
+        XCTAssertTrue(tracker.hasPendingEventReadForTesting(pid: pidA))
+        await waitUntil { !tracker.hasPendingEventReadForTesting(pid: self.pidA) }
+        XCTAssertEqual(reader.readCount, 1)
+        XCTAssertEqual(reader.untimedReadCount, 0)
+        // AX 空 + CG 全列表已无该窗口 → 座位真删。
+        XCTAssertNil(tracker.fixtureAppForTesting(pid: pidA)?.windowsByID[cgWindowA])
+    }
+
     private func cgSnapshot() -> AppTrackerCGWindowSnapshot {
         AppTrackerCGWindowSnapshot(
             allWindowIDs: [cgWindowA, cgWindowB],
@@ -463,6 +488,7 @@ private final class PeriodicBatchReader: AppTrackerWindowReading, @unchecked Sen
     private let lock = NSLock()
     private let semaphore = DispatchSemaphore(value: 0)
     private var count = 0
+    private var untimedCount = 0
     private let resultsByPID: [pid_t: AXWindowReadResult]
     private let blocksTimedReads: Bool
 
@@ -483,8 +509,17 @@ private final class PeriodicBatchReader: AppTrackerWindowReading, @unchecked Sen
 
     func windows(forPID pid: pid_t) -> [AXWindowSnapshot] { [] }
 
+    var untimedReadCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return untimedCount
+    }
+
     func windowReadResult(forPID pid: pid_t) -> AXWindowReadResult {
-        resultsByPID[pid] ?? .unread(.cannotComplete)
+        lock.lock()
+        untimedCount += 1
+        lock.unlock()
+        return resultsByPID[pid] ?? .unread(.cannotComplete)
     }
 
     func inventoryWindows(forPID pid: pid_t, messagingTimeout: TimeInterval) -> AXWindowReadResult {

@@ -33,12 +33,17 @@ final class FolderPopupModel: ObservableObject {
         watcher = nil
     }
 
+    /// 目录读取走自己的串行队列而不是 `Task.detached`：点开弹窗是用户动作，扔进 Swift 协作线程池
+    /// 会排在 `AppTracker` 后台 AX 批读（N×100ms 串行）后面（`AGENTS.md` 铁律）。
+    private static let reloadQueue = DispatchQueue(label: "com.caye.macosdockcc.v2.folder-popup-reload",
+                                                   qos: .userInitiated)
+
     private func reload(url: URL) {
         generation += 1
         let expected = generation
-        Task.detached(priority: .userInitiated) { [weak self] in
+        Self.reloadQueue.async { [weak self] in
             let result = Result { try FolderContentsLoader.load(directory: url) }
-            await MainActor.run { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self, self.generation == expected else { return }
                 switch result {
                 case .success(let list):

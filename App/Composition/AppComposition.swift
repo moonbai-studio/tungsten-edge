@@ -926,10 +926,10 @@ final class AppRuntime: ObservableObject {
         reconcileOptimisticStates()
         reevaluateHeldActions()
         updateFeedbackTimer()
-        if startedAt != nil {
-            let ms = Int(Date().timeIntervalSince(startedAt!) * 1000)
+        if let startedAt {
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
             debugState.setObservationStatusText(hasRequiredPermissions ? "实时 \(ms)ms" : "仅窗口列表")
-            startedAt = nil
+            self.startedAt = nil
         }
     }
 

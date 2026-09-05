@@ -158,6 +158,9 @@ struct AXWindowReader: AppTrackerWindowReading, Sendable {
 
     /// Same untimed/two-attempt read used by `windows(forPID:)`, with the read outcome preserved
     /// for diagnostics. Callers must keep mapping `.unread` to the same empty array for behavior.
+    /// **Untimed = system default AX timeout (~6s) × 2 attempts. Never call this on the main actor**;
+    /// `AppTracker` reaches it only on the `DOCK_EVENT_AX_ASYNC=0` / `DOCK_RECONCILE_AX_TIMEOUT_MS=0`
+    /// compatibility paths. Event and poll reads use `inventoryWindows(forPID:messagingTimeout:)`.
     func windowReadResult(forPID pid: pid_t) -> AXWindowReadResult {
         readWindows(forPID: pid, messagingTimeout: nil)
     }

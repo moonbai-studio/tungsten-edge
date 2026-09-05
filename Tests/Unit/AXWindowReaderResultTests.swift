@@ -562,7 +562,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         XCTAssertEqual(payload["seatToken"] as? String, "tabgrp-\(pid)-s1")
     }
 
-    func testDestroyTombstoneReleasesSeatEvenWhileCGStillListsIt() throws {
+    func testDestroyTombstoneReleasesSeatEvenWhileCGStillListsIt() async throws {
         let logDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("AppTrackerDestroyCloseTests-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: logDirectory) }
@@ -572,8 +572,9 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
             maxFileSize: 1_000_000,
             archiveCount: 1
         ))
+        // destroy 事件走限时后台读（同其它 AX 事件）；不限时读在主 actor 上一次都不许发生。
         let reader = ControlledAppTrackerReader(
-            untimedResult: .success([]),
+            result: .success([]),
             blocksTimedReads: false
         )
         let cgSnapshot = AppTrackerCGWindowSnapshot(
@@ -585,12 +586,16 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             inventoryLog: inventoryLog,
             reader: reader,
+            processProvider: FixedAppTrackerProcessProvider(pid: pid),
             cgSnapshotProvider: { cgSnapshot },
             eventAXAsyncEnabled: true
         )
         tracker.installFixtureForTesting(makeApp())
 
         tracker.destroyForTesting(pid: pid, cgWindowID: cgWindowID)
+        XCTAssertEqual(reader.untimedReadCount, 0)
+        await waitUntil { !tracker.hasPendingEventReadForTesting(pid: self.pid) }
+        XCTAssertEqual(reader.untimedReadCount, 0)
 
         XCTAssertEqual(tracker.fixtureAppForTesting(pid: pid)?.windowOrder, [])
         inventoryLog.flush()
