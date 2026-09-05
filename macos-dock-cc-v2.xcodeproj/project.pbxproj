@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000001028 /* PanelCoordinator+Fullscreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */; };
 		E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */; };
 		E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000021 /* PanelCoordinator+Spaces.swift */; };
 		E90000000000000000001022 /* PanelCoordinator+Popups.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000022 /* PanelCoordinator+Popups.swift */; };
@@ -449,6 +450,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Fullscreen.swift"; sourceTree = "<group>"; };
 		E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Tooltip.swift"; sourceTree = "<group>"; };
 		E90000000000000000000021 /* PanelCoordinator+Spaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Spaces.swift"; sourceTree = "<group>"; };
 		E90000000000000000000022 /* PanelCoordinator+Popups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Popups.swift"; sourceTree = "<group>"; };
@@ -799,6 +801,7 @@
 		A00000000000000000000024 /* Entry */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */,
 				E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */,
 				E90000000000000000000021 /* PanelCoordinator+Spaces.swift */,
 				E90000000000000000000022 /* PanelCoordinator+Popups.swift */,
@@ -1430,6 +1433,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001028 /* PanelCoordinator+Fullscreen.swift in Sources */,
 				E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */,
 				E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */,
 				E90000000000000000001022 /* PanelCoordinator+Popups.swift in Sources */,
