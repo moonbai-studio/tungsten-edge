@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000001010 /* StripProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000010 /* StripProjection.swift */; };
+		E90000000000000000001011 /* ChipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000011 /* ChipView.swift */; };
+		E90000000000000000001012 /* DrawerCapsuleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000012 /* DrawerCapsuleButton.swift */; };
+		E90000000000000000001013 /* ChipBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000013 /* ChipBadgeView.swift */; };
+		E90000000000000000001014 /* StripFramePreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000014 /* StripFramePreferenceKeys.swift */; };
+		E90000000000000000001015 /* StripFileDropDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000015 /* StripFileDropDelegate.swift */; };
+		E90000000000000000001016 /* DockVisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000016 /* DockVisualEffectView.swift */; };
+		E90000000000000000001017 /* StripWheelScrollInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000017 /* StripWheelScrollInterceptor.swift */; };
+		E90000000000000000001018 /* StripEntranceModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000018 /* StripEntranceModifier.swift */; };
+		E90000000000000000001019 /* StripPointerTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000019 /* StripPointerTracker.swift */; };
+		E9000000000000000000101A /* GestureMonitorInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000001A /* GestureMonitorInstaller.swift */; };
 		E90000000000000000001007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
 		E90000000000000000002007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
 		E90000000000000000003007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
@@ -435,6 +446,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000010 /* StripProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripProjection.swift; sourceTree = "<group>"; };
+		E90000000000000000000011 /* ChipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChipView.swift; sourceTree = "<group>"; };
+		E90000000000000000000012 /* DrawerCapsuleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerCapsuleButton.swift; sourceTree = "<group>"; };
+		E90000000000000000000013 /* ChipBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChipBadgeView.swift; sourceTree = "<group>"; };
+		E90000000000000000000014 /* StripFramePreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripFramePreferenceKeys.swift; sourceTree = "<group>"; };
+		E90000000000000000000015 /* StripFileDropDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripFileDropDelegate.swift; sourceTree = "<group>"; };
+		E90000000000000000000016 /* DockVisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockVisualEffectView.swift; sourceTree = "<group>"; };
+		E90000000000000000000017 /* StripWheelScrollInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripWheelScrollInterceptor.swift; sourceTree = "<group>"; };
+		E90000000000000000000018 /* StripEntranceModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripEntranceModifier.swift; sourceTree = "<group>"; };
+		E90000000000000000000019 /* StripPointerTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripPointerTracker.swift; sourceTree = "<group>"; };
+		E9000000000000000000001A /* GestureMonitorInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureMonitorInstaller.swift; sourceTree = "<group>"; };
 		E90000000000000000000007 /* DebugSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSwitch.swift; sourceTree = "<group>"; };
 		E90000000000000000000008 /* DebugSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSwitchTests.swift; sourceTree = "<group>"; };
 		E90000000000000000000006 /* DockSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockSnapshot.swift; sourceTree = "<group>"; };
@@ -838,6 +860,17 @@
 		A00000000000000000000026 /* Scenes */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000010 /* StripProjection.swift */,
+				E90000000000000000000011 /* ChipView.swift */,
+				E90000000000000000000012 /* DrawerCapsuleButton.swift */,
+				E90000000000000000000013 /* ChipBadgeView.swift */,
+				E90000000000000000000014 /* StripFramePreferenceKeys.swift */,
+				E90000000000000000000015 /* StripFileDropDelegate.swift */,
+				E90000000000000000000016 /* DockVisualEffectView.swift */,
+				E90000000000000000000017 /* StripWheelScrollInterceptor.swift */,
+				E90000000000000000000018 /* StripEntranceModifier.swift */,
+				E90000000000000000000019 /* StripPointerTracker.swift */,
+				E9000000000000000000001A /* GestureMonitorInstaller.swift */,
 				E90000000000000000000001 /* StatusMenuWidgets.swift */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A000000000000000000000F1 /* PermissionOnboardingView.swift */,
@@ -1388,6 +1421,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001010 /* StripProjection.swift in Sources */,
+				E90000000000000000001011 /* ChipView.swift in Sources */,
+				E90000000000000000001012 /* DrawerCapsuleButton.swift in Sources */,
+				E90000000000000000001013 /* ChipBadgeView.swift in Sources */,
+				E90000000000000000001014 /* StripFramePreferenceKeys.swift in Sources */,
+				E90000000000000000001015 /* StripFileDropDelegate.swift in Sources */,
+				E90000000000000000001016 /* DockVisualEffectView.swift in Sources */,
+				E90000000000000000001017 /* StripWheelScrollInterceptor.swift in Sources */,
+				E90000000000000000001018 /* StripEntranceModifier.swift in Sources */,
+				E90000000000000000001019 /* StripPointerTracker.swift in Sources */,
+				E9000000000000000000101A /* GestureMonitorInstaller.swift in Sources */,
 				E90000000000000000001007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000001006 /* DockSnapshot.swift in Sources */,
 				E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */,
