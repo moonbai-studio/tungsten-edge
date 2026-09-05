@@ -793,7 +793,8 @@ final class DragController: ObservableObject {
 
     private let drawerStore: DrawerStore
     private let messagingStore: MessagingAppStore
-    private let keptAppStore: KeptAppStore
+    /// kept 的唯一写入口：收纳落定后的补勾走它，`DragController` 自己不持有 `KeptAppStore`。
+    private let membershipController: AppMembershipController
     /// 按来源给投放候选区（屏幕坐标，已 inset+容错）：strip/messaging→胶囊(+抽屉)；drawer→任务条 dock 面板。
     private let dropZonesProvider: (DragSource) -> [CGRect]
     /// **全部**屏幕。一块屏一套载体面板（见 `CarrierSurface`），按指针所在屏切换。
@@ -849,7 +850,7 @@ final class DragController: ObservableObject {
 
     init(drawerStore: DrawerStore,
          messagingStore: MessagingAppStore,
-         keptAppStore: KeptAppStore,
+         membershipController: AppMembershipController,
          dropZonesProvider: @escaping (DragSource) -> [CGRect],
          screensProvider: @escaping () -> [NSScreen],
          stashTargetProvider: @escaping () -> CGRect? = { nil }) {
@@ -857,7 +858,7 @@ final class DragController: ObservableObject {
         self.carrierClicks = carrierClickSubject.eraseToAnyPublisher()
         self.drawerStore = drawerStore
         self.messagingStore = messagingStore
-        self.keptAppStore = keptAppStore
+        self.membershipController = membershipController
         self.dropZonesProvider = dropZonesProvider
         self.screensProvider = screensProvider
         self.stashTargetProvider = stashTargetProvider
@@ -1259,11 +1260,9 @@ final class DragController: ObservableObject {
         // 收纳落定 → 打开「在程序坞中保留」（owner 2026-08-06）。放在 switch **之后**：
         // 此刻 drawerStore 已是最终成员关系，四条入口路径（任务条/消息 chip × 抽屉体/胶囊）
         // 共用一个判据，也天然排除了抽屉内重排、转正进任务条、降级移出这些不该开启的情形。
-        // 语义（只进不出、每次拖入都重新打开）见 DragConversionPlan.enablesKeptOnDrop。
-        if DragConversionPlan.enablesKeptOnDrop(originSource: origin,
-                                                endedInDrawer: drawerStore.contains(p.bundleID)) {
-            keptAppStore.add(p.bundleID)
-        }
+        // 语义（只进不出、每次拖入都重新打开）见 DragConversionPlan.enablesKeptOnDrop；
+        // 执行点在 AppMembershipController.applyDragLanding（kept 的单一变更边界）。
+        membershipController.applyDragLanding(bundleID: p.bundleID, originSource: origin)
     }
 
     /// 取消：拖动中目标消失、切屏等异常路径。先按当前转换态回滚已发生的 store 变更

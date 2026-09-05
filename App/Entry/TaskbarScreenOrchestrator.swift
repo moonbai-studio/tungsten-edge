@@ -100,7 +100,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
         self.dragController = DragController(
             drawerStore: drawerStore,
             messagingStore: messagingStore,
-            keptAppStore: keptAppStore,
+            membershipController: appMembershipController,
             dropZonesProvider: { [weak dragHost] source in dragHost?.dragDropZones(for: source) ?? [] },
             // 一块屏一套载体面板（`DragController.CarrierSurface`），按指针所在屏切换——
             // 「显示器具有单独的空间」下一个窗口只属于一块屏，铺并集反而在另一块屏上画不出来。

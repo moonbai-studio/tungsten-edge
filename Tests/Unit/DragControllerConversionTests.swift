@@ -11,6 +11,7 @@ final class DragControllerConversionTests: XCTestCase {
     private var drawer: DrawerStore!
     private var kept: KeptAppStore!
     private var messaging: MessagingAppStore!
+    private var membership: AppMembershipController!
     private var controller: DragController!
     /// 固定投放区：命中判定只看 beginDrag 的起点坐标。
     private let dropZone = CGRect(x: 0, y: 0, width: 100, height: 100)
@@ -26,10 +27,11 @@ final class DragControllerConversionTests: XCTestCase {
         drawer = DrawerStore(defaults: defaults)
         kept = KeptAppStore(defaults: defaults)
         messaging = MessagingAppStore(defaults: defaults)
+        membership = AppMembershipController(keptAppStore: kept, drawerStore: drawer, messagingStore: messaging)
         controller = DragController(
             drawerStore: drawer,
             messagingStore: messaging,
-            keptAppStore: kept,
+            membershipController: membership,
             dropZonesProvider: { [dropZone] _ in [dropZone] },
             screensProvider: { NSScreen.screens }
         )
@@ -437,7 +439,7 @@ final class DragControllerConversionTests: XCTestCase {
     // MARK: - 松在胶囊上收纳 = 吸进胶囊（owner 2026-08-19：收纳后图标往任务条那头飘一段再消失）
 
     private func makeStashingController() -> DragController {
-        DragController(drawerStore: drawer, messagingStore: messaging, keptAppStore: kept,
+        DragController(drawerStore: drawer, messagingStore: messaging, membershipController: membership,
                        dropZonesProvider: { [dropZone] _ in [dropZone] },
                        screensProvider: { NSScreen.screens },
                        stashTargetProvider: { CGRect(x: 40, y: 40, width: 20, height: 20) })

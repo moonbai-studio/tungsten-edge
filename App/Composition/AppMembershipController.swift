@@ -36,12 +36,22 @@ final class AppMembershipController: ObservableObject {
     /// Placement-only move: this API never touches kept.
     ///
     /// Auto-enabling kept on stash is a **drag-landing** policy, not a placement-API one —
-    /// it lives in `DragController.endDrag()` via `DragConversionPlan.enablesKeptOnDrop`.
-    /// So do not restate it here, and note this method has no production caller today
-    /// (menus offer no drawer placement action; drag is the only way in).
+    /// `DragController.endDrag()` calls `applyDragLanding` below for it. So do not restate
+    /// it here, and note this method has no production caller today (menus offer no drawer
+    /// placement action; drag is the only way in).
     func moveToDrawer(_ bundleID: String) {
         guard !bundleID.isEmpty else { return }
         drawerStore.add(bundleID)
+    }
+
+    /// 拖动落定后的 kept 补勾（owner 2026-08-06）。规则本体仍是纯决策
+    /// `DragConversionPlan.enablesKeptOnDrop`；这里只是把「唯一一处从控制器外面写 kept」收进
+    /// 单一变更边界（2026-09-05）。**每次拖入都重新打开**，不是一次性播种——与 `markMessaging`
+    /// 的首次补勾不同，见 drag-and-drawer 规则。只在 `endDrag()` 落定后、drawer 已是最终成员关系时调用。
+    func applyDragLanding(bundleID: String, originSource: DragSource) {
+        guard DragConversionPlan.enablesKeptOnDrop(originSource: originSource,
+                                                   endedInDrawer: drawerStore.contains(bundleID)) else { return }
+        keptAppStore.add(bundleID)
     }
 
     /// 「固定到消息区」：mark + 首次加入补 kept（默认保留）。不改 drawer——位置只能拖动改。

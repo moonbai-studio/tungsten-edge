@@ -29,6 +29,35 @@ final class AppMembershipControllerTests: XCTestCase {
         )
     }
 
+    // MARK: - applyDragLanding（收纳落定补勾 kept；每次拖入都重新打开）
+
+    func testApplyDragLandingEnablesKeptOnlyWhenEndedInDrawerFromStripOrMessaging() {
+        for source in [DragSource.strip, .drawer, .folder, .messaging] {
+            for endedInDrawer in [true, false] {
+                let defaults = makeDefaults()
+                let kept = KeptAppStore(defaults: defaults)
+                let drawer = DrawerStore(defaults: defaults)
+                let messaging = MessagingAppStore(defaults: defaults)
+                let controller = AppMembershipController(keptAppStore: kept, drawerStore: drawer, messagingStore: messaging)
+                if endedInDrawer { drawer.add("com.example.app") }
+                controller.applyDragLanding(bundleID: "com.example.app", originSource: source)
+                let expected = endedInDrawer && (source == .strip || source == .messaging)
+                XCTAssertEqual(kept.contains("com.example.app"), expected, "source=\(source) endedInDrawer=\(endedInDrawer)")
+                XCTAssertEqual(drawer.contains("com.example.app"), endedInDrawer, "落定补勾不得改 drawer")
+            }
+        }
+    }
+
+    func testApplyDragLandingReEnablesKeptAfterManualUncheck() {
+        drawer.add("com.example.app")
+        controller.applyDragLanding(bundleID: "com.example.app", originSource: .strip)
+        XCTAssertTrue(kept.contains("com.example.app"))
+        controller.setKept("com.example.app", enabled: false)
+        XCTAssertFalse(kept.contains("com.example.app"))
+        controller.applyDragLanding(bundleID: "com.example.app", originSource: .messaging)
+        XCTAssertTrue(kept.contains("com.example.app"), "不是一次性播种：再次拖入重新打开")
+    }
+
     // MARK: - setKept (kept只改 kept，可与 messaging 共存)
 
     func testSetKeptAddsWithoutChangingDrawerPlacement() {
