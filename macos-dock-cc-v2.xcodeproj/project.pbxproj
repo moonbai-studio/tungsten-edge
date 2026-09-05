@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E9000000000000000000102A /* PanelCoordinator+Drawer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002A /* PanelCoordinator+Drawer.swift */; };
+		E9000000000000000000102B /* PanelCoordinator+Visibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002B /* PanelCoordinator+Visibility.swift */; };
+		E9000000000000000000102C /* PanelCoordinator+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002C /* PanelCoordinator+Layout.swift */; };
+		E9000000000000000000102D /* PanelCoordinator+PanelSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9000000000000000000002D /* PanelCoordinator+PanelSetup.swift */; };
 		E90000000000000000001028 /* PanelCoordinator+Fullscreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */; };
 		E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */; };
 		E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000021 /* PanelCoordinator+Spaces.swift */; };
@@ -450,6 +454,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E9000000000000000000002A /* PanelCoordinator+Drawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Drawer.swift"; sourceTree = "<group>"; };
+		E9000000000000000000002B /* PanelCoordinator+Visibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Visibility.swift"; sourceTree = "<group>"; };
+		E9000000000000000000002C /* PanelCoordinator+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Layout.swift"; sourceTree = "<group>"; };
+		E9000000000000000000002D /* PanelCoordinator+PanelSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+PanelSetup.swift"; sourceTree = "<group>"; };
 		E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Fullscreen.swift"; sourceTree = "<group>"; };
 		E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Tooltip.swift"; sourceTree = "<group>"; };
 		E90000000000000000000021 /* PanelCoordinator+Spaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Spaces.swift"; sourceTree = "<group>"; };
@@ -801,6 +809,10 @@
 		A00000000000000000000024 /* Entry */ = {
 			isa = PBXGroup;
 			children = (
+				E9000000000000000000002A /* PanelCoordinator+Drawer.swift */,
+				E9000000000000000000002B /* PanelCoordinator+Visibility.swift */,
+				E9000000000000000000002C /* PanelCoordinator+Layout.swift */,
+				E9000000000000000000002D /* PanelCoordinator+PanelSetup.swift */,
 				E90000000000000000000028 /* PanelCoordinator+Fullscreen.swift */,
 				E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */,
 				E90000000000000000000021 /* PanelCoordinator+Spaces.swift */,
@@ -1433,6 +1445,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E9000000000000000000102A /* PanelCoordinator+Drawer.swift in Sources */,
+				E9000000000000000000102B /* PanelCoordinator+Visibility.swift in Sources */,
+				E9000000000000000000102C /* PanelCoordinator+Layout.swift in Sources */,
+				E9000000000000000000102D /* PanelCoordinator+PanelSetup.swift in Sources */,
 				E90000000000000000001028 /* PanelCoordinator+Fullscreen.swift in Sources */,
 				E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */,
 				E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */,
