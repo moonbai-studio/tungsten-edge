@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000001007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
+		E90000000000000000002007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
+		E90000000000000000003007 /* DebugSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000007 /* DebugSwitch.swift */; };
+		E90000000000000000002008 /* DebugSwitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000008 /* DebugSwitchTests.swift */; };
 		E90000000000000000004003 /* AXElementCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000003 /* AXElementCache.swift */; };
 		E90000000000000000004002 /* ClickLatencyTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90000000000000000000005 /* ClickLatencyTrace.swift */; };
 		E90000000000000000004001 /* MinimizeHandoffTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010D /* MinimizeHandoffTarget.swift */; };
@@ -431,6 +435,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000007 /* DebugSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSwitch.swift; sourceTree = "<group>"; };
+		E90000000000000000000008 /* DebugSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSwitchTests.swift; sourceTree = "<group>"; };
 		E90000000000000000000006 /* DockSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockSnapshot.swift; sourceTree = "<group>"; };
 		E90000000000000000000001 /* StatusMenuWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuWidgets.swift; sourceTree = "<group>"; };
 		E90000000000000000000002 /* TaskbarDebugSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskbarDebugSnapshot.swift; sourceTree = "<group>"; };
@@ -875,6 +881,7 @@
 		A000000000000000000019E2 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000007 /* DebugSwitch.swift */,
 				E90000000000000000000005 /* FilePathNormalization.swift */,
 				E90000000000000000000004 /* DefaultsValueParsing.swift */,
 				C30000000000000000000010 /* AppFallbackChipDecision.swift */,
@@ -1154,6 +1161,7 @@
 		A00000000000000000000057 /* Unit */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000008 /* DebugSwitchTests.swift */,
 				F10000000000000000000012 /* FullscreenIntentDecisionTests.swift */,
 				C30000000000000000000011 /* AppFallbackChipDecisionTests.swift */,
 				C20000000000000000000011 /* RunningStateSweepDecisionTests.swift */,
@@ -1380,6 +1388,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000001006 /* DockSnapshot.swift in Sources */,
 				E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */,
 				E90000000000000000001002 /* TaskbarDebugSnapshot.swift in Sources */,
@@ -1558,6 +1567,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E90000000000000000003007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000004003 /* AXElementCache.swift in Sources */,
 				E90000000000000000004002 /* ClickLatencyTrace.swift in Sources */,
 				E90000000000000000004001 /* MinimizeHandoffTarget.swift in Sources */,
@@ -1592,6 +1602,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E90000000000000000002008 /* DebugSwitchTests.swift in Sources */,
+				E90000000000000000002007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000002006 /* DockSnapshot.swift in Sources */,
 				E90000000000000000002001 /* StatusMenuWidgets.swift in Sources */,
 				E90000000000000000002003 /* FullscreenWindowClassifier.swift in Sources */,

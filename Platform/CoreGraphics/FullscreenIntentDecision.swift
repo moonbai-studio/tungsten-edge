@@ -78,7 +78,7 @@ enum FullscreenIntentDecision {
         settingEnabled: Bool,
         environment: [String: String]
     ) -> Bool {
-        settingEnabled && environment["DOCK_FULLSCREEN_INTENT"] != "0"
+        settingEnabled && DebugSwitch.fullscreenIntent.isEnabled(in: environment)
     }
 
     private static func request(

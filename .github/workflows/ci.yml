@@ -38,6 +38,9 @@ jobs:
       - name: Localization catalog check
         run: python3 Scripts/check_localization.py
 
+      - name: Debug-switch registry check
+        run: python3 Scripts/check_debug_switches.py
+
       - name: Unit tests
         run: |
           set -o pipefail

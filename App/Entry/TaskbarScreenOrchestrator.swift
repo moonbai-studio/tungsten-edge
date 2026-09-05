@@ -65,9 +65,9 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     /// 监视器摘掉是为了菜单不粘滞——任何全局事件监视器在事件跟踪模式下都会拖慢送达；而
     /// `.common` 模式的 Timer 不拦事件、菜单跟踪期间照常触发，用它代替监视器跑 `pollMousePosition`。
     private var menuTrackingPollTimer: Timer?
-    private static let menuHoverSuspensionEnabled = ProcessInfo.processInfo.environment["DOCK_MENU_HOVER_SUSPEND"] != "0"
+    private static let menuHoverSuspensionEnabled = DebugSwitch.menuHoverSuspend.isEnabled(in: ProcessInfo.processInfo.environment)
     /// 监视器按需化 + 节流（DOCK_HOVER_MONITOR_LEAN=0 回退为常驻 + 每事件全量处理）。
-    private static let hoverMonitorLeanEnabled = ProcessInfo.processInfo.environment["DOCK_HOVER_MONITOR_LEAN"] != "0"
+    private static let hoverMonitorLeanEnabled = DebugSwitch.hoverMonitorLean.isEnabled(in: ProcessInfo.processInfo.environment)
 
     init(runtime: AppRuntime,
          drawerStore: DrawerStore,

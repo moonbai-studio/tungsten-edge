@@ -38,7 +38,7 @@ enum ChipPressDecision {
 /// （`DockStripView.chipWithReorder`），但万一在实机上影响到拖拽或点击本身，
 /// owner 能立刻退回去，不用等重新打包。
 enum ChipPressSwitches {
-    static let pressDownEnabled = ProcessInfo.processInfo.environment["DOCK_CHIP_PRESS_DOWN"] != "0"
+    static let pressDownEnabled = DebugSwitch.chipPressDown.isEnabled(in: ProcessInfo.processInfo.environment)
 }
 
 enum ChipPressAnimation {

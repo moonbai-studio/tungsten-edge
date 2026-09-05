@@ -259,6 +259,8 @@ echo "==> Notary profile: $NOTARY_KEYCHAIN_PROFILE"
 echo "==> Gate: localization catalog"
 require_command python3
 python3 "$ROOT/Scripts/check_localization.py" || die "localization check failed - fix the catalog before packaging"
+echo "==> Gate: debug-switch registry"
+python3 "$ROOT/Scripts/check_debug_switches.py" || die "debug-switch registry check failed - register every DOCK_* switch in Core/Support/DebugSwitch.swift"
 
 echo "==> Gate: unit tests (log: $TEST_LOG)"
 if ! xcodebuild test -project "$PROJECT" -scheme "$SCHEME" -configuration Debug \

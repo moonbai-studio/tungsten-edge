@@ -76,7 +76,7 @@ enum DockPanelMaterial: Equatable {
     /// 一轮迭代约 8 秒，方便一次拍完整张候选对照表。名字就是上面这些 case（大小写不敏感）。
     /// 认不出的名字**回落到传入的默认值**，绝不崩——调参时手滑打错不该让应用起不来。
     static func resolved(from environment: [String: String], fallback: DockPanelMaterial) -> DockPanelMaterial {
-        guard let raw = environment["DOCK_PANEL_MATERIAL"]?
+        guard let raw = DebugSwitch.panelMaterial.value(in: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased(),
               !raw.isEmpty else { return fallback }

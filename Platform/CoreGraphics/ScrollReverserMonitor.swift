@@ -46,7 +46,7 @@ private final class ScrollReverserEventTapThread {
     /// 机制探针（`DOCK_SCROLL_REVERSER_TRACE=1`，默认关）：打前 10 条事件的连续标志与
     /// delta，用来在真机上确认「鼠标滚轮 cont=0、触控板 cont=1」。只在 tap 线程碰它。
     private static let traceEnabled =
-        ProcessInfo.processInfo.environment["DOCK_SCROLL_REVERSER_TRACE"] == "1"
+        DebugSwitch.scrollReverserTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private var traceRemaining = 10
 
     init(logger: Logger) {

@@ -27,7 +27,7 @@ import Foundation
 /// issue #19 修复照旧。开关 `DOCK_OVERLAY_SPACE=0`。
 @MainActor
 final class OverlaySpaceHost {
-    static let isEnabled = ProcessInfo.processInfo.environment["DOCK_OVERLAY_SPACE"] != "0"
+    static let isEnabled = DebugSwitch.overlaySpace.isEnabled(in: ProcessInfo.processInfo.environment)
 
     private typealias MainConnectionIDFn = @convention(c) () -> Int32
     private typealias SpaceCreateFn = @convention(c) (Int32, Int32, CFDictionary?) -> UInt64

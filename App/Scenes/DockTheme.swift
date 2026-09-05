@@ -29,7 +29,7 @@ extension DockThemeTokens {
     /// 实际生效的中转格瓷砖配色：`DOCK_SHELF_TILE=blue|graphite|light` 覆盖 token 值
     /// （认不出的名字回落到 `.blue`，不崩）。三档是同一个位置的互斥选项，现场换档不重编译。
     var effectiveShelfTile: DockShelfTileStyle {
-        guard let raw = DockEffectSwitches.environment["DOCK_SHELF_TILE"] else { return shelfTile }
+        guard let raw = DebugSwitch.shelfTile.value(in: DockEffectSwitches.environment) else { return shelfTile }
         return DockShelfTileStyle.resolve(raw)
     }
 
@@ -61,7 +61,7 @@ enum DockEffectSwitches {
     /// 特例：`1` 也当"开，用表里的候选值"讲不通——数字就是倍数本身，`1` 就是不提饱和。
     /// 想用表里的候选值就写 `candidate`。
     static func saturation(from environment: [String: String], candidate: Double) -> Double {
-        guard let raw = environment["DOCK_PANEL_SATURATION"]?
+        guard let raw = DebugSwitch.panelSaturation.value(in: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased(),
               !raw.isEmpty else { return 1.0 }
@@ -72,14 +72,14 @@ enum DockEffectSwitches {
 
     /// `DOCK_PANEL_THICKNESS=1` 才开。其余一切（含未设、`0`、乱填）都是关。
     static func thicknessEnabled(from environment: [String: String]) -> Bool {
-        environment["DOCK_PANEL_THICKNESS"]?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+        DebugSwitch.panelThickness.value(in: environment)?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
     }
 
     /// `DOCK_CHIP_PILL_FILL=<常态>[,<悬停态>]`，两个都是 0…1 的不透明度。
     /// 只给一个数时悬停态按表里既有的 **×1.4** 关系推出来。未设 / 非数字 / 越界 → 回落到表里的值。
     /// 基色恒为白：方向必须和黑字相反（`DockThemeTokens.chipPillFill`），不给「改成加黑」的出口。
     static func chipPillFill(from environment: [String: String], candidate: DockTintPair) -> DockTintPair {
-        guard let raw = environment["DOCK_CHIP_PILL_FILL"]?
+        guard let raw = DebugSwitch.chipPillFill.value(in: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty else { return candidate }
         let parts = raw.split(separator: ",", omittingEmptySubsequences: false)
@@ -98,7 +98,7 @@ enum DockEffectSwitches {
     /// `DOCK_LABEL_INACTIVE=<不透明度>`（0…1）。未设 / 非数字 / 越界 → 回落到表里的值。
     /// 基色恒为黑，同上。
     static func labelInactive(from environment: [String: String], candidate: DockTint) -> DockTint {
-        guard let raw = environment["DOCK_LABEL_INACTIVE"]?
+        guard let raw = DebugSwitch.labelInactive.value(in: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
               let value = opacity(raw) else { return candidate }
         return .black(value)
@@ -113,21 +113,21 @@ enum DockEffectSwitches {
     /// 调参诊断：只有真的设了某个开关才打一行，打的是**解析后**的值——
     /// 名字或数字写错（被回落）当场就看得出来，不会拿着一张其实没生效的对照图瞎比。
     static func logActiveOverrides(material: DockPanelMaterial, saturation: Double, thickness: Bool) {
-        if let raw = environment["DOCK_PANEL_MATERIAL"] {
+        if let raw = DebugSwitch.panelMaterial.value(in: environment) {
             print("[panel] DOCK_PANEL_MATERIAL=\"\(raw)\" → 实际生效 \(material)")
         }
-        if let raw = environment["DOCK_PANEL_SATURATION"] {
+        if let raw = DebugSwitch.panelSaturation.value(in: environment) {
             print("[panel] DOCK_PANEL_SATURATION=\"\(raw)\" → 实际生效 \(saturation)")
         }
-        if let raw = environment["DOCK_PANEL_THICKNESS"] {
+        if let raw = DebugSwitch.panelThickness.value(in: environment) {
             print("[panel] DOCK_PANEL_THICKNESS=\"\(raw)\" → 厚度层\(thickness ? "开" : "关")")
         }
         // 这两个不属于底板，但调对比度时和上面几个一起看，所以打在同一处。
-        if let raw = environment["DOCK_CHIP_PILL_FILL"] {
+        if let raw = DebugSwitch.chipPillFill.value(in: environment) {
             let pair = DockThemeTokens.standard.effectiveChipPillFill
             print("[panel] DOCK_CHIP_PILL_FILL=\"\(raw)\" → 实际生效 常态 \(pair.normal.opacity) / 悬停 \(pair.emphasized.opacity)")
         }
-        if let raw = environment["DOCK_LABEL_INACTIVE"] {
+        if let raw = DebugSwitch.labelInactive.value(in: environment) {
             print("[panel] DOCK_LABEL_INACTIVE=\"\(raw)\" → 实际生效 \(DockThemeTokens.standard.effectiveLabelInactive.opacity)")
         }
     }

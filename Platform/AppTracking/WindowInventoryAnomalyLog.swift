@@ -428,7 +428,7 @@ struct WindowInventoryLogConfiguration {
         environment: [String: String] = ProcessInfo.processInfo.environment,
         defaults: UserDefaults = .standard
     ) -> Bool {
-        switch environment["DOCK_INVENTORY_LOG"] {
+        switch DebugSwitch.inventoryLog.value(in: environment) {
         case "1": return true
         case "0": return false
         default: return defaults.bool(forKey: defaultsKey)

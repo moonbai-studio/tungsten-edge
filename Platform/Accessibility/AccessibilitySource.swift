@@ -637,7 +637,7 @@ struct AccessibilityWindowActionExecutor {
     }()
 
     private static let skyLightFocusEnabled =
-        ProcessInfo.processInfo.environment["DOCK_SKYLIGHT_FOCUS"] != "0"
+        DebugSwitch.skylightFocus.isEnabled(in: ProcessInfo.processInfo.environment)
 
     /// 仅做 `_SLPSSetFrontProcessWithOptions` 前切、不发 make-key down（还原预激活用：
     /// down 要等 unminimize 之后发，见 activate() 还原分支的 R2 序注释）。
@@ -791,10 +791,10 @@ struct ActionExecutionSwitches: Equatable {
     let minimizeAppFallbackEnabled: Bool
 
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
-        fastWindowHandleEnabled = environment["DOCK_FAST_WINDOW_HANDLE"] != "0"
-        axElementCacheEnabled = environment["DOCK_AX_ELEMENT_CACHE"] != "0"
-        chipProbeEnabled = environment["DOCK_CHIP_PROBE"] == "1"
-        minimizeAppFallbackEnabled = environment["DOCK_MINIMIZE_APP_FALLBACK"] == "1"
+        fastWindowHandleEnabled = DebugSwitch.fastWindowHandle.isEnabled(in: environment)
+        axElementCacheEnabled = DebugSwitch.axElementCache.isEnabled(in: environment)
+        chipProbeEnabled = DebugSwitch.chipProbe.isEnabled(in: environment)
+        minimizeAppFallbackEnabled = DebugSwitch.minimizeAppFallback.isEnabled(in: environment)
     }
 }
 

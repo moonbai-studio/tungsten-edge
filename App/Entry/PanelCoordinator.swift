@@ -122,8 +122,7 @@ final class PanelCoordinator: NSObject {
     /// 实验开关：`DOCK_PANEL_LEVEL=<raw>` 覆盖三块任务条面板的窗口层级（默认 .floating=3）。
     /// 用途：验证「层级足够高的窗口（系统 Dock=20、菜单栏更高）是否免于被 WindowServer
     /// 烤进桌面滑动的过渡快照」——2026-08-30 连拍实锤了灰罩 = 条被烤进两侧快照后叠加滑动。
-    private static let panelLevelOverride: NSWindow.Level? = ProcessInfo.processInfo
-        .environment["DOCK_PANEL_LEVEL"].flatMap(Int.init).map { NSWindow.Level(rawValue: $0) }
+    private static let panelLevelOverride: NSWindow.Level? = DebugSwitch.panelLevel.value().flatMap(Int.init).map { NSWindow.Level(rawValue: $0) }
 
     private func makeFloatingPanel(contentRect: NSRect) -> NonConstrainingPanel {
         let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
@@ -315,7 +314,7 @@ final class PanelCoordinator: NSObject {
     /// 「常驻所有桌面」成员资格修复（issue #19）。见 `AllSpacesMembership` 的机制说明。
     /// 关掉用 `DOCK_SPACE_MEMBERSHIP_REPAIR=0`。
     private static let spaceMembershipRepairEnabled =
-        ProcessInfo.processInfo.environment["DOCK_SPACE_MEMBERSHIP_REPAIR"] != "0"
+        DebugSwitch.spaceMembershipRepair.isEnabled(in: ProcessInfo.processInfo.environment)
     private var spaceMembershipRepairInFlight = false
     private var lastActiveApplicationPID: pid_t?
     private var visibilityState = PanelVisibilityState()
@@ -2726,7 +2725,7 @@ final class PanelCoordinator: NSObject {
     }
 
     /// `DOCK_FULLSCREEN_SLS_VERDICT=0` → `.notOnThisScreen` 按老口径当 `.windowed`。
-    private static let slsVerdictEnabled = ProcessInfo.processInfo.environment["DOCK_FULLSCREEN_SLS_VERDICT"] != "0"
+    private static let slsVerdictEnabled = DebugSwitch.fullscreenSlsVerdict.isEnabled(in: ProcessInfo.processInfo.environment)
 
     /// 焦点窗口在别的屏上时，本屏的条问 SkyLight「本屏当前空间是不是原生全屏空间」
     ///（`type == 4`，按显示器隔离、0.13ms/次，`Docs/05`）。读不到 → nil = 「无信息」。
@@ -2747,7 +2746,7 @@ final class PanelCoordinator: NSObject {
     /// 而不是 Logger/os_log——沙箱环境读不了 `log show`/`log stream`，只有落到重定向文件里的
     /// print() 能直接读回。AppDelegate 已对 stdout 做行缓冲（`setvbuf(stdout, nil, _IOLBF, 0)`），
     /// 这里不需要额外处理缓冲。
-    static let edgeHoverTraceEnabled = ProcessInfo.processInfo.environment["DOCK_EDGEHOVER_TRACE"] == "1"
+    static let edgeHoverTraceEnabled = DebugSwitch.edgehoverTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private var hoverLastScreenIndex: Int? = nil
     private var hoverLastInHotZone: Bool? = nil
     private var hoverSwitchTimer: Timer?

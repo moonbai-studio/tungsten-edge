@@ -224,7 +224,7 @@ struct ChipHoverProgress<Content: View>: View, Animatable {
 }
 
 enum ChipAnimationTrace {
-    private static let enabled = ProcessInfo.processInfo.environment["DOCK_CHIP_ANIM_TRACE"] == "1"
+    private static let enabled = DebugSwitch.chipAnimTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private static let runtime = Runtime()
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.caye.macosdockcc.v2",

@@ -17,7 +17,7 @@ import QuartzCore
 ///
 /// 落盘在 `~/Library/Logs/com.caye.macosdockcc.v2/hover-trace.jsonl`。
 enum HoverTrace {
-    static let isEnabled = ProcessInfo.processInfo.environment["DOCK_HOVER_TRACE"] == "1"
+    static let isEnabled = DebugSwitch.hoverTrace.isEnabled(in: ProcessInfo.processInfo.environment)
 
     /// chip 报告悬停进入 / 离开。
     static func hover(chipID: String, entered: Bool) {

@@ -11,7 +11,7 @@ import Foundation
 /// 按 `windowID` 配对，不改任何既有函数签名（执行在另一个线程上，串不了 task-local）。
 /// 同一张卡连点两下会重叠，诊断场景可接受：`end` 按发生顺序成对刷出。
 enum ClickLatencyTrace {
-    static let isEnabled = ProcessInfo.processInfo.environment["DOCK_CLICK_TRACE"] == "1"
+    static let isEnabled = DebugSwitch.clickTrace.isEnabled(in: ProcessInfo.processInfo.environment)
 
     /// 一次点击的开始。`kind` = 规划出来的动作，`status` = 快照里的窗口状态（分类用）。
     static func begin(windowID: String, kind: String, status: String, bundleID: String?) {

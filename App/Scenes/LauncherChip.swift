@@ -74,7 +74,7 @@ struct LauncherChip: View {
     /// planner / frontmost 轴（AGENTS）。
     @State private var isTapPressed = false
     private static let launchTraceEnabled =
-        ProcessInfo.processInfo.environment["DOCK_LAUNCH_TRACE"] == "1"
+        DebugSwitch.launchTrace.isEnabled(in: ProcessInfo.processInfo.environment)
 
     private var isHovering: Bool {
         guard !hoverSuppressed else { return false }

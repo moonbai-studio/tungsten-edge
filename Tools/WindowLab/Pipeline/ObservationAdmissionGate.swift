@@ -286,16 +286,10 @@ final class ObservationAdmissionGate {
         case strict
         case legacy
 
+        /// 曾经可由两个环境变量切到 `.legacy`；那两个开关 2026-08 已作废（window-inventory 规则），
+        /// 2026-09-05 随开关登记表清理掉，只剩 `.strict`。
         static func current(environment: [String: String] = ProcessInfo.processInfo.environment) -> Mode {
-            #if DEBUG
-            if environment["DOCK_INVENTORY_FIRST_ENABLED"] == "0" {
-                return .legacy
-            }
-            if environment["DOCK_AX_ADMISSION_MODE"] == "legacy" {
-                return .legacy
-            }
-            #endif
-            return .strict
+            .strict
         }
     }
 

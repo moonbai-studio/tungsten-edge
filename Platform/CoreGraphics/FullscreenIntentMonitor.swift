@@ -185,7 +185,7 @@ private final class FullscreenIntentEventBridge {
     /// `DOCK_SPACE_INTENT_TRACE=1` 时的手势诊断：每 60 个手势事件汇报一次去向，
     /// 避免每秒两百条日志把事件线程拖慢。默认关，零成本。
     private static let traceEnabled =
-        ProcessInfo.processInfo.environment["DOCK_SPACE_INTENT_TRACE"] == "1"
+        DebugSwitch.spaceIntentTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private var gestureSeen: UInt64 = 0
     private var traceCounts: [String: Int] = [:]
 
@@ -548,7 +548,7 @@ final class FullscreenIntentMonitor {
     private var started = false
 
     init(
-        spaceSwitchEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_SPACE_INTENT"] != "0",
+        spaceSwitchEnabled: Bool = DebugSwitch.spaceIntent.isEnabled(in: ProcessInfo.processInfo.environment),
         onIntent: @escaping (FullscreenIntentRequest) -> Void,
         onSpaceSwitchIntent: @escaping (SpaceSwitchDirection, _ displayUUID: String) -> Void,
         onContextChange: @escaping (ContextChange) -> Void
@@ -658,7 +658,7 @@ final class FullscreenIntentMonitor {
     }
 
     private static let mainTraceEnabled =
-        ProcessInfo.processInfo.environment["DOCK_SPACE_INTENT_TRACE"] == "1"
+        DebugSwitch.spaceIntentTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private var mainTraceSeen: UInt64 = 0
     private var mainTraceCounts: [String: Int] = [:]
 

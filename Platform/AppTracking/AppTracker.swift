@@ -213,12 +213,12 @@ final class AppTracker: ObservableObject {
         onScreenWindowIDsProvider: @escaping @Sendable () -> Set<CGWindowID> = {
             AppTrackerCGWindowSnapshot.captureOnScreenWindowIDs()
         },
-        eventAXAsyncEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_EVENT_AX_ASYNC"] != "0",
-        periodicAXTimeoutMS: Int = Int(ProcessInfo.processInfo.environment["DOCK_RECONCILE_AX_TIMEOUT_MS"] ?? "") ?? 100,
-        reconcileSkipEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_RECONCILE_SKIP"] != "0",
-        scanGateEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_SCAN_GATE"] != "0",
-        frontmostCacheEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_FRONTMOST_CACHE"] != "0",
-        cgSnapshotReuseEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_CG_SNAPSHOT_REUSE"] != "0",
+        eventAXAsyncEnabled: Bool = DebugSwitch.eventAxAsync.isEnabled(in: ProcessInfo.processInfo.environment),
+        periodicAXTimeoutMS: Int = Int(DebugSwitch.reconcileAxTimeoutMs.value(in: ProcessInfo.processInfo.environment) ?? "") ?? 100,
+        reconcileSkipEnabled: Bool = DebugSwitch.reconcileSkip.isEnabled(in: ProcessInfo.processInfo.environment),
+        scanGateEnabled: Bool = DebugSwitch.scanGate.isEnabled(in: ProcessInfo.processInfo.environment),
+        frontmostCacheEnabled: Bool = DebugSwitch.frontmostCache.isEnabled(in: ProcessInfo.processInfo.environment),
+        cgSnapshotReuseEnabled: Bool = DebugSwitch.cgSnapshotReuse.isEnabled(in: ProcessInfo.processInfo.environment),
         uptimeProvider: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
         displayTableProvider: @escaping @MainActor () -> WindowDisplayAttribution.Table = { .empty }
     ) {
@@ -1012,7 +1012,7 @@ final class AppTracker: ObservableObject {
         return .pinnedToTarget
     }
 
-    private static let displayTraceEnabled = ProcessInfo.processInfo.environment["DOCK_DISPLAY_TRACE"] == "1"
+    private static let displayTraceEnabled = DebugSwitch.displayTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private let displayTraceLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "display-trace")
 
     @discardableResult
@@ -1039,7 +1039,7 @@ final class AppTracker: ObservableObject {
     private func seedRunningApps() {
         let seedStart = Date()
         // 环境变量 DOCK_SEED_AX_TIMEOUT_MS：0 = 回退旧无超时读；其他值覆盖毫秒数；缺省 100ms。
-        let timeoutMS = ProcessInfo.processInfo.environment["DOCK_SEED_AX_TIMEOUT_MS"]
+        let timeoutMS = DebugSwitch.seedAxTimeoutMs.value(in: ProcessInfo.processInfo.environment)
         let useTimeout: Bool
         var messagingTimeout: TimeInterval = 0.1
         if let ms = timeoutMS, let val = Int(ms) {

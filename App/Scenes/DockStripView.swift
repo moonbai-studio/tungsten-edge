@@ -2803,7 +2803,7 @@ private struct WheelScrollInterceptorRepresentable: NSViewRepresentable {
 
 private final class WheelScrollInterceptorView: NSView {
     /// 默认关的诊断：`DOCK_STRIP_WHEEL_TRACE=1` 才打。
-    private static let trace = ProcessInfo.processInfo.environment["DOCK_STRIP_WHEEL_TRACE"] == "1"
+    private static let trace = DebugSwitch.stripWheelTrace.isEnabled(in: ProcessInfo.processInfo.environment)
 
     private weak var scrollView: NSScrollView?
     private var reportedMissingScrollView = false
@@ -3048,7 +3048,7 @@ private struct StripPointerTracker: NSViewRepresentable {
         /// 关掉轮询、只留跟踪区自己的 `.mouseMoved`（`DOCK_STRIP_HOVER_POLL=0`）。
         /// 留着它才有办法回答「轮询到底是不是必需的」——2026-08-17 就是靠这个 A/B 定的。
         static let pollingEnabled =
-            ProcessInfo.processInfo.environment["DOCK_STRIP_HOVER_POLL"] != "0"
+            DebugSwitch.stripHoverPoll.isEnabled(in: ProcessInfo.processInfo.environment)
 
         var onMove: ((CGPoint?) -> Void)?
         private var area: NSTrackingArea?

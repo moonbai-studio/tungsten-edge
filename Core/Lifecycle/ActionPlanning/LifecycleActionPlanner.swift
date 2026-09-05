@@ -53,7 +53,7 @@ final class LifecycleActionPlanner {
     private let isAppFrontmost: (pid_t) -> Bool
     /// 陈旧 active 护栏杀开关（默认开）。关掉即回「快照/乐观 active + 前台 = 收起」旧判定。
     private static let staleActiveGuardEnabled =
-        ProcessInfo.processInfo.environment["DOCK_STALE_ACTIVE_GUARD"] != "0"
+        DebugSwitch.staleActiveGuard.isEnabled(in: ProcessInfo.processInfo.environment)
 
     init(isAppFrontmost: @escaping (pid_t) -> Bool = {
         NSRunningApplication(processIdentifier: $0)?.isActive == true

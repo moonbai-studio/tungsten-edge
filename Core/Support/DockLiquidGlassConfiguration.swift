@@ -95,64 +95,64 @@ struct DockLiquidGlassConfiguration: Equatable {
             // 那是探路期该有的样子；观感验收通过之后再留着默认关，只会造成"跑错实例"——
             // 系统重启后自动拉起的进程不带环境变量，看到的就是没有玻璃的旧观感（真发生过）。
             // `=0` 仍是关掉它的开关，macOS 12–25 走 `renderPath` 里的毛玻璃回退，与此无关。
-            isEnabled: trimmed(environment["DOCK_LIQUID_GLASS"]) != "0",
+            isEnabled: trimmed(DebugSwitch.liquidGlass.value(in: environment)) != "0",
             clearTintOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_CLEAR_TINT"],
+                DebugSwitch.liquidGlassClearTint.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0.4
             ),
             whiteOverlayOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_WHITE_OVERLAY"],
+                DebugSwitch.liquidGlassWhiteOverlay.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0
             ),
             dimmingOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_DIMMING"],
+                DebugSwitch.liquidGlassDimming.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0
             ),
             borderPeakOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER"],
+                DebugSwitch.liquidGlassBorder.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0.75
             ),
             borderEdgeLevel: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER_EDGE"],
+                DebugSwitch.liquidGlassBorderEdge.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0.5
             ),
             borderCornerCut: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER_CUT"],
+                DebugSwitch.liquidGlassBorderCut.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0.92
             ),
             borderCornerSpread: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER_SPREAD"],
+                DebugSwitch.liquidGlassBorderSpread.value(in: environment),
                 range: 0.5 ... 6,
                 fallback: 2.2
             ),
             borderLineWidth: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER_WIDTH"],
+                DebugSwitch.liquidGlassBorderWidth.value(in: environment),
                 range: 0 ... 4,
                 fallback: 0.5
             ),
             borderInnerOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BORDER_INNER"],
+                DebugSwitch.liquidGlassBorderInner.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0.21
             ),
             backgroundMaterialOpacity: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_BACKGROUND_OPACITY"],
+                DebugSwitch.liquidGlassBackgroundOpacity.value(in: environment),
                 range: 0 ... 1,
                 fallback: 0
             ),
             windowBlurRadius: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_WINDOW_BLUR"],
+                DebugSwitch.liquidGlassWindowBlur.value(in: environment),
                 range: 0 ... 64,
                 fallback: 0
             ),
             contentInset: boundedDouble(
-                environment["DOCK_LIQUID_GLASS_CONTENT_INSET"],
+                DebugSwitch.liquidGlassContentInset.value(in: environment),
                 range: 0 ... 12,
                 fallback: 4
             ),

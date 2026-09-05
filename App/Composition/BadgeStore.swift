@@ -37,8 +37,8 @@ final class BadgeStore: ObservableObject {
 
     init(
         reader: any DockBadgeReading = DockBadgeReader(),
-        targetedEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_BADGE_TARGETED"] != "0",
-        pauseEnabled: Bool = ProcessInfo.processInfo.environment["DOCK_BADGE_PAUSE"] != "0",
+        targetedEnabled: Bool = DebugSwitch.badgeTargeted.isEnabled(in: ProcessInfo.processInfo.environment),
+        pauseEnabled: Bool = DebugSwitch.badgePause.isEnabled(in: ProcessInfo.processInfo.environment),
         uptimeProvider: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) {
         self.reader = reader

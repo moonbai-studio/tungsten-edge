@@ -17,7 +17,7 @@ enum ScrollReverserDecision {
         settingEnabled: Bool,
         environment: [String: String]
     ) -> Bool {
-        settingEnabled && environment["DOCK_SCROLL_REVERSER"] != "0"
+        settingEnabled && DebugSwitch.scrollReverser.isEnabled(in: environment)
     }
 
     /// 只反转离散滚轮（`scrollWheelEventIsContinuous == 0` = 带格子的鼠标滚轮）。

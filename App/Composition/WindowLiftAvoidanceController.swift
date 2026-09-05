@@ -422,14 +422,14 @@ final class WindowLiftAvoidanceController {
     func start(environment: [String: String] = ProcessInfo.processInfo.environment) {
         guard !isEnabled else { return }
         guard isEnabledBySetting else { return }
-        guard environment["DOCK_WINDOW_LIFT"] != "0" else {
+        guard DebugSwitch.windowLift.isEnabled(in: environment) else {
             logger.info("window lift disabled by DOCK_WINDOW_LIFT=0")
             return
         }
 
         isEnabled = true
-        usesAnimatedLift = environment["DOCK_WINDOW_LIFT_ANIM"] != "0"
-        traceEnabled = environment["DOCK_WINDOW_LIFT_TRACE"] == "1"
+        usesAnimatedLift = DebugSwitch.windowLiftAnim.isEnabled(in: environment)
+        traceEnabled = DebugSwitch.windowLiftTrace.isEnabled(in: environment)
         periodicPollCount = 0
         eventPollCount = 0
         trailingEventPollCount = 0

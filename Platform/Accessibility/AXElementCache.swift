@@ -27,7 +27,7 @@ final class AXElementCache: @unchecked Sendable {
     static let shared = AXElementCache()
 
     /// `DOCK_AX_ELEMENT_CACHE=0` 关掉最快那一档，回到既有的 fast / fallback 两档。
-    static let isEnabled = ProcessInfo.processInfo.environment["DOCK_AX_ELEMENT_CACHE"] != "0"
+    static let isEnabled = DebugSwitch.axElementCache.isEnabled(in: ProcessInfo.processInfo.environment)
 
     struct Key: Hashable {
         let pid: pid_t

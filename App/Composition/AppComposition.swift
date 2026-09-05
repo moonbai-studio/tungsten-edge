@@ -33,7 +33,7 @@ final class AppRuntime: ObservableObject {
     /// 占位显示），写进清单就落空、卡回主屏（owner 2026-09-02 第四轮）。这个 app 一有真窗口就清掉，
     /// 之后由清单里「窗口最后所在的屏」接管。投影层：显式住址 > 清单里的最后所在屏 > 主屏。
     @Published private(set) var noWindowHomeByBundle: [String: String] = [:]
-    private static let displayTraceEnabled = ProcessInfo.processInfo.environment["DOCK_DISPLAY_TRACE"] == "1"
+    private static let displayTraceEnabled = DebugSwitch.displayTrace.isEnabled(in: ProcessInfo.processInfo.environment)
     private let displayTraceLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "display-trace")
     /// 「窗口出现门控」（2026-06-18）：用户从抽屉点击启动的 app，在它拿到真窗口
     /// 之前先记在这里。抽屉据此把它**留在启动区继续弹跳**，不在「进程一出现」就提前
@@ -84,14 +84,14 @@ final class AppRuntime: ObservableObject {
     private let debugSnapshotLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "debug-snapshot")
     private let chipProbeLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "ChipProbe")
     private let launchLogger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "Launch")
-    private static let launchTraceEnabled = ProcessInfo.processInfo.environment["DOCK_LAUNCH_TRACE"] == "1"
-    private static let chipProbeEnabled = ProcessInfo.processInfo.environment["DOCK_CHIP_PROBE"] == "1"
+    private static let launchTraceEnabled = DebugSwitch.launchTrace.isEnabled(in: ProcessInfo.processInfo.environment)
+    private static let chipProbeEnabled = DebugSwitch.chipProbe.isEnabled(in: ProcessInfo.processInfo.environment)
     /// 最小化沉降门杀开关（默认开）。关掉时既不记 minimize 锚也不 hold，派发路径与旧行为逐位一致。
-    private static let settleGateEnabled = ProcessInfo.processInfo.environment["DOCK_MINIMIZE_SETTLE_GATE"] != "0"
+    private static let settleGateEnabled = DebugSwitch.minimizeSettleGate.isEnabled(in: ProcessInfo.processInfo.environment)
     /// 过渡宽限杀开关（默认开）。关掉时兄弟顶替清除回到 2026-08-22 原语义（无过渡豁免）。
-    private static let handoffActiveGraceEnabled = ProcessInfo.processInfo.environment["DOCK_HANDOFF_ACTIVE_GRACE"] != "0"
+    private static let handoffActiveGraceEnabled = DebugSwitch.handoffActiveGrace.isEnabled(in: ProcessInfo.processInfo.environment)
     /// 交接预测杀开关（默认开）。关掉时收起交接不再给接手窗口写乐观 .active 预测。
-    private static let handoffActivePredictionEnabled = ProcessInfo.processInfo.environment["DOCK_HANDOFF_ACTIVE_PREDICTION"] != "0"
+    private static let handoffActivePredictionEnabled = DebugSwitch.handoffActivePrediction.isEnabled(in: ProcessInfo.processInfo.environment)
     private static let launchPolicyRecheckDeadlines: [TimeInterval] = [1.5, 3.0, 5.0]
 
     init(

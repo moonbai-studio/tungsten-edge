@@ -292,7 +292,7 @@ enum DragLandingPlan {
 /// 归位飞行的开关。新手感一律带退路（同 `ChipPressSwitches`）：万一在实机上和重排、
 /// 跨面板收纳打架，owner 能立刻退回瞬时收尾，不用等重新打包。
 enum DragLandingSwitches {
-    static let enabled = ProcessInfo.processInfo.environment["DOCK_DRAG_LANDING"] != "0"
+    static let enabled = DebugSwitch.dragLanding.isEnabled(in: ProcessInfo.processInfo.environment)
 
     /// 归位飞行时长的现场调速旋钮：`DOCK_DRAG_FLIGHT_MS=<最短>,<最长>`（毫秒，例 `320,500`）。
     ///
@@ -302,6 +302,6 @@ enum DragLandingSwitches {
     ///
     /// 解析不合法（缺一半、非数、非正、最短 > 最长）一律当没设，绝不半套生效。
     static let flightDurations: (minimum: TimeInterval, maximum: TimeInterval)? =
-        ProcessInfo.processInfo.environment["DOCK_DRAG_FLIGHT_MS"]
+        DebugSwitch.dragFlightMs.value(in: ProcessInfo.processInfo.environment)
             .flatMap(DragLandingPlan.parseFlightDurations)
 }
