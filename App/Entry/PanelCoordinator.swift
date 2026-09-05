@@ -124,13 +124,31 @@ final class PanelCoordinator: NSObject {
     /// 烤进桌面滑动的过渡快照」——2026-08-30 连拍实锤了灰罩 = 条被烤进两侧快照后叠加滑动。
     private static let panelLevelOverride: NSWindow.Level? = DebugSwitch.panelLevel.value().flatMap(Int.init).map { NSWindow.Level(rawValue: $0) }
 
-    private func makeFloatingPanel(contentRect: NSRect) -> NonConstrainingPanel {
+    /// `usesLiquidGlass` 由调用方显式传：`setupDockPanel` 里玻璃底板刚建好、还没赋给
+    /// `dockGlassBackgroundPanel`，此时读计算属性会错判成「无玻璃」建出普通面板。
+    private func makeFloatingPanel(contentRect: NSRect, usesLiquidGlass: Bool) -> NonConstrainingPanel {
         let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel]
         return usesLiquidGlass
             ? DockLiquidGlassPanel(contentRect: contentRect, styleMask: styleMask,
                                    backing: .buffered, defer: false)
             : NonConstrainingPanel(contentRect: contentRect, styleMask: styleMask,
                                    backing: .buffered, defer: false)
+    }
+
+    /// 六块面板共用的窗口配置（2026-09-05 从六处逐字相同的复制收拢）。**顺序承重**：
+    /// `isFloatingPanel = true` 会把 `level` 重置回 `.floating`，实验层级覆盖必须排在它之后；
+    /// 只有三块常驻面板（任务条 / 玻璃底板 / 胶囊）吃 `DOCK_PANEL_LEVEL` 覆盖，抽屉 / 弹窗 / 气泡不吃。
+    /// `PanelCollectionBehavior.standard` 的赋值点就此只剩这里和 issue #19 的修复循环。
+    private func configurePanel(_ panel: NSPanel, backgroundColor: NSColor, appliesLevelOverride: Bool) {
+        panel.level = .floating
+        panel.collectionBehavior = PanelCollectionBehavior.standard
+        panel.isFloatingPanel = true
+        if appliesLevelOverride, let level = Self.panelLevelOverride { panel.level = level }
+        panel.isMovable = false
+        panel.isOpaque = false
+        panel.backgroundColor = backgroundColor
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
     }
 
     private var taskbarPlateCornerRadius: CGFloat {
@@ -611,16 +629,10 @@ final class PanelCoordinator: NSObject {
     private func ensureDrawerHost(maxContentHeight: CGFloat) -> (NSPanel, NSHostingView<DrawerRootView>)? {
         if drawerPanel == nil {
             let panel = makeFloatingPanel(
-                contentRect: NSRect(origin: .zero, size: lastDrawerSize)
+                contentRect: NSRect(origin: .zero, size: lastDrawerSize),
+                usesLiquidGlass: usesLiquidGlass
             )
-            panel.level = .floating
-            panel.collectionBehavior = PanelCollectionBehavior.standard
-            panel.isFloatingPanel = true
-            panel.isMovable = false
-            panel.isOpaque = false
-            panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
-            panel.hasShadow = false
-            panel.hidesOnDeactivate = false
+            configurePanel(panel, backgroundColor: NSColor(white: 1.0, alpha: 0.0), appliesLevelOverride: false)
             drawerPanel = panel
         }
         guard let panel = drawerPanel else { return nil }
@@ -814,16 +826,10 @@ final class PanelCoordinator: NSObject {
 
         if folderPopupPanel == nil {
             let panel = makeFloatingPanel(
-                contentRect: NSRect(origin: .zero, size: lastPopupSize)
+                contentRect: NSRect(origin: .zero, size: lastPopupSize),
+                usesLiquidGlass: usesLiquidGlass
             )
-            panel.level = .floating
-            panel.collectionBehavior = PanelCollectionBehavior.standard
-            panel.isFloatingPanel = true
-            panel.isMovable = false
-            panel.isOpaque = false
-            panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
-            panel.hasShadow = false
-            panel.hidesOnDeactivate = false
+            configurePanel(panel, backgroundColor: NSColor(white: 1.0, alpha: 0.0), appliesLevelOverride: false)
             folderPopupPanel = panel
         }
         guard let panel = folderPopupPanel else { return }
@@ -1262,15 +1268,8 @@ final class PanelCoordinator: NSObject {
         if let existing = windowTitleTooltipPanel {
             panel = existing
         } else {
-            let created = makeFloatingPanel(contentRect: .zero)
-            created.level = .floating
-            created.collectionBehavior = PanelCollectionBehavior.standard
-            created.isFloatingPanel = true
-            created.isMovable = false
-            created.isOpaque = false
-            created.backgroundColor = .clear
-            created.hasShadow = false
-            created.hidesOnDeactivate = false
+            let created = makeFloatingPanel(contentRect: .zero, usesLiquidGlass: usesLiquidGlass)
+            configurePanel(created, backgroundColor: .clear, appliesLevelOverride: false)
             created.ignoresMouseEvents = true
             windowTitleTooltipPanel = created
             panel = created
@@ -1467,29 +1466,8 @@ final class PanelCoordinator: NSObject {
         // 而且投放区/弹簧区/「鼠标还在条上」这些判定全都按「窗口 frame 减 shadowPadding」
         // 换算（`dragDropZones` / `springZone` / `isMouseOutsideInteractivePanels`）。
         // 缩窗口会让这一整批坐标一起错位。
-        let panel: NonConstrainingPanel = usesLiquidGlass
-            ? DockLiquidGlassPanel(
-                contentRect: legacyInitialFrame,
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            : NonConstrainingPanel(
-                contentRect: legacyInitialFrame,
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-        panel.level = .floating
-        panel.collectionBehavior = PanelCollectionBehavior.standard
-        panel.isFloatingPanel = true
-        // isFloatingPanel=true 会把 level 重置回 .floating，实验覆盖必须在它之后。
-        if let level = Self.panelLevelOverride { panel.level = level }
-        panel.isMovable = false
-        panel.isOpaque = false
-        panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
+        let panel = makeFloatingPanel(contentRect: legacyInitialFrame, usesLiquidGlass: usesLiquidGlass)
+        configurePanel(panel, backgroundColor: NSColor(white: 1.0, alpha: 0.0), appliesLevelOverride: true)
 
         let hosting = NSHostingView(rootView: DockStripView(
             usesLiquidGlass: usesLiquidGlass,
@@ -1543,16 +1521,7 @@ final class PanelCoordinator: NSObject {
             backing: .buffered,
             defer: false
         )
-        panel.level = .floating
-        panel.collectionBehavior = PanelCollectionBehavior.standard
-        panel.isFloatingPanel = true
-        // isFloatingPanel=true 会把 level 重置回 .floating，实验覆盖必须在它之后。
-        if let level = Self.panelLevelOverride { panel.level = level }
-        panel.isMovable = false
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
+        configurePanel(panel, backgroundColor: .clear, appliesLevelOverride: true)
         panel.ignoresMouseEvents = true
         // 下面的失败分支会 close() 一个从未 order in 过的窗口；NSWindow 默认 close 即释放，
         // 而这里还持有着强引用。
@@ -1633,18 +1602,10 @@ final class PanelCoordinator: NSObject {
         let panel = makeFloatingPanel(
             contentRect: NSRect(origin: .zero,
                                 size: CGSize(width: capsuleWidth + Self.shadowPadding * 2,
-                                             height: capsuleWidth + Self.shadowPadding * 2))
+                                             height: capsuleWidth + Self.shadowPadding * 2)),
+            usesLiquidGlass: usesLiquidGlass
         )
-        panel.level = .floating
-        panel.collectionBehavior = PanelCollectionBehavior.standard
-        panel.isFloatingPanel = true
-        // isFloatingPanel=true 会把 level 重置回 .floating，实验覆盖必须在它之后。
-        if let level = Self.panelLevelOverride { panel.level = level }
-        panel.isMovable = false
-        panel.isOpaque = false
-        panel.backgroundColor = NSColor(white: 1.0, alpha: 0.0)
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
+        configurePanel(panel, backgroundColor: NSColor(white: 1.0, alpha: 0.0), appliesLevelOverride: true)
         let hosting = NSHostingView(rootView:
             DrawerCapsuleButton(
                 onRequestTaskbarMenu: { [weak self] event, view in
