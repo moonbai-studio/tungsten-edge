@@ -15,6 +15,7 @@ DD="$ROOT/build/ReleaseDD"
 DIST="$ROOT/dist"
 PRODUCTS="$DD/Build/Products/Release"
 BUILD_LOG="${TMPDIR:-/tmp}/tungsten-edge-package-build.log"
+TEST_LOG="${TMPDIR:-/tmp}/tungsten-edge-package-tests.log"
 
 DEVELOPER_ID_APPLICATION="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Suzhou Mubai Creativity Design Co., Ltd. (DRPT2MJQD5)}"
 NOTARY_KEYCHAIN_PROFILE="${NOTARY_KEYCHAIN_PROFILE:-tungsten-edge-notary}"
@@ -250,6 +251,23 @@ require_resolved_value EXECUTABLE_NAME "$EXECUTABLE_NAME"
 echo "==> Release $VERSION ($BUILD_NUMBER)"
 echo "==> Signing identity: $DEVELOPER_ID_APPLICATION"
 echo "==> Notary profile: $NOTARY_KEYCHAIN_PROFILE"
+
+# Release gates (2026-09-05). Both run before anything is built or replaced, and neither
+# has a skip switch on purpose: a missing zh-Hans key is invisible at compile time and
+# already cost a version number (v0.9.8), and nothing else ever ran the unit tests
+# before a tag. Same -derivedDataPath as the Release build so SwiftPM resolves once.
+echo "==> Gate: localization catalog"
+require_command python3
+python3 "$ROOT/Scripts/check_localization.py" || die "localization check failed - fix the catalog before packaging"
+
+echo "==> Gate: unit tests (log: $TEST_LOG)"
+if ! xcodebuild test -project "$PROJECT" -scheme "$SCHEME" -configuration Debug \
+  -derivedDataPath "$DD" -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO >"$TEST_LOG" 2>&1; then
+  grep -E 'error: -\[|Executed [0-9]+ tests' "$TEST_LOG" | tail -n 20 >&2 || true
+  die "unit tests failed - see $TEST_LOG"
+fi
+grep -E 'Executed [0-9]+ tests, with 0 failures' "$TEST_LOG" | tail -n 1
 
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/tungsten-edge-release.XXXXXX")"
 STAGE="$TEMP_ROOT/stage"
