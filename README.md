@@ -200,9 +200,34 @@ The names "Tungsten Edge" and "钨极" and the logo are trademarks and are not c
 
 Release notes for every version are archived under [`Docs/Archive/Releases/`](Docs/Archive/Releases).
 
-Build & run:
+**Build & run** (kills any running instance, builds Debug, re-signs, launches — never run a bare `xcodebuild` + `open`, the app's Accessibility grant follows the signing identity):
 
 ```bash
-./Scripts/build_and_run.sh
+./Scripts/build_and_run.sh          # dev loop
+./Scripts/build_and_run.sh --lab    # window-lab diagnostic CLI
 ```
+
+**Tests** (1,300 XCTest cases, ~40 s; the same command CI runs on every push):
+
+```bash
+xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2 \
+  -derivedDataPath build/DerivedData -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+python3 Scripts/check_localization.py     # every String(localized:) has a zh-Hans entry
+python3 Scripts/check_debug_switches.py   # every DOCK_* env switch is registered
+```
+
+**How the code is laid out** — one Xcode target, four folders that only point downward:
+
+| Folder | What lives there | Rule of thumb |
+|---|---|---|
+| `Core/` | Pure decisions: identity rules, placement, lifecycle planning, ~50 small `…Decision` / `…Plan` / `…Policy` types in `Core/Support` | No AppKit, no AX. If a behaviour can be expressed as a pure function of facts, it goes here and gets a unit test. |
+| `Platform/` | The system adapters: Accessibility (`AXWindowReader`, `AccessibilitySource`), CoreGraphics window lists, the fullscreen / Spaces event taps, Finder | Talks to macOS, hands facts up to Core. `AppTracker` here is the single window-inventory authority. |
+| `App/` | Composition and UI: `AppDelegate` wires the object graph, `PanelCoordinator` owns the five `NSPanel`s, `DockStripView` renders the strip, the `…Store` classes persist user choices in `UserDefaults` | Big types are split by responsibility into `Type+Topic.swift` extension files. |
+| `Tools/WindowLab/` | A replay CLI for window-identity scenarios; the old observation pipeline lives only here | Not part of the shipping app. |
+
+Two habits keep it maintainable: decision logic is extracted into `Core/Support` *before* it is wired into a view or controller (that is why the test suite is large without a UI harness), and every `DOCK_*` environment switch is declared in `Core/Support/DebugSwitch.swift` with its polarity and purpose.
+
+**Signing.** The Xcode project signs with a local certificate on purpose; the real Developer ID signature, hardened runtime, notarization and packaging happen in `Scripts/package_release.sh` (fail-closed: it will not produce `dist/` unless every check passes). `Scripts/install_local_release.sh` installs the same signed build into `/Applications` for daily use.
+
+**Contributing.** Open an issue first for anything beyond a small fix — the bug template asks for the details that make window-identification problems reproducible. The UI ships in English and Simplified Chinese; new user-facing strings need both.
 </content>

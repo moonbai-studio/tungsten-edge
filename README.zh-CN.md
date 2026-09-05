@@ -188,9 +188,34 @@ Copyright (C) 2026 Moonbai Studio.
 
 每个版本的发布说明归档在 [`Docs/Archive/Releases/`](Docs/Archive/Releases)。
 
-构建运行：
+**构建运行**（先结束正在跑的实例、编 Debug、重新签名、再启动——别手工 `xcodebuild` + `open`，辅助功能授权跟着签名身份走）：
 
 ```bash
-./Scripts/build_and_run.sh
+./Scripts/build_and_run.sh          # 日常开发循环
+./Scripts/build_and_run.sh --lab    # window-lab 诊断命令行
 ```
+
+**测试**（1,300 个 XCTest 用例，约 40 秒；CI 每次推送跑的就是这条命令）：
+
+```bash
+xcodebuild test -project macos-dock-cc-v2.xcodeproj -scheme macos-dock-cc-v2 \
+  -derivedDataPath build/DerivedData -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+python3 Scripts/check_localization.py     # 每条 String(localized:) 都有中文
+python3 Scripts/check_debug_switches.py   # 每个 DOCK_* 环境开关都已登记
+```
+
+**代码怎么分层** —— 一个 Xcode 目标，四个只向下依赖的目录：
+
+| 目录 | 放什么 | 判断口径 |
+|---|---|---|
+| `Core/` | 纯判定：窗口身份规则、落位、生命周期规划，`Core/Support` 里约 50 个小的 `…Decision` / `…Plan` / `…Policy` 类型 | 不碰 AppKit、不碰 AX。凡是能写成「事实 → 结论」的纯函数都放这里，并配单元测试。 |
+| `Platform/` | 系统适配层：辅助功能（`AXWindowReader`、`AccessibilitySource`）、CoreGraphics 窗口列表、全屏 / 桌面切换事件 tap、访达 | 跟 macOS 打交道，把事实交给 Core。这里的 `AppTracker` 是窗口清单的唯一权威。 |
+| `App/` | 组装与界面：`AppDelegate` 装配对象图，`PanelCoordinator` 持有五块 `NSPanel`，`DockStripView` 画任务条，各 `…Store` 用 `UserDefaults` 记用户选择 | 大类型按职责拆成 `类型+主题.swift` 的 extension 文件。 |
+| `Tools/WindowLab/` | 窗口身份场景的回放命令行；旧观测管线只留在这里 | 不进正式 App。 |
+
+两个习惯让它一直可维护：判定逻辑先抽进 `Core/Support` 再接进视图或控制器（所以没有界面测试框架也能有这么多测试）；每个 `DOCK_*` 环境开关都登记在 `Core/Support/DebugSwitch.swift`，写明极性和用途。
+
+**签名。** Xcode 工程有意只用本地证书签名；真正的 Developer ID 签名、强化运行时、公证和打包都在 `Scripts/package_release.sh`（fail-closed：任何一项检查不过就不会生成 `dist/`）。`Scripts/install_local_release.sh` 把同样签好的包装进「应用程序」供日常使用。
+
+**参与贡献。** 小修以外的改动请先开 issue——bug 模板会问到让窗口识别问题可复现的细节。界面同时提供英文和简体中文，新增面向用户的文案两种都要。
 </content>
