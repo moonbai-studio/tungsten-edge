@@ -44,6 +44,7 @@ jobs:
       - name: Unit tests
         run: |
           set -o pipefail
+          mkdir -p build
           xcodebuild test \
             -project macos-dock-cc-v2.xcodeproj \
             -scheme macos-dock-cc-v2 \
