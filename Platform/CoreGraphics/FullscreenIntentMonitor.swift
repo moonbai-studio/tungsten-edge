@@ -487,7 +487,8 @@ final class FullscreenIntentMonitor {
         case windowDestroyed(CGWindowID?)
     }
 
-    private struct AXReadResult {
+    /// `AXUIElement` 是不可变的 CF 句柄，跨线程传递安全；`@unchecked` 只是替 ApplicationServices 补上它没标的 Sendable。
+    private struct AXReadResult: @unchecked Sendable {
         let element: AXUIElement
         let pid: pid_t
         let windowID: CGWindowID

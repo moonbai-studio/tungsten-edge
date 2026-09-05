@@ -333,7 +333,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
 
         let changed = tracker.reconcileFixtureForTesting(
             pid: pid,
-            cgSnapshot: emptyCGSnapshot(),
+            cgSnapshot: Self.emptyCGSnapshot(),
             now: Date(timeIntervalSince1970: 100),
             eligible: [],
             readOutcome: .unread(errorCode: AXError.cannotComplete.rawValue)
@@ -547,7 +547,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
 
         _ = tracker.reconcileFixtureForTesting(
             pid: pid,
-            cgSnapshot: emptyCGSnapshot(),
+            cgSnapshot: Self.emptyCGSnapshot(),
             now: Date(timeIntervalSince1970: 100),
             eligible: [],
             readOutcome: .success(count: 0)
@@ -777,7 +777,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: FixedAppTrackerProcessProvider(pid: pid),
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: true
         )
@@ -801,7 +801,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: FixedAppTrackerProcessProvider(pid: pid),
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: true
         )
@@ -822,7 +822,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: FixedAppTrackerProcessProvider(pid: pid),
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: true
         )
@@ -842,7 +842,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: FixedAppTrackerProcessProvider(pid: pid),
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: true
         )
@@ -863,7 +863,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: processProvider,
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: true
         )
@@ -883,7 +883,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         let tracker = AppTracker(
             reader: reader,
             processProvider: FixedAppTrackerProcessProvider(pid: pid),
-            cgSnapshotProvider: { self.emptyCGSnapshot() },
+            cgSnapshotProvider: { Self.emptyCGSnapshot() },
             onScreenWindowIDsProvider: { [] },
             eventAXAsyncEnabled: false
         )
@@ -985,7 +985,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         }
     }
 
-    private nonisolated func emptyCGSnapshot() -> AppTrackerCGWindowSnapshot {
+    private nonisolated static func emptyCGSnapshot() -> AppTrackerCGWindowSnapshot {
         AppTrackerCGWindowSnapshot(
             allWindowIDs: [],
             onScreenWindowIDs: [],

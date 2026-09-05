@@ -79,9 +79,14 @@ final class SparkleUpdateService: NSObject, ObservableObject, UpdateControlling 
         canCheckObservation = controller.updater.observe(
             \.canCheckForUpdates,
             options: [.initial, .new]
-        ) { [weak self] updater, _ in
-            let value = updater.canCheckForUpdates
-            Task { @MainActor in self?.canCheckForUpdates = value }
+        ) { [weak self] _, change in
+            // 只用 KVO 送来的 Bool（`.new` + `.initial` 保证有值），不在这个 Sendable 回调里回读
+            // `updater`——它是主 actor 隔离的对象，严格并发下不允许从这里碰。
+            guard let value = change.newValue else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.canCheckForUpdates = value
+            }
         }
     }
 

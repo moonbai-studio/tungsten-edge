@@ -500,6 +500,10 @@ final class AppRuntime: ObservableObject {
                 }
             }
             : nil
+        // 回调只在下面的执行闭包里调用一次；它自身只捕获 weak self 并开 Task 回主 actor，
+        // 跨队列传递是安全的。标 nonisolated(unsafe) 而不给闭包类型加 @Sendable：后者会让
+        // 闭包里的 `Task { @MainActor in }` 在 Xcode 26 上重载歧义。
+        nonisolated(unsafe) let handoffPrediction = onHandoffActivePrediction
         Self.actionQueue.async { [weak self] in
             // 第一个里程碑就量「派发到真正开始跑」这一段——线程池被后台 AX 读占满时，
             // 用户点击就卡在这里，而这段延迟从末端状态是完全看不出来的。
@@ -508,7 +512,7 @@ final class AppRuntime: ObservableObject {
                 request,
                 snapshot: capturedSnapshot,
                 forcedMinimizedPrior: forcedMinimizedPrior,
-                onHandoffActivePrediction: onHandoffActivePrediction
+                onHandoffActivePrediction: handoffPrediction
             )
             ClickLatencyTrace.end(windowID: request.windowID?.rawValue, success: success)
             Task { @MainActor [weak self] in

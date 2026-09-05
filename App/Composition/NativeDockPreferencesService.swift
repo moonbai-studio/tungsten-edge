@@ -48,13 +48,13 @@ final class NativeDockPreferencesService: NativeDockPreferencesServicing {
 
     private let sandbox: SandboxEnvironment
     private let runner: ShellRunner
-    private let autohideReader: () -> NativeDockAutohideState?
+    private let autohideReader: @Sendable () -> NativeDockAutohideState?
     private let urlOpener: URLOpener
     private let readerQueue = DispatchQueue(label: "com.caye.macosdockcc.v2.native-dock-reader", qos: .userInitiated)
 
     init(sandbox: SandboxEnvironment = .current,
          runner: @escaping ShellRunner = NativeDockPreferencesService.runProcess,
-         autohideReader: @escaping () -> NativeDockAutohideState? = NativeDockPreferencesService.readAutohideStateFromSystem,
+         autohideReader: @escaping @Sendable () -> NativeDockAutohideState? = { NativeDockPreferencesService.readAutohideStateFromSystem() },
          urlOpener: @escaping URLOpener = NativeDockPreferencesService.openURL) {
         self.sandbox = sandbox
         self.runner = runner

@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+@preconcurrency import ApplicationServices
 import Foundation
 
 /// Observes geometry changes for only the active app's focused window.

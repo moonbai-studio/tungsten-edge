@@ -132,7 +132,7 @@ final class DocumentUsageStore {
                     changed.append((name as NSString).deletingPathExtension)
                 }
             }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self, next, changed] in
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     self.mtimeByFile = next
@@ -150,7 +150,7 @@ final class DocumentUsageStore {
             for bid in Set(bundleIDs) {
                 tops[bid] = RecentDocumentsReader.recentDocuments(for: bid, maxCount: 1).first?.path
             }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self, tops] in
                 MainActor.assumeIsolated {
                     guard let self else { return }
                     for (bid, top) in tops { self.noteRecentSample(bundleID: bid, topPath: top) }

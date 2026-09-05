@@ -660,11 +660,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 而那正是最想量的时段。
     private func startMainLoopStallProbeIfTracing() {
         guard HoverTrace.isEnabled else { return }
-        var expected = CACurrentMediaTime() + 0.008
+        // 计时器回调是 Sendable 闭包，不能直接改捕获的 var；装进一个只在主线程用的盒子。
+        let clock = StallProbeClock(expected: CACurrentMediaTime() + 0.008)
         let timer = Timer(timeInterval: 0.008, repeats: true) { _ in
             let now = CACurrentMediaTime()
-            HoverTrace.mainLoopStall(lateMs: (now - expected) * 1000)
-            expected = now + 0.008
+            HoverTrace.mainLoopStall(lateMs: (now - clock.expected) * 1000)
+            clock.expected = now + 0.008
         }
         RunLoop.main.add(timer, forMode: .common)
         mainLoopStallProbe = timer
@@ -841,4 +842,10 @@ extension AppDelegate: NSWindowDelegate {
         window.delegate = nil
         settingsStore.setHasSeenWelcome(true)
     }
+}
+
+/// 主循环卡顿探针的时钟（只在主线程的定时器回调里读写；`@unchecked` 因为 Timer 闭包要求 Sendable）。
+private final class StallProbeClock: @unchecked Sendable {
+    var expected: CFTimeInterval
+    init(expected: CFTimeInterval) { self.expected = expected }
 }
