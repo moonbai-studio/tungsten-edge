@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */; };
+		E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000021 /* PanelCoordinator+Spaces.swift */; };
+		E90000000000000000001022 /* PanelCoordinator+Popups.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000022 /* PanelCoordinator+Popups.swift */; };
 		E90000000000000000001010 /* StripProjection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000010 /* StripProjection.swift */; };
 		E90000000000000000001011 /* ChipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000011 /* ChipView.swift */; };
 		E90000000000000000001012 /* DrawerCapsuleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000012 /* DrawerCapsuleButton.swift */; };
@@ -446,6 +449,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Tooltip.swift"; sourceTree = "<group>"; };
+		E90000000000000000000021 /* PanelCoordinator+Spaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Spaces.swift"; sourceTree = "<group>"; };
+		E90000000000000000000022 /* PanelCoordinator+Popups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PanelCoordinator+Popups.swift"; sourceTree = "<group>"; };
 		E90000000000000000000010 /* StripProjection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripProjection.swift; sourceTree = "<group>"; };
 		E90000000000000000000011 /* ChipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChipView.swift; sourceTree = "<group>"; };
 		E90000000000000000000012 /* DrawerCapsuleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerCapsuleButton.swift; sourceTree = "<group>"; };
@@ -793,6 +799,9 @@
 		A00000000000000000000024 /* Entry */ = {
 			isa = PBXGroup;
 			children = (
+				E90000000000000000000020 /* PanelCoordinator+Tooltip.swift */,
+				E90000000000000000000021 /* PanelCoordinator+Spaces.swift */,
+				E90000000000000000000022 /* PanelCoordinator+Popups.swift */,
 				A00000000000000000000001 /* MacOSDockCCV2App.swift */,
 				A00000000000000000000066 /* AppDelegate.swift */,
 				A00000000000000000008020 /* StatusMenuController.swift */,
@@ -1421,6 +1430,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+				E90000000000000000001020 /* PanelCoordinator+Tooltip.swift in Sources */,
+				E90000000000000000001021 /* PanelCoordinator+Spaces.swift in Sources */,
+				E90000000000000000001022 /* PanelCoordinator+Popups.swift in Sources */,
 				E90000000000000000001010 /* StripProjection.swift in Sources */,
 				E90000000000000000001011 /* ChipView.swift in Sources */,
 				E90000000000000000001012 /* DrawerCapsuleButton.swift in Sources */,
