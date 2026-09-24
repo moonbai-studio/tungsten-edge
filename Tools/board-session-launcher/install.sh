@@ -1,5 +1,5 @@
 #!/bin/zsh
-# 安装「Tungsten Edge 开会话」启动器小程序到 ~/Applications，让进度看板每条工作线的「▶ 开会话」按钮
+# 安装「Tungsten Edge 开会话」启动器小程序到 ~/Applications，让进度看板每条工作线的「▶ co / cf / cv」按钮
 # （tungsten-cc:// 链接）能开一个 Ghostty 窗口跑 co / cf / cv 并把开场白灌进输入框。
 # 前提：Ghostty ≥ 1.2、~/.zshrc 里有 co / cf / cv 三个别名、官网仓库在本仓库旁边（或用 WEB_DIR= 指定）。
 # 重复运行 = 整个重装（仓库挪了位置要重跑）。卸载：删掉 ~/Applications/Tungsten Edge 开会话.app。

@@ -2,7 +2,8 @@
 """Helper behind the 「Tungsten Edge 开会话」launcher applet (see launcher.applescript / install.sh).
 
 `parse <url>`  validates a tungsten-cc://open link from the board, stashes the opener text
-               and target directory, prints "line / default alias / directory label".
+               and target directory, prints "line / alias / directory label" (the applet launches
+               that alias straight away — no model picker since 2026-09-25).
 `launch <alias>` opens one Ghostty window in the stashed directory running that shell alias,
                with the opener pre-typed (bracketed paste, so Claude Code keeps it in the box).
 """
