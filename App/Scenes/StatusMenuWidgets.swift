@@ -590,6 +590,9 @@ final class MenuTrackingSlider: NSSlider {
 /// One entry of the taskbar toggle row: what the tile shows and what it switches.
 struct MenuToggleTileSpec {
     let symbolName: String
+    /// Shown while on, so state reads from the glyph's shape and not from colour alone (HIG Toggles).
+    /// `nil` when SF Symbols has no filled variant; that tile falls back to the fill change only.
+    let onSymbolName: String?
     let shortTitle: String
     /// Full menu wording: tooltip and VoiceOver label, since the short title drops the condition.
     let fullTitle: String
@@ -661,7 +664,7 @@ final class MenuToggleTileRowView: NSView {
 }
 
 /// A single tile: rounded square with an SF Symbol, short title underneath.
-/// On = accent fill, white symbol and a corner checkmark, so state never rests on colour alone.
+/// On = accent fill with the white, filled variant of the symbol.
 final class MenuToggleTile: NSView {
     var isOn = false {
         didSet {
@@ -672,7 +675,6 @@ final class MenuToggleTile: NSView {
 
     private let spec: MenuToggleTileSpec
     private let iconView = NSImageView()
-    private let checkView = NSImageView()
     private let titleLabel: NSTextField
     private let titleLines: Int
     private let titleHeight: CGFloat
@@ -725,17 +727,9 @@ final class MenuToggleTile: NSView {
         super.init(frame: .zero)
         wantsLayer = true
 
-        iconView.image = NSImage(systemSymbolName: spec.symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .medium))
         iconView.imageScaling = .scaleNone
         iconView.setAccessibilityElement(false)
         addSubview(iconView)
-
-        checkView.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 7, weight: .bold))
-        checkView.contentTintColor = .white
-        checkView.setAccessibilityElement(false)
-        addSubview(checkView)
 
         titleLabel.setAccessibilityElement(false)
         addSubview(titleLabel)
@@ -823,8 +817,11 @@ final class MenuToggleTile: NSView {
     }
 
     private func applyState() {
+        let symbolName = isOn ? (spec.onSymbolName ?? spec.symbolName) : spec.symbolName
+        iconView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .medium))
         iconView.contentTintColor = isOn ? .white : .labelColor
-        checkView.isHidden = !isOn
+        needsLayout = true
         titleLabel.textColor = isOn ? .labelColor : .secondaryLabelColor
         setAccessibilityValue(isOn ? 1 : 0)
         needsDisplay = true
@@ -859,13 +856,6 @@ final class MenuToggleTile: NSView {
             y: (square.midY - iconSize.height / 2).rounded(),
             width: iconSize.width,
             height: iconSize.height
-        )
-        let checkSize = checkView.image?.size ?? .zero
-        checkView.frame = NSRect(
-            x: square.maxX - 6 - checkSize.width,
-            y: square.maxY - 6 - checkSize.height,
-            width: checkSize.width,
-            height: checkSize.height
         )
         titleLabel.frame = NSRect(
             x: Self.titleSidePadding,

@@ -78,10 +78,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// Always present (rows must not be added or removed while the menu is up); state lands in
     /// `refreshTaskbarPreferenceStates`.
     private lazy var taskbarToggleTiles = MenuToggleTileRowView(specs: [
-        MenuToggleTileSpec(symbolName: "tray", shortTitle: String(localized: "Shelf"), fullTitle: String(localized: "Show Shelf")) { [weak self] in self?.toggleShowShelf() },
-        MenuToggleTileSpec(symbolName: "trash", shortTitle: String(localized: "Trash"), fullTitle: String(localized: "Show Trash")) { [weak self] in self?.toggleShowTrash() },
-        MenuToggleTileSpec(symbolName: "text.bubble", shortTitle: String(localized: "Name on Hover"), fullTitle: String(localized: "Show app name on hover")) { [weak self] in self?.toggleHoverName() },
-        MenuToggleTileSpec(symbolName: "dock.arrow.up.rectangle", shortTitle: String(localized: "Avoid Taskbar"), fullTitle: String(localized: "Keep maximized windows above the taskbar")) { [weak self] in self?.toggleWindowLift() },
+        MenuToggleTileSpec(symbolName: "tray", onSymbolName: "tray.fill", shortTitle: String(localized: "Shelf"), fullTitle: String(localized: "Show Shelf")) { [weak self] in self?.toggleShowShelf() },
+        MenuToggleTileSpec(symbolName: "trash", onSymbolName: "trash.fill", shortTitle: String(localized: "Trash"), fullTitle: String(localized: "Show Trash")) { [weak self] in self?.toggleShowTrash() },
+        MenuToggleTileSpec(symbolName: "text.bubble", onSymbolName: "text.bubble.fill", shortTitle: String(localized: "Name on Hover"), fullTitle: String(localized: "Show app name on hover")) { [weak self] in self?.toggleHoverName() },
+        MenuToggleTileSpec(symbolName: "dock.arrow.up.rectangle", onSymbolName: nil, shortTitle: String(localized: "Avoid Taskbar"), fullTitle: String(localized: "Keep maximized windows above the taskbar")) { [weak self] in self?.toggleWindowLift() },
     ])
     private let nativeDockSliderView: PreferenceSliderMenuItemView
     private let edgeSliderView: PreferenceSliderMenuItemView
