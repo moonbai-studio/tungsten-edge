@@ -610,7 +610,10 @@ final class MenuToggleTileRowView: NSView {
     private let tiles: [MenuToggleTile]
 
     private static let horizontalInset: CGFloat = 14
-    private static let verticalInset: CGFloat = 6
+    /// Room under the row above (单/多屏模式), which belongs to the same group and so gets
+    /// spacing rather than a separator.
+    private static let topInset: CGFloat = 10
+    private static let bottomInset: CGFloat = 6
     private static let baseWidth: CGFloat = 300
 
     init(specs: [MenuToggleTileSpec]) {
@@ -624,7 +627,7 @@ final class MenuToggleTileRowView: NSView {
         let titleLines = specs.map { MenuToggleTile.titleLineCount($0.shortTitle, columnWidth: columnWidth) }.max() ?? 1
         tiles = specs.map { MenuToggleTile(spec: $0, titleLines: titleLines) }
         let tileHeight = tiles.first?.intrinsicContentSize.height ?? 0
-        super.init(frame: NSRect(x: 0, y: 0, width: width, height: tileHeight + Self.verticalInset * 2))
+        super.init(frame: NSRect(x: 0, y: 0, width: width, height: tileHeight + Self.topInset + Self.bottomInset))
         autoresizingMask = [.width]
         tiles.forEach(addSubview)
         setAccessibilityRole(.group)
@@ -655,16 +658,19 @@ final class MenuToggleTileRowView: NSView {
         for (index, tile) in tiles.enumerated() {
             tile.frame = NSRect(
                 x: Self.horizontalInset + columnWidth * CGFloat(index),
-                y: Self.verticalInset,
+                y: Self.bottomInset,
                 width: columnWidth,
-                height: bounds.height - Self.verticalInset * 2
+                height: bounds.height - Self.topInset - Self.bottomInset
             )
         }
     }
 }
 
 /// A single tile: rounded square with an SF Symbol, short title underneath.
-/// On = accent fill with the white, filled variant of the symbol.
+/// On = light accent tint with the accent-coloured, filled variant of the symbol — the same
+/// see-through accent as `MenuActionButton`: four solid accent squares outweigh the whole menu.
+/// Off draws no square until hovered and a secondary outline glyph: in grayscale a light tint is
+/// as pale as a grey one, so the square's presence is what tells on from off.
 final class MenuToggleTile: NSView {
     var isOn = false {
         didSet {
@@ -731,6 +737,8 @@ final class MenuToggleTile: NSView {
         iconView.setAccessibilityElement(false)
         addSubview(iconView)
 
+        // Off is not disabled: the title keeps full contrast in both states.
+        titleLabel.textColor = .labelColor
         titleLabel.setAccessibilityElement(false)
         addSubview(titleLabel)
 
@@ -820,9 +828,8 @@ final class MenuToggleTile: NSView {
         let symbolName = isOn ? (spec.onSymbolName ?? spec.symbolName) : spec.symbolName
         iconView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
             .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .medium))
-        iconView.contentTintColor = isOn ? .white : .labelColor
+        iconView.contentTintColor = isOn ? .controlAccentColor : .secondaryLabelColor
         needsLayout = true
-        titleLabel.textColor = isOn ? .labelColor : .secondaryLabelColor
         setAccessibilityValue(isOn ? 1 : 0)
         needsDisplay = true
     }
@@ -831,16 +838,13 @@ final class MenuToggleTile: NSView {
         super.draw(dirtyRect)
         let fill: NSColor
         if isOn {
-            let accent = NSColor.controlAccentColor
-            if isPressed {
-                fill = accent.shadow(withLevel: 0.2) ?? accent
-            } else if isHovering {
-                fill = accent.highlight(withLevel: 0.12) ?? accent
-            } else {
-                fill = accent
-            }
+            // A dark menu swallows a light tint; the square has to stay visible in grayscale.
+            let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let rest: CGFloat = isDark ? 0.30 : 0.16
+            let alpha = rest + (isPressed ? 0.26 : (isHovering ? 0.14 : 0))
+            fill = NSColor.controlAccentColor.withAlphaComponent(alpha)
         } else {
-            let alpha: CGFloat = isPressed ? 0.24 : (isHovering ? 0.16 : 0.10)
+            let alpha: CGFloat = isPressed ? 0.16 : (isHovering ? 0.08 : 0)
             fill = NSColor.labelColor.withAlphaComponent(alpha)
         }
         fill.setFill()
