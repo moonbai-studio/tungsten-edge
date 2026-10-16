@@ -586,3 +586,292 @@ final class MenuTrackingSlider: NSSlider {
         displayString
     }
 }
+
+/// One entry of the taskbar toggle row: what the tile shows and what it switches.
+struct MenuToggleTileSpec {
+    let symbolName: String
+    let shortTitle: String
+    /// Full menu wording: tooltip and VoiceOver label, since the short title drops the condition.
+    let fullTitle: String
+    let onToggle: () -> Void
+}
+
+/// The status menu's taskbar switches as a row of Control Center–style tiles.
+///
+/// Clicks are handled inside the view, so the menu stays open and several switches can be flipped
+/// in one visit. A view in an `NSMenuItem` gets no keyboard events (Apple, "Views in Menu Items"),
+/// so these switches are mouse- and VoiceOver-only.
+///
+/// The row's height is fixed at init: an `NSMenuItem` view must not resize while the menu tracks.
+final class MenuToggleTileRowView: NSView {
+    private let tiles: [MenuToggleTile]
+
+    private static let horizontalInset: CGFloat = 14
+    private static let verticalInset: CGFloat = 6
+    private static let baseWidth: CGFloat = 300
+
+    init(specs: [MenuToggleTileSpec]) {
+        // The menu is at least as wide as this view's initial frame, so the row may widen it until
+        // every title's longest word fits; line count is measured at that narrowest width, so a
+        // wider menu never needs a taller row.
+        let count = CGFloat(max(1, specs.count))
+        let wordColumn = specs.map { MenuToggleTile.columnWidthFittingLongestWord($0.shortTitle) }.max() ?? 0
+        let width = max(Self.baseWidth, ceil(wordColumn * count + Self.horizontalInset * 2))
+        let columnWidth = (width - Self.horizontalInset * 2) / count
+        let titleLines = specs.map { MenuToggleTile.titleLineCount($0.shortTitle, columnWidth: columnWidth) }.max() ?? 1
+        tiles = specs.map { MenuToggleTile(spec: $0, titleLines: titleLines) }
+        let tileHeight = tiles.first?.intrinsicContentSize.height ?? 0
+        super.init(frame: NSRect(x: 0, y: 0, width: width, height: tileHeight + Self.verticalInset * 2))
+        autoresizingMask = [.width]
+        tiles.forEach(addSubview)
+        setAccessibilityRole(.group)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let width = window?.frame.width, width > frame.width {
+            frame.size.width = width
+        }
+        tiles.forEach { $0.resetInteractionState() }
+    }
+
+    func setStates(_ states: [Bool]) {
+        for (tile, isOn) in zip(tiles, states) {
+            tile.isOn = isOn
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        guard !tiles.isEmpty else { return }
+        let columnWidth = (bounds.width - Self.horizontalInset * 2) / CGFloat(tiles.count)
+        for (index, tile) in tiles.enumerated() {
+            tile.frame = NSRect(
+                x: Self.horizontalInset + columnWidth * CGFloat(index),
+                y: Self.verticalInset,
+                width: columnWidth,
+                height: bounds.height - Self.verticalInset * 2
+            )
+        }
+    }
+}
+
+/// A single tile: rounded square with an SF Symbol, short title underneath.
+/// On = accent fill, white symbol and a corner checkmark, so state never rests on colour alone.
+final class MenuToggleTile: NSView {
+    var isOn = false {
+        didSet {
+            guard isOn != oldValue else { return }
+            applyState()
+        }
+    }
+
+    private let spec: MenuToggleTileSpec
+    private let iconView = NSImageView()
+    private let checkView = NSImageView()
+    private let titleLabel: NSTextField
+    private let titleLines: Int
+    private let titleHeight: CGFloat
+    private var isHovering = false { didSet { if isHovering != oldValue { needsDisplay = true } } }
+    private var isPressed = false { didSet { if isPressed != oldValue { needsDisplay = true } } }
+
+    private static let squareSide: CGFloat = 38
+    private static let cornerRadius: CGFloat = 10
+    private static let titleGap: CGFloat = 4
+    private static let titleFont = NSFont.systemFont(ofSize: 11)
+    private static let titleSidePadding: CGFloat = 2
+    /// Measured with a label configured like the real one: the cell's own insets and line height
+    /// are what decide whether a word fits or a second line shows.
+    private static func makeTitleLabel(_ text: String, lines: Int) -> NSTextField {
+        let label = NSTextField(wrappingLabelWithString: text)
+        label.font = titleFont
+        label.alignment = .center
+        label.maximumNumberOfLines = lines
+        label.lineBreakMode = .byWordWrapping
+        label.cell?.truncatesLastVisibleLine = true
+        return label
+    }
+
+    private static func cellSize(_ text: String, width: CGFloat) -> NSSize {
+        let cell = makeTitleLabel(text, lines: 0).cell!
+        return cell.cellSize(forBounds: NSRect(x: 0, y: 0, width: width, height: 1_000))
+    }
+
+    static func columnWidthFittingLongestWord(_ title: String) -> CGFloat {
+        let longest = title.split(separator: " ")
+            .map { ceil(cellSize(String($0), width: 1_000).width) }
+            .max() ?? 0
+        return longest + titleSidePadding * 2
+    }
+
+    static func titleLineCount(_ title: String, columnWidth: CGFloat) -> Int {
+        let width = columnWidth - titleSidePadding * 2
+        return cellSize(title, width: width).height > cellSize("A", width: width).height ? 2 : 1
+    }
+
+    private static func titleHeight(lines: Int) -> CGFloat {
+        ceil(cellSize(Array(repeating: "A", count: lines).joined(separator: "\n"), width: 1_000).height)
+    }
+
+    init(spec: MenuToggleTileSpec, titleLines: Int) {
+        self.spec = spec
+        self.titleLines = titleLines
+        titleHeight = Self.titleHeight(lines: titleLines)
+        titleLabel = Self.makeTitleLabel(spec.shortTitle, lines: titleLines)
+        super.init(frame: .zero)
+        wantsLayer = true
+
+        iconView.image = NSImage(systemSymbolName: spec.symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .medium))
+        iconView.imageScaling = .scaleNone
+        iconView.setAccessibilityElement(false)
+        addSubview(iconView)
+
+        checkView.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 7, weight: .bold))
+        checkView.contentTintColor = .white
+        checkView.setAccessibilityElement(false)
+        addSubview(checkView)
+
+        titleLabel.setAccessibilityElement(false)
+        addSubview(titleLabel)
+
+        toolTip = spec.fullTitle
+        setAccessibilityElement(true)
+        setAccessibilityRole(.checkBox)
+        setAccessibilityLabel(spec.fullTitle)
+        applyState()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: Self.squareSide, height: Self.squareSide + Self.titleGap + titleHeight)
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bounds.contains(convert(point, from: superview)) ? self : nil
+    }
+
+    func resetInteractionState() {
+        isHovering = false
+        isPressed = false
+    }
+
+    override func accessibilityValue() -> Any? { isOn ? 1 : 0 }
+
+    override func accessibilityPerformPress() -> Bool {
+        spec.onToggle()
+        return true
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        // `.activeAlways`: the menu panel is never key, so `.activeInKeyWindow` would never fire.
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) { isHovering = true }
+    override func mouseExited(with event: NSEvent) { isHovering = false }
+
+    /// During menu tracking `mouseUp` never comes back on its own; run the loop here, as
+    /// `MenuActionButton` does. Dragging out before release cancels.
+    override func mouseDown(with event: NSEvent) {
+        isPressed = true
+        var releasedInside = true
+        window?.trackEvents(
+            matching: [.leftMouseDragged, .leftMouseUp],
+            timeout: NSEvent.foreverDuration,
+            mode: .eventTracking
+        ) { trackedEvent, stop in
+            guard let trackedEvent else {
+                stop.pointee = true
+                return
+            }
+            let local = self.convert(trackedEvent.locationInWindow, from: nil)
+            releasedInside = self.bounds.contains(local)
+            self.isPressed = releasedInside
+            if trackedEvent.type == .leftMouseUp {
+                stop.pointee = true
+            }
+        }
+        isPressed = false
+        isHovering = releasedInside
+        if releasedInside {
+            spec.onToggle()
+        }
+    }
+
+    private var squareRect: NSRect {
+        NSRect(
+            x: ((bounds.width - Self.squareSide) / 2).rounded(),
+            y: bounds.height - Self.squareSide,
+            width: Self.squareSide,
+            height: Self.squareSide
+        )
+    }
+
+    private func applyState() {
+        iconView.contentTintColor = isOn ? .white : .labelColor
+        checkView.isHidden = !isOn
+        titleLabel.textColor = isOn ? .labelColor : .secondaryLabelColor
+        setAccessibilityValue(isOn ? 1 : 0)
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let fill: NSColor
+        if isOn {
+            let accent = NSColor.controlAccentColor
+            if isPressed {
+                fill = accent.shadow(withLevel: 0.2) ?? accent
+            } else if isHovering {
+                fill = accent.highlight(withLevel: 0.12) ?? accent
+            } else {
+                fill = accent
+            }
+        } else {
+            let alpha: CGFloat = isPressed ? 0.24 : (isHovering ? 0.16 : 0.10)
+            fill = NSColor.labelColor.withAlphaComponent(alpha)
+        }
+        fill.setFill()
+        NSBezierPath(roundedRect: squareRect, xRadius: Self.cornerRadius, yRadius: Self.cornerRadius).fill()
+    }
+
+    override func layout() {
+        super.layout()
+        let square = squareRect
+        let iconSize = iconView.image?.size ?? .zero
+        iconView.frame = NSRect(
+            x: (square.midX - iconSize.width / 2).rounded(),
+            y: (square.midY - iconSize.height / 2).rounded(),
+            width: iconSize.width,
+            height: iconSize.height
+        )
+        let checkSize = checkView.image?.size ?? .zero
+        checkView.frame = NSRect(
+            x: square.maxX - 6 - checkSize.width,
+            y: square.maxY - 6 - checkSize.height,
+            width: checkSize.width,
+            height: checkSize.height
+        )
+        titleLabel.frame = NSRect(
+            x: Self.titleSidePadding,
+            y: square.minY - Self.titleGap - titleHeight,
+            width: bounds.width - Self.titleSidePadding * 2,
+            height: titleHeight
+        )
+    }
+}

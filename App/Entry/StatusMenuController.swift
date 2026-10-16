@@ -75,11 +75,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 子菜单一开一关会被当成主菜单开关，提前解除边缘自动隐藏抑制。内容改为在父菜单
     /// 显示前（`prepareMenuForPresentation`）建好。
     private let taskbarScreenMenu = NSMenu()
-    /// 下面四条是普通勾选项，**恒在**（菜单开着时不许增删行），勾选状态由 refreshCheckmarks 落。
-    private let showShelfItem = NSMenuItem(title: String(localized: "Show Shelf"), action: #selector(toggleShowShelf), keyEquivalent: "")
-    private let showTrashItem = NSMenuItem(title: String(localized: "Show Trash"), action: #selector(toggleShowTrash), keyEquivalent: "")
-    private let hoverNameItem = NSMenuItem(title: String(localized: "Show app name on hover"), action: #selector(toggleHoverName), keyEquivalent: "")
-    private let windowLiftItem = NSMenuItem(title: String(localized: "Keep maximized windows above the taskbar"), action: #selector(toggleWindowLift), keyEquivalent: "")
+    /// Always present (rows must not be added or removed while the menu is up); state lands in
+    /// `refreshTaskbarPreferenceStates`.
+    private lazy var taskbarToggleTiles = MenuToggleTileRowView(specs: [
+        MenuToggleTileSpec(symbolName: "tray", shortTitle: String(localized: "Shelf"), fullTitle: String(localized: "Show Shelf")) { [weak self] in self?.toggleShowShelf() },
+        MenuToggleTileSpec(symbolName: "trash", shortTitle: String(localized: "Trash"), fullTitle: String(localized: "Show Trash")) { [weak self] in self?.toggleShowTrash() },
+        MenuToggleTileSpec(symbolName: "text.bubble", shortTitle: String(localized: "Name on Hover"), fullTitle: String(localized: "Show app name on hover")) { [weak self] in self?.toggleHoverName() },
+        MenuToggleTileSpec(symbolName: "dock.arrow.up.rectangle", shortTitle: String(localized: "Avoid Taskbar"), fullTitle: String(localized: "Keep maximized windows above the taskbar")) { [weak self] in self?.toggleWindowLift() },
+    ])
     private let nativeDockSliderView: PreferenceSliderMenuItemView
     private let edgeSliderView: PreferenceSliderMenuItemView
     /// Hat and row of the taskbar height slider; the same value as the grip on the bar.
@@ -260,16 +263,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         taskbarScreenItem.isHidden = true
         menu.addItem(taskbarScreenItem)
 
-        // 四个开关。设置窗口里它们各带一行灰色说明，菜单里没有副标题的位置，
-        // 说明随搬家一并删除（owner 2026-09-01 拍板接受这个代价）。
-        showShelfItem.target = self
-        menu.addItem(showShelfItem)
-        showTrashItem.target = self
-        menu.addItem(showTrashItem)
-        hoverNameItem.target = self
-        menu.addItem(hoverNameItem)
-        windowLiftItem.target = self
-        menu.addItem(windowLiftItem)
+        let taskbarTogglesItem = NSMenuItem()
+        taskbarTogglesItem.view = taskbarToggleTiles
+        menu.addItem(taskbarTogglesItem)
         menu.addItem(.separator())
         #if DEBUG
         let debugMenu = NSMenu()
@@ -492,13 +488,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshTaskbarPreferenceStates()
     }
 
-    /// 钨极组四项的勾选。**只改 `state`，不增删行也不翻 `isHidden`**，
-    /// 所以菜单开着时调用也安全（不受 `allowsLayoutChange` 约束）。
+    /// The four taskbar tiles. Only flips tile state — no rows added, removed or hidden — so it is
+    /// safe while the menu is tracking (not bound by `allowsLayoutChange`).
     private func refreshTaskbarPreferenceStates() {
-        showShelfItem.state = store.showShelf ? .on : .off
-        showTrashItem.state = store.showTrash ? .on : .off
-        hoverNameItem.state = store.hoverStyle.isExpressive ? .on : .off
-        windowLiftItem.state = store.windowLiftEnabled ? .on : .off
+        taskbarToggleTiles.setStates([
+            store.showShelf,
+            store.showTrash,
+            store.hoverStyle.isExpressive,
+            store.windowLiftEnabled,
+        ])
     }
 
     private func refreshLaunchAtLoginState(allowsLayoutChange: Bool) {
@@ -690,26 +688,28 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func toggleShowShelf() {
+    // Tiles fire with the menu still open, so they refresh only their own state: the full
+    // `refreshCheckmarks()` may show or hide rows, which must not happen while the menu tracks.
+    private func toggleShowShelf() {
         store.setShowShelf(!store.showShelf)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
-    @objc private func toggleShowTrash() {
+    private func toggleShowTrash() {
         store.setShowTrash(!store.showTrash)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
     /// 悬停显示应用名 = `hoverStyle` 的两档（`.standard` 显示 / `.quiet` 不显示），
     /// 不是独立的布尔字段——设置窗口那版也是这么读写的，别在这里另开一个镜像。
-    @objc private func toggleHoverName() {
+    private func toggleHoverName() {
         store.setHoverStyle(store.hoverStyle.isExpressive ? .quiet : .standard)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
-    @objc private func toggleWindowLift() {
+    private func toggleWindowLift() {
         store.setWindowLiftEnabled(!store.windowLiftEnabled)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
     @objc private func openLoginItemsSettings() {
