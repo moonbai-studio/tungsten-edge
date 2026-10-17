@@ -114,13 +114,13 @@ struct MenuGlassIconView: View {
                 front
                     .stroke(
                         LinearGradient(
-                            colors: [Color.white.opacity(isDark ? 0.55 : 0.85), Color.white.opacity(0)],
+                            colors: [Color.white.opacity(isDark ? 0.32 : 0.50), Color.white.opacity(0)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: size / 9
+                        lineWidth: size / 14
                     )
-                    .blur(radius: size / 40)
+                    .blur(radius: size / 32)
             }
             .mask(front.fill(Color.white))
             GridShape(build: glyph.detail)
