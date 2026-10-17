@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import SwiftUI
 
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
@@ -340,6 +341,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshSystemTruth()
     }
 
+    /// Backstop for the tile row's own `mouseExited`, which a fast pointer can skip: the menu
+    /// always moves its highlight off the row once the pointer is elsewhere.
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        if item?.view !== taskbarToggleTiles {
+            taskbarToggleTiles.clearHover()
+        }
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
         onMenuVisibilityChanged(true)
@@ -376,6 +385,32 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         rebuildTaskbarScreenMenu()
     }
 
+    /// The icon rides inside the title as a text attachment: on macOS 27 this menu draws no
+    /// `NSMenuItem.image` at all, and a custom view would lose keyboard selection and the native
+    /// submenu. Re-rendered on every open so it follows light / dark.
+    private func applyTaskbarScreenItemTitle() {
+        let title = String(localized: "Single/Multi-Display Mode")
+        let appearance = menu.appearance ?? NSApp.effectiveAppearance
+        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let iconSide: CGFloat = 18
+        guard let icon = MenuGlassIconView(
+            glyph: .displays,
+            size: iconSide,
+            tint: Color(nsColor: MenuGlassIconView.blue),
+            isDark: isDark
+        ).bitmapImage() else {
+            taskbarScreenItem.title = title
+            return
+        }
+        let font = NSFont.menuFont(ofSize: 0)
+        let attachment = NSTextAttachment()
+        attachment.image = icon
+        attachment.bounds = NSRect(x: 0, y: (font.capHeight - iconSide) / 2, width: iconSide, height: iconSide)
+        let attributed = NSMutableAttributedString(attachment: attachment)
+        attributed.append(NSAttributedString(string: "  " + title, attributes: [.font: font]))
+        taskbarScreenItem.attributedTitle = attributed
+    }
+
     /// 重建「单/多屏模式 ▸」。**只从 `prepareMenuForPresentation` 调**——它是唯一
     /// 允许改行显隐的路径（菜单在屏时增删行会让任务条锚点漂移）。
     private func rebuildTaskbarScreenMenu() {
@@ -385,6 +420,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         )
         taskbarScreenItem.isHidden = presentation.isHidden
         taskbarScreenSeparator.isHidden = presentation.isHidden
+        if !presentation.isHidden {
+            applyTaskbarScreenItemTitle()
+        }
         taskbarScreenMenu.removeAllItems()
         for row in presentation.rows {
             switch row {

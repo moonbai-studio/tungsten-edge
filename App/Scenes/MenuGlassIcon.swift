@@ -52,6 +52,17 @@ struct MenuGlassGlyph {
         }
     )
 
+    /// Not a toggle: the icon in front of the "Single/Multi-Display Mode" title.
+    static let displays = MenuGlassGlyph(
+        back: {
+            roundedRect(&$0, 10, 2.5, 12, 9, 2.2)
+            roundedRect(&$0, 7.5, 16.5, 4, 4, 0.8)
+            roundedRect(&$0, 5.5, 19.6, 8, 2, 1)
+        },
+        front: { roundedRect(&$0, 2, 7, 15, 10.5, 2.5) },
+        detail: { _ in }
+    )
+
     private static func roundedRect(_ path: inout Path, _ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ radius: CGFloat) {
         path.addRoundedRect(
             in: CGRect(x: x, y: y, width: width, height: height),
@@ -99,33 +110,50 @@ struct MenuGlassIconView: View {
         ZStack {
             back.fill(tint)
             ZStack {
-                // Diffusion: the colour behind spreads out through the frost.
-                back.fill(tint).blur(radius: size * 0.16).opacity(0.85)
-                // Refraction: seen through the glass the back shape is magnified and shifted, so
-                // its edge does not line up with the part outside the glass.
+                // Milky glass first, then the back shape melted on top of it: under frost the
+                // shape has no edge left, only colour fading out (a lightly blurred copy still
+                // showed an edge). The copy is magnified and shifted a little: refraction.
+                front.fill(Color.white.opacity(isDark ? 0.30 : 0.70))
+                front.fill(tint.opacity(isDark ? 0.30 : 0.18))
                 back.fill(tint)
                     .scaleEffect(1.10, anchor: frontCenter)
-                    .offset(y: size * 0.035)
-                    .blur(radius: size * 0.07)
-                front.fill(Color.white.opacity(isDark ? 0.26 : 0.50))
-                front.fill(tint.opacity(isDark ? 0.30 : 0.24))
-                // Rim light: a wide blurred stroke whose outer half the mask cuts away, bright at
-                // the top-left and gone by the bottom-right. A plain hairline reads as a hard edge.
+                    .offset(y: size * 0.03)
+                    .blur(radius: size * 0.22)
+                // A faint rim light only; any visible white edge reads as hard.
                 front
                     .stroke(
                         LinearGradient(
-                            colors: [Color.white.opacity(isDark ? 0.32 : 0.50), Color.white.opacity(0)],
+                            colors: [Color.white.opacity(isDark ? 0.12 : 0.20), Color.white.opacity(0)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: size / 14
+                        lineWidth: size / 18
                     )
-                    .blur(radius: size / 32)
+                    .blur(radius: size / 28)
             }
             .mask(front.fill(Color.white))
             GridShape(build: glyph.detail)
                 .stroke(Color.white, style: StrokeStyle(lineWidth: size / 16, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
+    }
+}
+
+extension MenuGlassIconView {
+    /// A bitmap with 1x and 2x representations, so neither screen scales it. `ImageRenderer` is
+    /// macOS 13+; macOS 12 gets `nil` and the caller goes without the icon.
+    @MainActor
+    func bitmapImage() -> NSImage? {
+        guard #available(macOS 13, *) else { return nil }
+        let image = NSImage(size: NSSize(width: size, height: size))
+        for scale in [1.0, 2.0] {
+            let renderer = ImageRenderer(content: self)
+            renderer.scale = scale
+            guard let cgImage = renderer.cgImage else { return nil }
+            let rep = NSBitmapImageRep(cgImage: cgImage)
+            rep.size = image.size
+            image.addRepresentation(rep)
+        }
+        return image
     }
 }

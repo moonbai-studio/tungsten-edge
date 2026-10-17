@@ -608,8 +608,6 @@ final class MenuToggleTileRowView: NSView {
     private let tiles: [MenuToggleTile]
 
     private static let horizontalInset: CGFloat = 14
-    /// Room under the row above (单/多屏模式), which belongs to the same group and so gets
-    /// spacing rather than a separator.
     private static let topInset: CGFloat = 6
     private static let bottomInset: CGFloat = 6
     private static let baseWidth: CGFloat = 300
@@ -641,6 +639,7 @@ final class MenuToggleTileRowView: NSView {
             frame.size.width = width
         }
         tiles.forEach { $0.resetInteractionState() }
+        stopHoverWatch()
     }
 
     func setStates(_ states: [Bool]) {
@@ -648,6 +647,67 @@ final class MenuToggleTileRowView: NSView {
             tile.isOn = isOn
         }
     }
+
+    /// Hover is decided here, from the pointer's position, for the whole row. Inside a menu a
+    /// fast pointer loses `mouseExited` events — per tile and for the row — so while any tile is
+    /// lit a timer re-reads the pointer and stops once none is.
+    private var hoverWatch: Timer?
+
+    func clearHover() {
+        tiles.forEach { $0.setHovering(false) }
+        stopHoverWatch()
+    }
+
+    private func updateHover(at windowPoint: NSPoint) {
+        let point = convert(windowPoint, from: nil)
+        var anyLit = false
+        for tile in tiles {
+            let lit = tile.frame.contains(point)
+            tile.setHovering(lit)
+            anyLit = anyLit || lit
+        }
+        anyLit ? startHoverWatch() : stopHoverWatch()
+    }
+
+    private func updateHover(with event: NSEvent) {
+        updateHover(at: event.locationInWindow)
+    }
+
+    private func startHoverWatch() {
+        guard hoverWatch == nil else { return }
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, let window = self.window else {
+                    self?.clearHover()
+                    return
+                }
+                self.updateHover(at: window.convertPoint(fromScreen: NSEvent.mouseLocation))
+            }
+        }
+        // `.common` includes `.eventTracking`, the mode the run loop is in while a menu is open.
+        RunLoop.main.add(timer, forMode: .common)
+        hoverWatch = timer
+    }
+
+    private func stopHoverWatch() {
+        hoverWatch?.invalidate()
+        hoverWatch = nil
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        // `.activeAlways`: the menu panel is never key, so `.activeInKeyWindow` would never fire.
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
+            owner: self
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) { updateHover(with: event) }
+    override func mouseMoved(with event: NSEvent) { updateHover(with: event) }
+    override func mouseExited(with event: NSEvent) { clearHover() }
 
     override func layout() {
         super.layout()
@@ -762,26 +822,17 @@ final class MenuToggleTile: NSView {
         isPressed = false
     }
 
+    /// Driven by `MenuToggleTileRowView`, not by a tracking area per tile.
+    fileprivate func setHovering(_ hovering: Bool) {
+        isHovering = hovering
+    }
+
     override func accessibilityValue() -> Any? { isOn ? 1 : 0 }
 
     override func accessibilityPerformPress() -> Bool {
         spec.onToggle()
         return true
     }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        // `.activeAlways`: the menu panel is never key, so `.activeInKeyWindow` would never fire.
-        addTrackingArea(NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self
-        ))
-    }
-
-    override func mouseEntered(with event: NSEvent) { isHovering = true }
-    override func mouseExited(with event: NSEvent) { isHovering = false }
 
     /// During menu tracking `mouseUp` never comes back on its own; run the loop here, as
     /// `MenuActionButton` does. Dragging out before release cancels.
