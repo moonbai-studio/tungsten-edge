@@ -610,7 +610,7 @@ final class MenuToggleTileRowView: NSView {
     private static let horizontalInset: CGFloat = 14
     /// Room under the row above (单/多屏模式), which belongs to the same group and so gets
     /// spacing rather than a separator.
-    private static let topInset: CGFloat = 10
+    private static let topInset: CGFloat = 6
     private static let bottomInset: CGFloat = 6
     private static let baseWidth: CGFloat = 300
 
@@ -665,8 +665,8 @@ final class MenuToggleTileRowView: NSView {
 }
 
 /// A single tile: a frosted-glass glyph in a hover square, short title underneath.
-/// On = the glyph in the accent colour; off = grey and faded. The fade is what separates the two
-/// under the Graphite accent, where the accent itself is grey.
+/// On = the glyph in `MenuGlassIconView.blue`; off = grey and faded, so the two also separate
+/// in grayscale.
 final class MenuToggleTile: NSView {
     var isOn = false {
         didSet {
@@ -683,9 +683,9 @@ final class MenuToggleTile: NSView {
     private var isHovering = false { didSet { if isHovering != oldValue { needsDisplay = true } } }
     private var isPressed = false { didSet { if isPressed != oldValue { needsDisplay = true } } }
 
-    private static let squareSide: CGFloat = 38
-    private static let iconSide: CGFloat = 24
-    private static let cornerRadius: CGFloat = 10
+    private static let squareSide: CGFloat = 42
+    private static let iconSide: CGFloat = 28
+    private static let cornerRadius: CGFloat = 11
     private static let titleGap: CGFloat = 4
     private static let titleFont = NSFont.systemFont(ofSize: 11)
     private static let titleSidePadding: CGFloat = 2
@@ -743,12 +743,6 @@ final class MenuToggleTile: NSView {
         setAccessibilityRole(.checkBox)
         setAccessibilityLabel(spec.fullTitle)
         applyState()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(systemColorsDidChange),
-            name: NSColor.systemColorsDidChangeNotification,
-            object: nil
-        )
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -831,15 +825,11 @@ final class MenuToggleTile: NSView {
         applyState()
     }
 
-    @objc private func systemColorsDidChange() {
-        applyState()
-    }
-
     private func applyState() {
         let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         var tint = NSColor.gray
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            tint = (isOn ? NSColor.controlAccentColor : NSColor.systemGray).usingColorSpace(.sRGB) ?? .gray
+            tint = (isOn ? MenuGlassIconView.blue : NSColor.systemGray).usingColorSpace(.sRGB) ?? .gray
         }
         iconView.rootView = MenuGlassIconView(glyph: spec.glyph, size: Self.iconSide, tint: Color(nsColor: tint), isDark: isDark)
         iconView.alphaValue = isOn ? 1 : 0.55

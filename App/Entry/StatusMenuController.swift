@@ -71,6 +71,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 屏幕数变化不会改主菜单高度，任务条那条按左上角定位的路径就不会漂。
     /// 整行的显隐只允许在 `prepareMenuForPresentation` 翻转（菜单开着时增删行的老规矩）。
     private let taskbarScreenItem = NSMenuItem(title: String(localized: "Single/Multi-Display Mode"), action: nil, keyEquivalent: "")
+    /// Shown and hidden together with `taskbarScreenItem`: alone it would sit right under the
+    /// separator above this block and draw two lines in a row.
+    private let taskbarScreenSeparator = NSMenuItem.separator()
     /// **刻意不设 delegate**：`menuWillOpen` / `menuDidClose` 不区分 menu 参数，
     /// 子菜单一开一关会被当成主菜单开关，提前解除边缘自动隐藏抑制。内容改为在父菜单
     /// 显示前（`prepareMenuForPresentation`）建好。
@@ -262,6 +265,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         taskbarScreenItem.submenu = taskbarScreenMenu
         taskbarScreenItem.isHidden = true
         menu.addItem(taskbarScreenItem)
+        taskbarScreenSeparator.isHidden = true
+        menu.addItem(taskbarScreenSeparator)
 
         let taskbarTogglesItem = NSMenuItem()
         taskbarTogglesItem.view = taskbarToggleTiles
@@ -379,6 +384,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             connectedScreens: connectedScreensCache
         )
         taskbarScreenItem.isHidden = presentation.isHidden
+        taskbarScreenSeparator.isHidden = presentation.isHidden
         taskbarScreenMenu.removeAllItems()
         for row in presentation.rows {
             switch row {

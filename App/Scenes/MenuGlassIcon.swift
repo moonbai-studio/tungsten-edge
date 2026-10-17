@@ -80,9 +80,12 @@ private struct GridShape: Shape {
 }
 
 /// The tint and dark flag arrive already resolved (see `MenuToggleTile.applyState`): a dynamic
-/// `NSColor` handed to SwiftUI compares equal across accent and appearance changes, so the
-/// hosting view would keep the old colours.
+/// `NSColor` handed to SwiftUI compares equal across appearance changes, so the hosting view
+/// would keep the old colours.
 struct MenuGlassIconView: View {
+    /// The owner's pick, fixed on purpose: the glyphs do not follow the system accent colour.
+    static let blue = NSColor(srgbRed: 32 / 255, green: 73 / 255, blue: 236 / 255, alpha: 1)
+
     let glyph: MenuGlassGlyph
     let size: CGFloat
     let tint: Color
