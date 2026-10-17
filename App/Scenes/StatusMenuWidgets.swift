@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 // 状态栏菜单里的自定义 NSView 组件（滑块行 / 确认行 / 按钮 / 端点圆点 / 跟踪滑块）。
 // 2026-09-05 从 StatusMenuController.swift 搬出：纯搬家，零行为变化。
@@ -589,10 +590,7 @@ final class MenuTrackingSlider: NSSlider {
 
 /// One entry of the taskbar toggle row: what the tile shows and what it switches.
 struct MenuToggleTileSpec {
-    let symbolName: String
-    /// Shown while on, so state reads from the glyph's shape and not from colour alone (HIG Toggles).
-    /// `nil` when SF Symbols has no filled variant; that tile falls back to the fill change only.
-    let onSymbolName: String?
+    let glyph: MenuGlassGlyph
     let shortTitle: String
     /// Full menu wording: tooltip and VoiceOver label, since the short title drops the condition.
     let fullTitle: String
@@ -666,11 +664,9 @@ final class MenuToggleTileRowView: NSView {
     }
 }
 
-/// A single tile: rounded square with an SF Symbol, short title underneath.
-/// On = light accent tint with the accent-coloured, filled variant of the symbol — the same
-/// see-through accent as `MenuActionButton`: four solid accent squares outweigh the whole menu.
-/// Off draws no square until hovered and a secondary outline glyph: in grayscale a light tint is
-/// as pale as a grey one, so the square's presence is what tells on from off.
+/// A single tile: a frosted-glass glyph in a hover square, short title underneath.
+/// On = the glyph in the accent colour; off = grey and faded. The fade is what separates the two
+/// under the Graphite accent, where the accent itself is grey.
 final class MenuToggleTile: NSView {
     var isOn = false {
         didSet {
@@ -680,7 +676,7 @@ final class MenuToggleTile: NSView {
     }
 
     private let spec: MenuToggleTileSpec
-    private let iconView = NSImageView()
+    private let iconView = NSHostingView(rootView: MenuGlassIconView(glyph: .shelf, size: 24, tint: .clear, isDark: false))
     private let titleLabel: NSTextField
     private let titleLines: Int
     private let titleHeight: CGFloat
@@ -688,6 +684,7 @@ final class MenuToggleTile: NSView {
     private var isPressed = false { didSet { if isPressed != oldValue { needsDisplay = true } } }
 
     private static let squareSide: CGFloat = 38
+    private static let iconSide: CGFloat = 24
     private static let cornerRadius: CGFloat = 10
     private static let titleGap: CGFloat = 4
     private static let titleFont = NSFont.systemFont(ofSize: 11)
@@ -733,7 +730,6 @@ final class MenuToggleTile: NSView {
         super.init(frame: .zero)
         wantsLayer = true
 
-        iconView.imageScaling = .scaleNone
         iconView.setAccessibilityElement(false)
         addSubview(iconView)
 
@@ -747,6 +743,12 @@ final class MenuToggleTile: NSView {
         setAccessibilityRole(.checkBox)
         setAccessibilityLabel(spec.fullTitle)
         applyState()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(systemColorsDidChange),
+            name: NSColor.systemColorsDidChangeNotification,
+            object: nil
+        )
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -824,29 +826,31 @@ final class MenuToggleTile: NSView {
         )
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyState()
+    }
+
+    @objc private func systemColorsDidChange() {
+        applyState()
+    }
+
     private func applyState() {
-        let symbolName = isOn ? (spec.onSymbolName ?? spec.symbolName) : spec.symbolName
-        iconView.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 15, weight: .medium))
-        iconView.contentTintColor = isOn ? .controlAccentColor : .secondaryLabelColor
-        needsLayout = true
+        let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        var tint = NSColor.gray
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            tint = (isOn ? NSColor.controlAccentColor : NSColor.systemGray).usingColorSpace(.sRGB) ?? .gray
+        }
+        iconView.rootView = MenuGlassIconView(glyph: spec.glyph, size: Self.iconSide, tint: Color(nsColor: tint), isDark: isDark)
+        iconView.alphaValue = isOn ? 1 : 0.55
         setAccessibilityValue(isOn ? 1 : 0)
         needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        let fill: NSColor
-        if isOn {
-            // A dark menu swallows a light tint; the square has to stay visible in grayscale.
-            let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            let rest: CGFloat = isDark ? 0.30 : 0.16
-            let alpha = rest + (isPressed ? 0.26 : (isHovering ? 0.14 : 0))
-            fill = NSColor.controlAccentColor.withAlphaComponent(alpha)
-        } else {
-            let alpha: CGFloat = isPressed ? 0.16 : (isHovering ? 0.08 : 0)
-            fill = NSColor.labelColor.withAlphaComponent(alpha)
-        }
+        let alpha: CGFloat = isPressed ? 0.16 : (isHovering ? 0.08 : 0)
+        let fill = NSColor.labelColor.withAlphaComponent(alpha)
         fill.setFill()
         NSBezierPath(roundedRect: squareRect, xRadius: Self.cornerRadius, yRadius: Self.cornerRadius).fill()
     }
@@ -854,12 +858,11 @@ final class MenuToggleTile: NSView {
     override func layout() {
         super.layout()
         let square = squareRect
-        let iconSize = iconView.image?.size ?? .zero
         iconView.frame = NSRect(
-            x: (square.midX - iconSize.width / 2).rounded(),
-            y: (square.midY - iconSize.height / 2).rounded(),
-            width: iconSize.width,
-            height: iconSize.height
+            x: (square.midX - Self.iconSide / 2).rounded(),
+            y: (square.midY - Self.iconSide / 2).rounded(),
+            width: Self.iconSide,
+            height: Self.iconSide
         )
         titleLabel.frame = NSRect(
             x: Self.titleSidePadding,
