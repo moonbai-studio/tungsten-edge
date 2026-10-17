@@ -107,29 +107,29 @@ struct MenuGlassIconView: View {
         let front = GridShape(build: glyph.front)
         let frontBox = front.path(in: CGRect(x: 0, y: 0, width: size, height: size)).boundingRect
         let frontCenter = UnitPoint(x: frontBox.midX / size, y: frontBox.midY / size)
+        let melted = back.fill(tint)
+            .scaleEffect(1.04, anchor: frontCenter)
+            .offset(y: size * 0.015)
+            .blur(radius: size * 0.065)
         ZStack {
+            // The back shape stops at the glass: the glass is translucent, so a sharp back drawn
+            // underneath would show its edge through the frost.
             back.fill(tint)
+                .mask(
+                    ZStack {
+                        Rectangle()
+                        front.fill(Color.black).blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                )
             ZStack {
-                // Milky glass first, then the back shape melted on top of it: under frost the
-                // shape has no edge left, only colour fading out (a lightly blurred copy still
-                // showed an edge). The copy is magnified and shifted a little: refraction.
-                front.fill(Color.white.opacity(isDark ? 0.30 : 0.70))
-                front.fill(tint.opacity(isDark ? 0.30 : 0.18))
-                back.fill(tint)
-                    .scaleEffect(1.10, anchor: frontCenter)
-                    .offset(y: size * 0.03)
-                    .blur(radius: size * 0.22)
-                // A faint rim light only; any visible white edge reads as hard.
-                front
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(isDark ? 0.12 : 0.20), Color.white.opacity(0)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: size / 18
-                    )
-                    .blur(radius: size / 28)
+                // Milky glass, then the back shape blurred into it. The blur stays small enough
+                // that the back's outline is still readable: a large one turns it into a shapeless
+                // glow. The magnify-and-shift is the refraction. Dark glass is lighter, or the
+                // blurred shape sinks into it.
+                front.fill(Color.white.opacity(isDark ? 0.42 : 0.88))
+                front.fill(tint.opacity(isDark ? 0.28 : 0.27))
+                melted
             }
             .mask(front.fill(Color.white))
             GridShape(build: glyph.detail)
