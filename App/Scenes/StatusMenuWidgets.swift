@@ -56,7 +56,7 @@ final class PreferenceSliderMenuItemView: NSView {
     /// 选中那一端的小字颜色：强调色**带一点透明**（owner 2026-08-03）。
     /// 实心圆点保持满强度，小字比它弱一档——圆点是主标记，小字是它的回声。
     /// 别把这个透明度做到字重上：加粗会让标签宽度变化、两端文字左右跳动。
-    static let activeEndpointColor = NSColor.controlAccentColor.withAlphaComponent(0.7)
+    static let activeEndpointColor = MenuGlassIconView.blue.withAlphaComponent(0.7)
 
     /// 未选中那一端的小字颜色。**四个使用点必须都引用它**（左右各一次初始化 + `updateDisplay`
     /// 里左右各一次），散成四份字面量时漏改一份只有「拖到端点再拖回来」才看得见。
@@ -419,13 +419,13 @@ final class MenuActionButton: NSView {
         // 字重用常规（owner 2026-08-02 定）；文字取强调色本身而不是白色——
         // 白字要靠实心底才立得住，通透底上只有强调色字才够清楚。
         titleLabel.font = .systemFont(ofSize: 13)
-        titleLabel.textColor = .controlAccentColor
+        titleLabel.textColor = MenuGlassIconView.blue
         titleLabel.setAccessibilityElement(false)
         addSubview(titleLabel)
 
         iconView.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)?
             .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-        iconView.contentTintColor = .controlAccentColor
+        iconView.contentTintColor = MenuGlassIconView.blue
         iconView.setAccessibilityElement(false)
         addSubview(iconView)
 
@@ -520,7 +520,7 @@ final class MenuActionButton: NSView {
             alpha = Self.restingAlpha
         }
         let shape = NSBezierPath(roundedRect: bounds, xRadius: Self.cornerRadius, yRadius: Self.cornerRadius)
-        NSColor.controlAccentColor.withAlphaComponent(alpha).setFill()
+        MenuGlassIconView.blue.withAlphaComponent(alpha).setFill()
         shape.fill()
     }
 
@@ -557,9 +557,9 @@ final class EndpointDotView: NSView {
         super.draw(dirtyRect)
         let rect = bounds.insetBy(dx: 0.75, dy: 0.75)
         let path = NSBezierPath(ovalIn: rect)
-        (isOn ? NSColor.controlAccentColor : .clear).setFill()
+        (isOn ? MenuGlassIconView.blue : .clear).setFill()
         path.fill()
-        (isOn ? NSColor.controlAccentColor : NSColor.tertiaryLabelColor).setStroke()
+        (isOn ? MenuGlassIconView.blue : NSColor.tertiaryLabelColor).setStroke()
         path.lineWidth = 1.5
         path.stroke()
     }
