@@ -63,6 +63,55 @@ struct MenuGlassGlyph {
         detail: { _ in }
     )
 
+    /// The "Single/Multi-Display Mode" submenu: one screen for the single-display modes, two for
+    /// the multi-display ones; the bar is the solid back layer.
+    static let followMouse = MenuGlassGlyph(
+        back: { roundedRect(&$0, 4, 14, 16, 6, 3) },
+        front: { roundedRect(&$0, 2, 2.5, 20, 15, 2.8) },
+        detail: {
+            $0.move(to: CGPoint(x: 9, y: 5))
+            $0.addLine(to: CGPoint(x: 9, y: 12.6))
+            $0.addLine(to: CGPoint(x: 10.9, y: 10.9))
+            $0.addLine(to: CGPoint(x: 12.3, y: 13.8))
+            $0.addLine(to: CGPoint(x: 13.5, y: 13.2))
+            $0.addLine(to: CGPoint(x: 12.1, y: 10.3))
+            $0.addLine(to: CGPoint(x: 14.6, y: 10.1))
+            $0.closeSubpath()
+        }
+    )
+
+    static let pinnedScreen = MenuGlassGlyph(
+        back: { roundedRect(&$0, 4, 14, 16, 6, 3) },
+        front: { roundedRect(&$0, 2, 2.5, 20, 15, 2.8) },
+        detail: {
+            $0.addEllipse(in: CGRect(x: 9.8, y: 5, width: 4.4, height: 4.4))
+            line(&$0, 12, 9.4, 12, 13)
+        }
+    )
+
+    /// One bar running under both screens: the same bar everywhere.
+    static let mirroredBars = MenuGlassGlyph(
+        back: { roundedRect(&$0, 2.5, 11.5, 19, 7, 3) },
+        front: {
+            roundedRect(&$0, 1, 4, 9.5, 9, 2)
+            roundedRect(&$0, 13.5, 4, 9.5, 9, 2)
+        },
+        detail: { _ in }
+    )
+
+    /// A bar of its own under each screen, of different lengths.
+    static let perDisplayBars = MenuGlassGlyph(
+        back: {
+            roundedRect(&$0, 2, 11.5, 8, 7, 3)
+            roundedRect(&$0, 15.5, 11.5, 6, 7, 3)
+        },
+        front: {
+            roundedRect(&$0, 1, 4, 9.5, 9, 2)
+            roundedRect(&$0, 13.5, 4, 9.5, 9, 2)
+        },
+        detail: { _ in }
+    )
+
     private static func roundedRect(_ path: inout Path, _ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ radius: CGFloat) {
         path.addRoundedRect(
             in: CGRect(x: x, y: y, width: width, height: height),
@@ -96,13 +145,23 @@ private struct GridShape: Shape {
 struct MenuGlassIconView: View {
     /// The owner's pick, fixed on purpose: the glyphs do not follow the system accent colour.
     static let blue = NSColor(srgbRed: 32 / 255, green: 73 / 255, blue: 236 / 255, alpha: 1)
+    /// Dark appearance only: the dark menu's backdrop swings from mid grey to near black with
+    /// whatever is behind it, and glass mixed from white and the blue goes a muddy violet on both.
+    /// A light glass of its own keeps the front and back apart instead.
+    static let darkGlassBlue = NSColor(srgbRed: 165 / 255, green: 192 / 255, blue: 1, alpha: 1)
 
     let glyph: MenuGlassGlyph
     let size: CGFloat
     let tint: Color
+    /// The front layer's colour in the dark appearance (unused in light).
+    let darkGlass: Color
     let isDark: Bool
+    /// On a highlighted menu row: all white, details cut out, so the highlight shows through.
+    var onHighlight = false
 
     var body: some View {
+        // At menu-row size the blur only smears the two layers into one blob.
+        let isSimplified = isDark && size < 20
         let back = GridShape(build: glyph.back)
         let front = GridShape(build: glyph.front)
         let frontBox = front.path(in: CGRect(x: 0, y: 0, width: size, height: size)).boundingRect
@@ -127,14 +186,22 @@ struct MenuGlassIconView: View {
                 // that the back's outline is still readable: a large one turns it into a shapeless
                 // glow. The magnify-and-shift is the refraction. Dark glass is lighter, or the
                 // blurred shape sinks into it.
-                front.fill(Color.white.opacity(isDark ? 0.42 : 0.88))
-                front.fill(tint.opacity(isDark ? 0.28 : 0.27))
-                melted
+                if onHighlight {
+                    front.fill(Color.white.opacity(0.40))
+                } else if isDark {
+                    front.fill(darkGlass.opacity(0.72))
+                } else {
+                    front.fill(Color.white.opacity(0.88))
+                    front.fill(tint.opacity(0.27))
+                }
+                if !isSimplified { melted }
             }
             .mask(front.fill(Color.white))
             GridShape(build: glyph.detail)
-                .stroke(Color.white, style: StrokeStyle(lineWidth: size / 16, lineCap: .round, lineJoin: .round))
+                .stroke(Color.white, style: StrokeStyle(lineWidth: size / (isSimplified ? 11 : 16), lineCap: .round, lineJoin: .round))
+                .blendMode(onHighlight ? .destinationOut : .normal)
         }
+        .compositingGroup()
         .frame(width: size, height: size)
     }
 }

@@ -53,10 +53,16 @@ final class PreferenceSliderMenuItemView: NSView {
     /// 屏幕必然闪一下，那一下只能发生在用户主动确认之后。
     var onDelayCommit: ((_ target: Double) -> Void)?
 
-    /// 选中那一端的小字颜色：强调色**带一点透明**（owner 2026-08-03）。
-    /// 实心圆点保持满强度，小字比它弱一档——圆点是主标记，小字是它的回声。
-    /// 别把这个透明度做到字重上：加粗会让标签宽度变化、两端文字左右跳动。
-    static let activeEndpointColor = MenuGlassIconView.blue.withAlphaComponent(0.7)
+    /// The chosen end's label. Light: the blue, a step weaker than the solid dot (the dot is the
+    /// mark, the label its echo). Dark: plain label colour — the translucent dark menu's backdrop
+    /// ranges from mid grey to near black, and no blue reads as small text on both; the dot alone
+    /// marks the choice. Never express the weaker step as font weight: bold widens the label and
+    /// the two ends jump sideways.
+    static let activeEndpointColor = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? .labelColor
+            : MenuGlassIconView.blue.withAlphaComponent(0.7)
+    }
 
     /// 未选中那一端的小字颜色。**四个使用点必须都引用它**（左右各一次初始化 + `updateDisplay`
     /// 里左右各一次），散成四份字面量时漏改一份只有「拖到端点再拖回来」才看得见。
@@ -736,7 +742,7 @@ final class MenuToggleTile: NSView {
     }
 
     private let spec: MenuToggleTileSpec
-    private let iconView = NSHostingView(rootView: MenuGlassIconView(glyph: .shelf, size: 24, tint: .clear, isDark: false))
+    private let iconView = NSHostingView(rootView: MenuGlassIconView(glyph: .shelf, size: 24, tint: .clear, darkGlass: .clear, isDark: false))
     private let titleLabel: NSTextField
     private let titleLines: Int
     private let titleHeight: CGFloat
@@ -879,10 +885,14 @@ final class MenuToggleTile: NSView {
     private func applyState() {
         let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         var tint = NSColor.gray
+        var darkGlass = NSColor.gray
         effectiveAppearance.performAsCurrentDrawingAppearance {
             tint = (isOn ? MenuGlassIconView.blue : NSColor.systemGray).usingColorSpace(.sRGB) ?? .gray
+            darkGlass = isOn ? MenuGlassIconView.darkGlassBlue : tint.blended(withFraction: 0.6, of: .white) ?? .lightGray
         }
-        iconView.rootView = MenuGlassIconView(glyph: spec.glyph, size: Self.iconSide, tint: Color(nsColor: tint), isDark: isDark)
+        iconView.rootView = MenuGlassIconView(
+            glyph: spec.glyph, size: Self.iconSide, tint: Color(nsColor: tint), darkGlass: Color(nsColor: darkGlass), isDark: isDark
+        )
         iconView.alphaValue = isOn ? 1 : 0.55
         setAccessibilityValue(isOn ? 1 : 0)
         needsDisplay = true

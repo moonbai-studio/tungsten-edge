@@ -78,7 +78,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// **刻意不设 delegate**：`menuWillOpen` / `menuDidClose` 不区分 menu 参数，
     /// 子菜单一开一关会被当成主菜单开关，提前解除边缘自动隐藏抑制。内容改为在父菜单
     /// 显示前（`prepareMenuForPresentation`）建好。
+    /// Its delegate is `taskbarScreenIconSwapper`, a separate object, for that reason.
     private let taskbarScreenMenu = NSMenu()
+    private let taskbarScreenIconSwapper = MenuGlassIconSwapper()
+    /// The parent row's icon, swapped from the main menu's own `willHighlight`.
+    private let taskbarScreenParentIconSwapper = MenuGlassIconSwapper()
     /// Always present (rows must not be added or removed while the menu is up); state lands in
     /// `refreshTaskbarPreferenceStates`.
     private lazy var taskbarToggleTiles = MenuToggleTileRowView(specs: [
@@ -264,6 +268,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         // `taskbarScreenItem` 的显隐仍只在 `prepareMenuForPresentation` 翻转
         //（菜单在屏时增删行会让任务条弹出路径的锚点漂移）。
         taskbarScreenItem.submenu = taskbarScreenMenu
+        taskbarScreenMenu.delegate = taskbarScreenIconSwapper
         taskbarScreenItem.isHidden = true
         menu.addItem(taskbarScreenItem)
         taskbarScreenSeparator.isHidden = true
@@ -347,6 +352,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if item?.view !== taskbarToggleTiles {
             taskbarToggleTiles.clearHover()
         }
+        taskbarScreenParentIconSwapper.highlight(item)
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -390,25 +396,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// submenu. Re-rendered on every open so it follows light / dark.
     private func applyTaskbarScreenItemTitle() {
         let title = String(localized: "Single/Multi-Display Mode")
-        let appearance = menu.appearance ?? NSApp.effectiveAppearance
-        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let iconSide: CGFloat = 18
-        guard let icon = MenuGlassIconView(
-            glyph: .displays,
-            size: iconSide,
-            tint: Color(nsColor: MenuGlassIconView.blue),
-            isDark: isDark
-        ).bitmapImage() else {
+        let text = NSAttributedString(string: title, attributes: [.font: NSFont.menuFont(ofSize: 0)])
+        taskbarScreenParentIconSwapper.removeAll()
+        if !taskbarScreenParentIconSwapper.attach(.displays, before: text, isDark: isMenuDark, to: taskbarScreenItem) {
             taskbarScreenItem.title = title
-            return
         }
-        let font = NSFont.menuFont(ofSize: 0)
-        let attachment = NSTextAttachment()
-        attachment.image = icon
-        attachment.bounds = NSRect(x: 0, y: (font.capHeight - iconSide) / 2, width: iconSide, height: iconSide)
-        let attributed = NSMutableAttributedString(attachment: attachment)
-        attributed.append(NSAttributedString(string: "  " + title, attributes: [.font: font]))
-        taskbarScreenItem.attributedTitle = attributed
+    }
+
+    private var isMenuDark: Bool {
+        (menu.appearance ?? NSApp.effectiveAppearance).bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 
     /// 重建「单/多屏模式 ▸」。**只从 `prepareMenuForPresentation` 调**——它是唯一
@@ -424,6 +420,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             applyTaskbarScreenItemTitle()
         }
         taskbarScreenMenu.removeAllItems()
+        taskbarScreenIconSwapper.removeAll()
+        let isDark = isMenuDark
         for row in presentation.rows {
             switch row {
             case .header(let title):
@@ -448,12 +446,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
                 // Options sit one step in from their group header.
                 menuItem.indentationLevel = 1
                 // Same line, not `NSMenuItem.subtitle`: a subtitle makes the row taller than its siblings.
-                if let hint = item.hint {
-                    menuItem.attributedTitle = Self.titleWithHint(
-                        item.title,
-                        hint,
-                        alignedAfter: TaskbarScreenMenuPresentation.pinnedTitlePrefix
-                    )
+                let text = item.hint.map {
+                    Self.titleWithHint(item.title, $0, alignedAfter: TaskbarScreenMenuPresentation.pinnedTitlePrefix)
+                } ?? NSAttributedString(string: item.title, attributes: [.font: NSFont.menuFont(ofSize: 0)])
+                let glyph = Self.glassGlyph(for: item.selection)
+                if !taskbarScreenIconSwapper.attach(glyph, before: text, isDark: isDark, to: menuItem), item.hint != nil {
+                    menuItem.attributedTitle = text
                 }
                 taskbarScreenMenu.addItem(menuItem)
             }
@@ -580,6 +578,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             installUpdateItem.attributedTitle = nil
             installUpdateItem.setAccessibilityLabel(nil)
             if allowsLayoutChange { installUpdateItem.isHidden = true }
+        }
+    }
+
+    private static func glassGlyph(for selection: TaskbarScreenMenuPresentation.Selection) -> MenuGlassGlyph {
+        switch selection {
+        case .followMouse: return .followMouse
+        case .screen: return .pinnedScreen
+        case .allScreens: return .mirroredBars
+        case .allScreensPerDisplay: return .perDisplayBars
         }
     }
 
@@ -819,4 +826,64 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         DispatchQueue.main.async { [onShowSettings] in onShowSettings() }
     }
     @objc private func quit() { onQuit() }
+}
+
+/// Puts a glass icon in front of menu rows and draws it white while its row is highlighted (a
+/// blue icon disappears on the menu's highlight). The icon decides at draw time; the title is
+/// never set again while the menu is up, because re-setting a title on an open menu re-measures
+/// the row a few points wider and the whole menu grows.
+/// Only `willHighlight` and `menuDidClose` are implemented, so as a submenu's delegate it cannot
+/// be mistaken for the main menu opening or closing.
+@MainActor
+final class MenuGlassIconSwapper: NSObject, NSMenuDelegate {
+    private weak var highlightedItem: NSMenuItem?
+
+    /// `false` where the icon cannot be drawn (macOS 12); the item is left untouched.
+    func attach(_ glyph: MenuGlassGlyph, before text: NSAttributedString, isDark: Bool, to item: NSMenuItem) -> Bool {
+        let iconSide: CGFloat = 18
+        func bitmap(onHighlight: Bool) -> NSImage? {
+            MenuGlassIconView(
+                glyph: glyph,
+                size: iconSide,
+                tint: onHighlight ? .white : Color(nsColor: MenuGlassIconView.blue),
+                darkGlass: Color(nsColor: MenuGlassIconView.darkGlassBlue),
+                isDark: isDark,
+                onHighlight: onHighlight
+            ).bitmapImage()
+        }
+        guard let normal = bitmap(onHighlight: false), let highlighted = bitmap(onHighlight: true) else { return false }
+        let icon = NSImage(size: NSSize(width: iconSide, height: iconSide), flipped: false) { [weak self, weak item] rect in
+            let isHighlighted = item != nil && self?.highlightedItem === item
+            (isHighlighted ? highlighted : normal).draw(in: rect)
+            return true
+        }
+        // Drawn afresh every time: the handler is what picks the colour.
+        icon.cacheMode = .never
+        let font = NSFont.menuFont(ofSize: 0)
+        let attachment = NSTextAttachment()
+        attachment.image = icon
+        attachment.bounds = NSRect(x: 0, y: (font.capHeight - iconSide) / 2, width: iconSide, height: iconSide)
+        let title = NSMutableAttributedString(attachment: attachment)
+        title.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+        title.append(text)
+        item.attributedTitle = title
+        return true
+    }
+
+    func removeAll() {
+        highlightedItem = nil
+    }
+
+    /// Called before the menu redraws the rows whose highlight changes.
+    func highlight(_ item: NSMenuItem?) {
+        highlightedItem = item
+    }
+
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        highlight(item)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        highlight(nil)
+    }
 }
