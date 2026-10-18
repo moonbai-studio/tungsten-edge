@@ -6,9 +6,8 @@ import os
 /// the cadence while visible is a product requirement and never stretches). Since the
 /// targeted-read rework the per-tick work is 1-3 AX round trips against cached AXDockItem
 /// elements instead of a full Dock-tree walk, and the published dict is scoped to the
-/// messaging apps that can actually show a badge (messaging **identity** ∩ running, minus
-/// drawer — since 2026-08-23 the badge follows the app, not the zone: a messaging app's
-/// leftmost strip card paints it whether it sits in the zone or in the live zone). A tick
+/// apps allowed to show a badge (per-app preference ∩ running, minus drawer). The
+/// leftmost strip card paints it whether it sits in the zone or in the live zone. A tick
 /// with no readable messaging app performs zero AX traffic. Publishes only on change so
 /// SwiftUI doesn't re-render chips for identical badge state.
 /// Kill switch DOCK_BADGE_TARGETED=0 restores the legacy full-tree walk every tick.
@@ -30,7 +29,7 @@ final class BadgeStore: ObservableObject {
     private var cacheCapturedAt: TimeInterval = 0
     private var pathToBundleID: [String: String] = [:]
     private var rewalkRequested = false
-    /// 可读集 = 消息应用身份 ∩ 在跑 − 抽屉（`AppMembershipProjection.badgeEligibleIDs`，AppDelegate 推进来）。
+    /// 可读集 = 允许显示角标 ∩ 在跑 − 抽屉（AppDelegate 推进来）。
     private var readableMessagingIDs: [String] = []
     private var taskbarVisible = true
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "Badge")
@@ -100,8 +99,10 @@ final class BadgeStore: ObservableObject {
         let readable = visibleMessagingIDs.filter { runningBundleIDs.contains($0) }
         guard readable != readableMessagingIDs else { return }
         readableMessagingIDs = readable
+        publishIfChanged(badgesByBundleID.filter { readable.contains($0.key) })
         rewalkRequested = true
         reconcileTimerState()
+        if isStarted { readOnce() }
     }
 
     private func readOnce() {
@@ -166,7 +167,7 @@ final class BadgeStore: ObservableObject {
                 self.isReading = false
                 switch outcome {
                 case .ok(let badges):
-                    self.publishIfChanged(badges)
+                    self.publishIfChanged(badges.filter { self.readableMessagingIDs.contains($0.key) })
                 case .cacheInvalid:
                     // 瞬态读错不发布缺失（角标不能闪没）：沿用上次值，下一 tick 重走全树。
                     self.rewalkRequested = true
@@ -175,7 +176,7 @@ final class BadgeStore: ObservableObject {
         }
     }
 
-    /// DOCK_BADGE_TARGETED=0：改造前的原样路径——整棵树、全部角标、无范围过滤。
+    /// DOCK_BADGE_TARGETED=0：每次重走整棵树，仍尊重当前的角标显示偏好。
     private func performLegacyRead() {
         isReading = true
         let reader = reader
@@ -184,7 +185,7 @@ final class BadgeStore: ObservableObject {
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 self.isReading = false
-                self.publishIfChanged(badges)
+                self.publishIfChanged(badges.filter { self.readableMessagingIDs.contains($0.key) })
             }
         }
     }
@@ -192,8 +193,7 @@ final class BadgeStore: ObservableObject {
     private func publishIfChanged(_ badges: [String: String]) {
         guard badges != badgesByBundleID else { return }
         badgesByBundleID = badges
-        // Diagnostic: badge dict as published, logged on change only. Scoped to messaging
-        // apps since the targeted-read rework (legacy kill-switch path still logs all).
+        // Diagnostic: badge dict as published, logged on change only and scoped to enabled apps.
         logger.info("badges-changed \(badges.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: " "), privacy: .public)")
     }
 

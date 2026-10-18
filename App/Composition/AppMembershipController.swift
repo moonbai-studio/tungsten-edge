@@ -89,6 +89,15 @@ final class AppMembershipController: ObservableObject {
         messagingStore.unmark(bundleID)
     }
 
+    func showsUnreadBadge(_ bundleID: String) -> Bool {
+        messagingStore.showsUnreadBadge(bundleID)
+    }
+
+    /// 只改角标偏好，不改保留、左侧固定或抽屉位置。
+    func setShowsUnreadBadge(_ bundleID: String, enabled: Bool) {
+        messagingStore.setShowsUnreadBadge(bundleID, enabled: enabled)
+    }
+
     /// Startup repair. The only illegal membership left is Finder in the messaging
     /// zone — since 2026-08-20 Finder may be kept and may sit in the drawer, and this
     /// runs on every launch, so clearing drawer placement here would wipe the user's
@@ -134,17 +143,17 @@ enum AppMembershipProjection {
         return filteredUnique(messagingIDs, excluding: Set(drawerIDs)).filter { retained.contains($0) }
     }
 
-    /// 角标读取范围（2026-08-23 起与消息区解绑）：**身份** ∩ 在跑 − 抽屉。
+    /// 角标读取范围：允许显示角标 ∩ 在跑 − 抽屉；显式选择与左侧固定独立。
     /// 抽屉里的图标不画角标，条上也没有它的卡，读了也没处画，所以剔掉省一趟 AX。
     /// 输出按字典序，让 `BadgeStore` 的「变了才重走」比较稳定。
     static func badgeEligibleIDs(
-        isMessagingApp: (String) -> Bool,
+        showsUnreadBadge: (String) -> Bool,
         drawerIDs: [String],
         runningIDs: Set<String>
     ) -> [String] {
         let drawer = Set(drawerIDs)
         return runningIDs
-            .filter { !$0.isEmpty && !drawer.contains($0) && isMessagingApp($0) }
+            .filter { !$0.isEmpty && !drawer.contains($0) && showsUnreadBadge($0) }
             .sorted()
     }
 

@@ -7,7 +7,9 @@ import Foundation
 ///
 /// **Two concepts, split on 2026-08-23 (owner): "is a messaging app" vs "is in the zone".**
 /// - *Identity* (`isMessagingApp`): whitelist ∪ social-networking category ∪ manual pin,
-///   minus opt-out. Decides the **unread badge** — wherever the app's card happens to be.
+///   supplies the default for **unread badges**, wherever the app's card happens to be.
+/// - *Badge preference* (`badgeOverrides`): explicit on/off overrides that default,
+///   without changing identity or placement.
 /// - *Zone membership* (`bundleIDs`): decides the pinned-zone chip. Auto-entry still
 ///   requires an identifiable main window (`autoRegister`); everything else is manual
 ///   (right-click「固定在 Dock 栏左侧」, the fallback for apps the whitelist misses).
@@ -24,12 +26,15 @@ import Foundation
 @MainActor
 final class MessagingAppStore: ObservableObject {
     @Published private(set) var bundleIDs: [String] = []
+    /// 显式角标选择独立于左侧固定；未设置的应用沿用原来的消息应用默认值。
+    @Published private(set) var badgeOverrides: [String: Bool] = [:]
     private var optOutIDs: Set<String> = []
     private let key = "messagingBundleIDsV2"
     private let optOutKey = "messagingOptOutBundleIDsV2"
     private let legacyKey = "messagingBundleIDs"
     private let legacyOptOutKey = "messagingOptOutBundleIDs"
     private let defaults: UserDefaults
+    private let badgeOverridesKey = "unreadBadgeOverridesV1"
 
     /// Built-in messaging app whitelist. Wrong/stale IDs are harmless (they never
     /// match a running app); the social-networking category check below catches
@@ -61,6 +66,7 @@ final class MessagingAppStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        badgeOverrides = defaults.dictionary(forKey: badgeOverridesKey) as? [String: Bool] ?? [:]
         // Name list V2: migrate from the frozen legacy key once, then own V2.
         // Empty is also persisted — key existence is the migration marker.
         if defaults.object(forKey: key) != nil {
@@ -95,6 +101,18 @@ final class MessagingAppStore: ObservableObject {
         return bundleIDs.contains(id)
             || Self.builtinMessagingIDs.contains(id)
             || Self.isSocialCategory(id)
+    }
+
+    func showsUnreadBadge(_ id: String) -> Bool {
+        guard !id.isEmpty else { return false }
+        return badgeOverrides[id] ?? isMessagingApp(id)
+    }
+
+    /// 即使选择与当前默认值一致也保留，后续固定/取消固定不能覆盖用户的显式选择。
+    func setShowsUnreadBadge(_ id: String, enabled: Bool) {
+        guard !id.isEmpty, badgeOverrides[id] != enabled else { return }
+        badgeOverrides[id] = enabled
+        defaults.set(badgeOverrides, forKey: badgeOverridesKey)
     }
 
     /// Manual mark: pins the app and clears any earlier opt-out. Returns whether

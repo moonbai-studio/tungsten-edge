@@ -23,7 +23,8 @@ extension LauncherMembershipItem {
             surface: surface,
             isFinder: FinderTaskbarPolicy.isFinder(bundleID),
             isKept: isKept,
-            isMessaging: isMessaging
+            isMessaging: isMessaging,
+            showsUnreadBadge: controller.showsUnreadBadge(bundleID)
         ).map { item in
             switch item {
             case let .keep(isChecked):
@@ -37,6 +38,10 @@ extension LauncherMembershipItem {
                     } else {
                         controller.markMessaging(bundleID)
                     }
+                }
+            case let .unreadBadge(isChecked):
+                return LauncherMembershipItem(label: String(localized: "Show Unread Badge"), isChecked: isChecked) {
+                    controller.setShowsUnreadBadge(bundleID, enabled: !isChecked)
                 }
             }
         }

@@ -185,7 +185,7 @@ final class AppMembershipControllerTests: XCTestCase {
             isKept: false,
             isMessaging: false,
             controller: controller
-        ).last)
+        ).first { $0.label == String(localized: "Pin to Left Side of Taskbar") })
         XCTAssertEqual(unchecked.label, String(localized: "Pin to Left Side of Taskbar"))
         XCTAssertEqual(unchecked.isChecked, false)
         unchecked.action()
@@ -199,7 +199,7 @@ final class AppMembershipControllerTests: XCTestCase {
             isKept: true,
             isMessaging: true,
             controller: controller
-        ).last)
+        ).first { $0.label == String(localized: "Pin to Left Side of Taskbar") })
         XCTAssertEqual(checked.label, String(localized: "Pin to Left Side of Taskbar"))
         XCTAssertEqual(checked.isChecked, true)
         checked.action()
@@ -209,6 +209,39 @@ final class AppMembershipControllerTests: XCTestCase {
     }
 
     // MARK: - reconcileInvalidMemberships (只清访达的消息身份)
+
+    func testBadgeMenuToggleChangesOnlyBadgePreference() throws {
+        let bundleID = "com.example.editor"
+        let descriptor = try XCTUnwrap(LauncherMembershipItem.items(
+            surface: .strip, bundleID: bundleID, isKept: false, isMessaging: false,
+            controller: controller
+        ).first { $0.label == String(localized: "Show Unread Badge") })
+        XCTAssertEqual(descriptor.isChecked, false)
+        descriptor.action()
+        XCTAssertTrue(controller.showsUnreadBadge(bundleID))
+        XCTAssertFalse(messaging.contains(bundleID))
+        XCTAssertFalse(kept.contains(bundleID))
+        XCTAssertFalse(drawer.contains(bundleID))
+
+        let checked = try XCTUnwrap(LauncherMembershipItem.items(
+            surface: .strip, bundleID: bundleID, isKept: false, isMessaging: false,
+            controller: controller
+        ).first { $0.label == String(localized: "Show Unread Badge") })
+        XCTAssertEqual(checked.isChecked, true)
+        checked.action()
+        XCTAssertFalse(controller.showsUnreadBadge(bundleID))
+    }
+
+    func testDisablingPinnedAppsBadgePreservesAllPlacement() {
+        let bundleID = "com.example.editor"
+        controller.markMessaging(bundleID)
+        drawer.add(bundleID)
+        controller.setShowsUnreadBadge(bundleID, enabled: false)
+        XCTAssertFalse(controller.showsUnreadBadge(bundleID))
+        XCTAssertTrue(messaging.contains(bundleID))
+        XCTAssertTrue(kept.contains(bundleID))
+        XCTAssertTrue(drawer.contains(bundleID))
+    }
 
     /// 每次启动都会跑：只能清消息身份。清抽屉会把用户自己拖进去的访达抹掉（2026-08-20）。
     func testReconcileClearsOnlyFinderMessagingAndKeepsDrawerPlacement() {

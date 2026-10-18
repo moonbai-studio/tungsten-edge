@@ -116,16 +116,75 @@ final class BadgeStoreTests: XCTestCase {
         XCTAssertEqual(reader.fullWalkCount, 2)
     }
 
-    func testLegacyKillSwitchReadsFullTreeUnscoped() async {
+    func testShrinkingReadableSetImmediatelyRemovesDisabledBadges() async {
+        let lark = "com.electron.lark"
+        let reader = StubBadgeReader()
+        reader.fullWalkResult = DockBadgeWalkOutcome(
+            badges: [wechat: "3", lark: "8"],
+            cache: DockItemCache(dockPID: 1, elementsByBundleID: [:]),
+            pathToBundleID: [:]
+        )
+        let store = BadgeStore(reader: reader, targetedEnabled: true, uptimeProvider: { 100 })
+        store.updateMessagingContext(visibleMessagingIDs: [wechat, lark], runningBundleIDs: [wechat, lark])
+        store.readOnceForTesting()
+        await waitUntil { !store.isReadingForTesting }
+        XCTAssertEqual(store.badgesByBundleID, [wechat: "3", lark: "8"])
+
+        store.updateMessagingContext(visibleMessagingIDs: [lark], runningBundleIDs: [wechat, lark])
+        // Closing one checkbox removes its badge synchronously, even while another app stays eligible.
+        XCTAssertEqual(store.badgesByBundleID, [lark: "8"])
+
+        store.updateMessagingContext(visibleMessagingIDs: [], runningBundleIDs: [wechat, lark])
+        XCTAssertEqual(store.badgesByBundleID, [:])
+    }
+
+    func testTargetedReadInFlightCannotRestoreDisabledBadge() async {
+        let lark = "com.electron.lark"
+        let reader = StubBadgeReader()
+        reader.fullWalkResult = DockBadgeWalkOutcome(
+            badges: [wechat: "3", lark: "8"],
+            cache: DockItemCache(dockPID: 1, elementsByBundleID: [:]),
+            pathToBundleID: [:]
+        )
+        reader.targetedResult = .ok([wechat: "9", lark: "5"])
+        let store = BadgeStore(reader: reader, targetedEnabled: true, uptimeProvider: { 100 })
+        store.updateMessagingContext(visibleMessagingIDs: [wechat, lark], runningBundleIDs: [wechat, lark])
+        store.readOnceForTesting()
+        await waitUntil { !store.isReadingForTesting }
+
+        let gate = DispatchSemaphore(value: 0)
+        reader.targetedReadGate = gate
+        defer { gate.signal() }
+        store.readOnceForTesting()
+        await waitUntil { reader.targetedCount == 1 }
+        XCTAssertEqual(reader.targetedCount, 1)
+        XCTAssertTrue(store.isReadingForTesting)
+
+        store.updateMessagingContext(visibleMessagingIDs: [lark], runningBundleIDs: [wechat, lark])
+        gate.signal()
+        await waitUntil { !store.isReadingForTesting }
+
+        // The old AX response still contains WeChat; only the currently enabled app may be published.
+        XCTAssertEqual(store.badgesByBundleID, [lark: "5"])
+    }
+
+    func testLegacyKillSwitchStillRespectsReadableSet() async {
         let reader = StubBadgeReader()
         reader.legacyResult = [wechat: "3", "com.apple.mail": "12"]
         let store = BadgeStore(reader: reader, targetedEnabled: false, uptimeProvider: { 100 })
+        store.updateMessagingContext(visibleMessagingIDs: [wechat], runningBundleIDs: [wechat])
 
         store.readOnceForTesting()
         await waitUntil { !store.isReadingForTesting }
-        // 旧路径原样：不看消息名单、发布全部角标。
-        XCTAssertEqual(store.badgesByBundleID, [wechat: "3", "com.apple.mail": "12"])
+        // The kill switch changes how AX is read, not which apps the user allowed to show badges.
+        XCTAssertEqual(store.badgesByBundleID, [wechat: "3"])
         XCTAssertEqual(reader.legacyCount, 1)
+
+        store.updateMessagingContext(visibleMessagingIDs: [], runningBundleIDs: [wechat])
+        store.readOnceForTesting()
+        await waitUntil { !store.isReadingForTesting }
+        XCTAssertEqual(store.badgesByBundleID, [:])
+        XCTAssertEqual(reader.legacyCount, 2)
     }
 
     // MARK: - 零感知门控（WI-6）
@@ -212,6 +271,7 @@ private final class StubBadgeReader: DockBadgeReading, @unchecked Sendable {
     private let lock = NSLock()
     private var _fullWalkResult = DockBadgeWalkOutcome(badges: [:], cache: nil, pathToBundleID: [:])
     private var _targetedResult = DockBadgeTargetedOutcome.ok([:])
+    private var _targetedReadGate: DispatchSemaphore?
     private var _legacyResult: [String: String] = [:]
     private var _fullWalkCount = 0
     private var _targetedCount = 0
@@ -225,6 +285,11 @@ private final class StubBadgeReader: DockBadgeReading, @unchecked Sendable {
     var targetedResult: DockBadgeTargetedOutcome {
         get { lock.lock(); defer { lock.unlock() }; return _targetedResult }
         set { lock.lock(); _targetedResult = newValue; lock.unlock() }
+    }
+
+    var targetedReadGate: DispatchSemaphore? {
+        get { lock.lock(); defer { lock.unlock() }; return _targetedReadGate }
+        set { lock.lock(); _targetedReadGate = newValue; lock.unlock() }
     }
 
     var legacyResult: [String: String] {
@@ -253,9 +318,13 @@ private final class StubBadgeReader: DockBadgeReading, @unchecked Sendable {
         bundleIDs: [String],
         previousBadges: [String: String]
     ) -> DockBadgeTargetedOutcome {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
         _targetedCount += 1
-        return _targetedResult
+        let result = _targetedResult
+        let gate = _targetedReadGate
+        lock.unlock()
+        gate?.wait()
+        return result
     }
 }
 

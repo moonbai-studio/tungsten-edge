@@ -195,4 +195,64 @@ final class MessagingAppStoreTests: XCTestCase {
         XCTAssertFalse(store.isMessagingApp("com.example.nothing"))
         XCTAssertFalse(store.isMessagingApp(""))
     }
+
+    func testBadgeDefaultsPreserveExistingMessagingBehavior() {
+        let store = makeStore(["custom.chat"])
+        XCTAssertTrue(store.showsUnreadBadge("custom.chat"))
+        XCTAssertTrue(store.showsUnreadBadge("com.apple.MobileSMS"))
+        XCTAssertFalse(store.showsUnreadBadge("com.example.editor"))
+        store.unmark("com.apple.MobileSMS")
+        XCTAssertTrue(store.showsUnreadBadge("com.apple.MobileSMS"))
+    }
+
+    func testOrdinaryAppCanEnableBadgeWithoutJoiningMessagingZone() {
+        let store = makeStore([])
+        store.setShowsUnreadBadge("com.example.editor", enabled: true)
+        XCTAssertTrue(store.showsUnreadBadge("com.example.editor"))
+        XCTAssertFalse(store.isMessagingApp("com.example.editor"))
+        XCTAssertTrue(store.bundleIDs.isEmpty)
+        XCTAssertTrue(store.autoRegister(runningBundleIDs: ["com.example.editor"],
+                                         mainWindowIdentifiableBundleIDs: ["com.example.editor"]).isEmpty)
+    }
+
+    func testBadgeChoicesPersistAcrossReloadAndPinChanges() {
+        let defaults = makeDefaults()
+        let store = MessagingAppStore(defaults: defaults)
+        store.setShowsUnreadBadge("com.example.editor", enabled: true)
+        store.setShowsUnreadBadge("com.apple.MobileSMS", enabled: false)
+        for id in ["com.example.editor", "com.apple.MobileSMS"] {
+            store.mark(id)
+            store.unmark(id)
+        }
+        let reloaded = MessagingAppStore(defaults: defaults)
+        XCTAssertTrue(reloaded.showsUnreadBadge("com.example.editor"))
+        XCTAssertFalse(reloaded.showsUnreadBadge("com.apple.MobileSMS"))
+        XCTAssertTrue(reloaded.bundleIDs.isEmpty)
+    }
+
+    func testExplicitChoiceMatchingDefaultSurvivesLaterPinChanges() {
+        let store = makeStore([])
+        store.setShowsUnreadBadge("com.example.editor", enabled: false)
+        store.mark("com.example.editor")
+        XCTAssertFalse(store.showsUnreadBadge("com.example.editor"))
+        store.setShowsUnreadBadge("com.example.editor", enabled: true)
+        store.unmark("com.example.editor")
+        XCTAssertTrue(store.showsUnreadBadge("com.example.editor"))
+    }
+
+    func testAutomaticRegistrationDoesNotOverrideDisabledBadge() {
+        let store = makeStore([])
+        store.setShowsUnreadBadge("com.tencent.qq", enabled: false)
+        _ = store.autoRegister(runningBundleIDs: ["com.tencent.qq"],
+                                mainWindowIdentifiableBundleIDs: ["com.tencent.qq"])
+        XCTAssertTrue(store.contains("com.tencent.qq"))
+        XCTAssertFalse(store.showsUnreadBadge("com.tencent.qq"))
+    }
+
+    func testEmptyBundleIDCannotEnableBadge() {
+        let store = makeStore([])
+        store.setShowsUnreadBadge("", enabled: true)
+        XCTAssertTrue(store.badgeOverrides.isEmpty)
+        XCTAssertFalse(store.showsUnreadBadge(""))
+    }
 }

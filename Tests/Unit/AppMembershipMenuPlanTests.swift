@@ -5,12 +5,13 @@ final class AppMembershipMenuPlanTests: XCTestCase {
 
     func testStripPlainAppShowsKeepAndUncheckedMessaging() {
         let items = AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: false)
-        XCTAssertEqual(items, [.keep(isChecked: false), .messaging(isChecked: false)])
+        XCTAssertEqual(items, [.keep(isChecked: false), .messaging(isChecked: false), .unreadBadge(isChecked: false)])
     }
 
     func testStripMessagingAppShowsKeepAndCheckedMessaging() {
-        let items = AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: true, isMessaging: true)
-        XCTAssertEqual(items, [.keep(isChecked: true), .messaging(isChecked: true)])
+        let items = AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: true,
+                                                isMessaging: true, showsUnreadBadge: true)
+        XCTAssertEqual(items, [.keep(isChecked: true), .messaging(isChecked: true), .unreadBadge(isChecked: true)])
     }
 
     func testDrawerPlainAppShowsOnlyKeep() {
@@ -45,17 +46,38 @@ final class AppMembershipMenuPlanTests: XCTestCase {
     func testKeepAlwaysPrecedesMessagingCommand() {
         let items = AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: true)
         XCTAssertEqual(items.first, .keep(isChecked: false))
-        XCTAssertEqual(items.last, .messaging(isChecked: true))
+        XCTAssertEqual(items[1], .messaging(isChecked: true))
     }
 
     func testMessagingCheckStateReflectsMembership() {
         XCTAssertEqual(
-            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: false).last,
+            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: false)[1],
             .messaging(isChecked: false)
         )
         XCTAssertEqual(
-            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: true).last,
+            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false, isMessaging: true)[1],
             .messaging(isChecked: true)
         )
+    }
+
+    func testUnreadBadgeCheckStateIsIndependentOfPinning() {
+        XCTAssertEqual(
+            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: false,
+                                         isMessaging: false, showsUnreadBadge: true).last,
+            .unreadBadge(isChecked: true)
+        )
+        XCTAssertEqual(
+            AppMembershipMenuPlan.items(surface: .strip, isFinder: false, isKept: true,
+                                         isMessaging: true, showsUnreadBadge: false).last,
+            .unreadBadge(isChecked: false)
+        )
+    }
+
+    func testDrawerDoesNotOfferBadgeToggleItCannotDisplay() {
+        for isMessaging in [false, true] {
+            let items = AppMembershipMenuPlan.items(surface: .drawer, isFinder: false, isKept: false,
+                                                     isMessaging: isMessaging, showsUnreadBadge: true)
+            XCTAssertFalse(items.contains(.unreadBadge(isChecked: true)))
+        }
     }
 }

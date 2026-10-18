@@ -85,7 +85,7 @@ final class AppMembershipProjectionTests: XCTestCase {
     func testBadgeEligibleIDsUsesIdentityNotZone() {
         let identity: Set<String> = ["com.apple.MobileSMS", "com.tencent.xinWeChat", "com.slack"]
         let result = AppMembershipProjection.badgeEligibleIDs(
-            isMessagingApp: { identity.contains($0) },
+            showsUnreadBadge: { identity.contains($0) },
             drawerIDs: ["com.slack"],                      // 抽屉里的不读
             runningIDs: ["com.apple.MobileSMS", "com.slack", "com.apple.Safari", "com.tencent.xinWeChat"]
         )
@@ -95,10 +95,29 @@ final class AppMembershipProjectionTests: XCTestCase {
 
     func testBadgeEligibleIDsIsEmptyWhenNothingRuns() {
         let result = AppMembershipProjection.badgeEligibleIDs(
-            isMessagingApp: { _ in true },
+            showsUnreadBadge: { _ in true },
             drawerIDs: [],
             runningIDs: []
         )
         XCTAssertTrue(result.isEmpty, "没有消息应用在跑 → 空集 → BadgeStore 停轮询")
+    }
+
+    @MainActor
+    func testExplicitBadgeChoiceLetsOrdinaryRunningAppStayOutsideMessagingZone() {
+        let suite = "test-badge-projection-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = MessagingAppStore(defaults: defaults)
+        store.setShowsUnreadBadge("com.example.editor", enabled: true)
+        store.setShowsUnreadBadge("com.example.drawer", enabled: true)
+        store.setShowsUnreadBadge("com.example.stopped", enabled: true)
+        store.setShowsUnreadBadge("com.apple.MobileSMS", enabled: false)
+        let result = AppMembershipProjection.badgeEligibleIDs(
+            showsUnreadBadge: { store.showsUnreadBadge($0) },
+            drawerIDs: ["com.example.drawer"],
+            runningIDs: ["", "com.example.editor", "com.example.drawer", "com.apple.MobileSMS"]
+        )
+        XCTAssertEqual(result, ["com.example.editor"])
+        XCTAssertTrue(store.bundleIDs.isEmpty)
     }
 }
