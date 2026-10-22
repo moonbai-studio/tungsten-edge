@@ -214,6 +214,7 @@ extension PanelCoordinator {
                                    presentation: FolderPopupSession.Presentation,
                                    anchor: CGRect) -> FolderPopupSession {
         onAccessoryWillOpen?(self, .popup)
+        closeDrawer()   // the other units close through `onAccessoryWillOpen`; this one is ours
         if activePopupSession != nil { closeFolderPopup() }
         popupSessionCounter += 1
         let session = FolderPopupSession(id: popupSessionCounter, content: content, origin: origin,
@@ -444,6 +445,13 @@ extension PanelCoordinator {
             } else {
                 playGridClose(session)
             }
+            // Both closes end the window from an animation callback. Should one never come, the
+            // window would stay on screen ignoring clicks until the next popup opens.
+            let id = session.id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                guard let self, self.exitingPopupSession?.id == id else { return }
+                self.finishExitingPopupSession()
+            }
             if session.origin == .pinnedFolder, case let .folder(path) = session.content {
                 folderPopupWillClose(path: path)
             }
@@ -549,11 +557,11 @@ extension PanelCoordinator {
         removePopupMonitors()
         let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
         popupLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-            self?.dismissFolderPopupIfOutside(isRightClick: event.type == .rightMouseDown)
+            self?.dismissFolderPopupIfOutside(isSecondaryClick: Self.isSecondaryClick(event))
             return event
         }
         popupGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
-            self?.dismissFolderPopupIfOutside(isRightClick: event.type == .rightMouseDown)
+            self?.dismissFolderPopupIfOutside(isSecondaryClick: Self.isSecondaryClick(event))
         }
     }
 
@@ -578,12 +586,13 @@ extension PanelCoordinator {
 
     /// click-away：弹窗内不关；左键时**锚点 chip（+4pt 容差）内也不关**——监视器在 mouseDown 关、chip 的
     /// onTapGesture 在 mouseUp 又开,不排除锚点则同 chip 点击永远开↔关抖动（评审确认的竞态,勿删）。
-    /// A right click anywhere off the popup closes it, the anchor chip included, as on the native Dock.
-    private func dismissFolderPopupIfOutside(isRightClick: Bool) {
+    /// A right click (or Control-click: it opens the chip's menu) anywhere off the popup closes it,
+    /// the anchor chip included, as on the native Dock.
+    private func dismissFolderPopupIfOutside(isSecondaryClick: Bool) {
         guard let session = activePopupSession else { return }
         let mouse = NSEvent.mouseLocation
         guard !folderPopupContains(mouse) else { return }
-        if !isRightClick, session.anchor.insetBy(dx: -4, dy: -4).contains(mouse) { return }
+        if !isSecondaryClick, session.anchor.insetBy(dx: -4, dy: -4).contains(mouse) { return }
         closeFolderPopup()
     }
 

@@ -285,6 +285,9 @@
 		B74000000000000000000002 /* SubscriptionSubmitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74000000000000000000003 /* SubscriptionSubmitter.swift */; };
 		B74000000000000000000011 /* SubscriptionSubmitterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74000000000000000000013 /* SubscriptionSubmitterTests.swift */; };
 		B75000000000000000000001 /* WelcomeGuideDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000003 /* WelcomeGuideDecision.swift */; };
+		D7C1A0000000000000000001 /* DrawerClickAway.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C1A0000000000000000003 /* DrawerClickAway.swift */; };
+		D7C1A0000000000000000002 /* DrawerClickAway.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C1A0000000000000000003 /* DrawerClickAway.swift */; };
+		D7C1A0000000000000000004 /* DrawerClickAwayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C1A0000000000000000005 /* DrawerClickAwayTests.swift */; };
 		B75000000000000000000002 /* WelcomeGuideDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000003 /* WelcomeGuideDecision.swift */; };
 		B75000000000000000000031 /* WelcomeGuideSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000033 /* WelcomeGuideSelection.swift */; };
 		B75000000000000000000032 /* WelcomeGuideSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B75000000000000000000033 /* WelcomeGuideSelection.swift */; };
@@ -936,6 +939,8 @@
 		B74000000000000000000003 /* SubscriptionSubmitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSubmitter.swift; sourceTree = "<group>"; };
 		B74000000000000000000013 /* SubscriptionSubmitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionSubmitterTests.swift; sourceTree = "<group>"; };
 		B75000000000000000000003 /* WelcomeGuideDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideDecision.swift; sourceTree = "<group>"; };
+		D7C1A0000000000000000003 /* DrawerClickAway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerClickAway.swift; sourceTree = "<group>"; };
+		D7C1A0000000000000000005 /* DrawerClickAwayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerClickAwayTests.swift; sourceTree = "<group>"; };
 		B75000000000000000000033 /* WelcomeGuideSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideSelection.swift; sourceTree = "<group>"; };
 		B75000000000000000000013 /* WelcomeGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideView.swift; sourceTree = "<group>"; };
 		B75000000000000000000023 /* WelcomeGuideDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeGuideDecisionTests.swift; sourceTree = "<group>"; };
@@ -1201,6 +1206,7 @@
 				B72000000000000000000013 /* InstallationRecord.swift */,
 				B78000000000000000000003 /* LicenseVerifier.swift */,
 				B75000000000000000000003 /* WelcomeGuideDecision.swift */,
+				D7C1A0000000000000000003 /* DrawerClickAway.swift */,
 				B75000000000000000000033 /* WelcomeGuideSelection.swift */,
 				C90000000000000000000005 /* ClickLatencyTrace.swift */,
 				A00000000000000000009AB0 /* HoverTrace.swift */,
@@ -1482,6 +1488,7 @@
 				A000000000000000000090B0 /* FullscreenClassificationTests.swift */,
 				B74000000000000000000013 /* SubscriptionSubmitterTests.swift */,
 				B75000000000000000000023 /* WelcomeGuideDecisionTests.swift */,
+				D7C1A0000000000000000005 /* DrawerClickAwayTests.swift */,
 				A00000000000000000009280 /* FolderContentsLoaderTests.swift */,
 				A00000000000000000009290 /* FolderSortTests.swift */,
 				A00000000000000000009340 /* StripDropRoutingTests.swift */,
@@ -1889,6 +1896,7 @@
 					B72000000000000000000011 /* InstallationRecord.swift in Sources */,
 					B78000000000000000000001 /* LicenseVerifier.swift in Sources */,
 					B75000000000000000000001 /* WelcomeGuideDecision.swift in Sources */,
+					D7C1A0000000000000000001 /* DrawerClickAway.swift in Sources */,
 					B75000000000000000000031 /* WelcomeGuideSelection.swift in Sources */,
 					B75000000000000000000011 /* WelcomeGuideView.swift in Sources */,
 					C90000000000000000000006 /* ClickLatencyTrace.swift in Sources */,
@@ -2081,6 +2089,7 @@
 				B74000000000000000000002 /* SubscriptionSubmitter.swift in Sources */,
 				B74000000000000000000011 /* SubscriptionSubmitterTests.swift in Sources */,
 				B75000000000000000000021 /* WelcomeGuideDecisionTests.swift in Sources */,
+				D7C1A0000000000000000004 /* DrawerClickAwayTests.swift in Sources */,
 				A00000000000000000009061 /* LaunchAtLoginService.swift in Sources */,
 				A00000000000000000009E22 /* LegacyLoginItemBackend.swift in Sources */,
 				A00000000000000000009041 /* NativeDockPreferencesService.swift in Sources */,
@@ -2133,6 +2142,7 @@
 				B72000000000000000000012 /* InstallationRecord.swift in Sources */,
 				B78000000000000000000002 /* LicenseVerifier.swift in Sources */,
 				B75000000000000000000002 /* WelcomeGuideDecision.swift in Sources */,
+				D7C1A0000000000000000002 /* DrawerClickAway.swift in Sources */,
 				B75000000000000000000032 /* WelcomeGuideSelection.swift in Sources */,
 				A0000000000000000000FB02 /* DockThemeTokens.swift in Sources */,
 				E20000000000000000000002 /* DockLiquidGlassConfiguration.swift in Sources */,

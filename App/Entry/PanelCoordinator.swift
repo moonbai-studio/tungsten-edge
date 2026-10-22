@@ -161,6 +161,8 @@ final class PanelCoordinator: NSObject {
     var isSuspendedForPermissionLoss = false
     var drawerLocalMonitor: Any?
     var drawerGlobalMonitor: Any?
+    /// A plain left press on the bar while the drawer is open; closes it on release if still a tap.
+    var drawerBarPress = DrawerClickAway.Press()
     // MARK: 文件夹/中转弹窗状态（一次只有一个活的会话，外加最多一个正在收起的）
     /// 共享弹窗当前装的内容：固定文件夹、中转站或废纸篓。
     enum PopupContent: Equatable {
