@@ -1377,6 +1377,96 @@ final class WindowLiftAvoidanceTests: XCTestCase {
         )
     }
 
+    func testDetourReturnCountsAStandoffRoundAndStopsAtTheCap() throws {
+        let target = try XCTUnwrap(geometry.adjustedFrame(for: visibleFrame))
+
+        let first = WindowLiftAvoidance.reduce(
+            state: .idle,
+            event: .detourReturnObserved(
+                generation: 1,
+                at: 1000,
+                nativeFrame: visibleFrame,
+                targetFrame: target,
+                standoffRounds: 0
+            )
+        )
+        guard case let .writing(attempt) = first.state else {
+            return XCTFail("Expected a lift that carries the standoff round")
+        }
+        XCTAssertEqual(attempt.standoffRounds, 1)
+        XCTAssertEqual(attempt.reliftCount, 0)
+        XCTAssertEqual(
+            first.action,
+            .write(targetFrame: target, rollbackFrame: visibleFrame, generation: 1, isRelift: false)
+        )
+
+        let capped = WindowLiftAvoidance.reduce(
+            state: .idle,
+            event: .detourReturnObserved(
+                generation: 2,
+                at: 1002,
+                nativeFrame: visibleFrame,
+                targetFrame: target,
+                standoffRounds: WindowLiftAvoidance.maximumStandoffRounds - 1
+            )
+        )
+        XCTAssertEqual(capped.action, .abandon(.reliftLimitReached))
+        guard case let .abandoned(session) = capped.state else {
+            return XCTFail("Expected the cap to park the window without a write")
+        }
+        XCTAssertEqual(session.standoffRounds, WindowLiftAvoidance.maximumStandoffRounds)
+
+        // Parked at the cap: no reopen however long the window stays maximized…
+        let later = WindowLiftAvoidance.reduce(
+            state: capped.state,
+            event: .maximizedDetected(generation: 3, at: 1030, nativeFrame: visibleFrame, targetFrame: target)
+        )
+        XCTAssertEqual(later.action, .none)
+        // …until an external frame ends the episode.
+        let cleared = WindowLiftAvoidance.reduce(
+            state: later.state,
+            event: .nonMaximizedObserved(
+                generation: 4,
+                at: 1031,
+                frame: CGRect(x: 160, y: 120, width: 920, height: 720)
+            )
+        )
+        XCTAssertEqual(cleared, .init(state: .idle, action: .clear))
+    }
+
+    func testDetourReturnIsIgnoredOutsideIdleAndOnlyCountsWithinTheReassertWindow() throws {
+        let target = try XCTUnwrap(geometry.adjustedFrame(for: visibleFrame))
+        let lifted = WindowLiftAvoidance.SessionState.lifted(WindowLiftAvoidance.LiftedSession(
+            generation: 1,
+            nativeFrame: visibleFrame,
+            adjustedFrame: target,
+            reliftCount: 0,
+            settledAt: 100,
+            standoffRounds: 0
+        ))
+        let ignored = WindowLiftAvoidance.reduce(
+            state: lifted,
+            event: .detourReturnObserved(
+                generation: 2,
+                at: 100.5,
+                nativeFrame: visibleFrame,
+                targetFrame: target,
+                standoffRounds: 0
+            )
+        )
+        XCTAssertEqual(ignored, .init(state: lifted, action: .none))
+
+        XCTAssertTrue(WindowLiftAvoidance.isDetourReturn(clearedAt: 100, at: 100.3))
+        XCTAssertTrue(WindowLiftAvoidance.isDetourReturn(
+            clearedAt: 100,
+            at: 100 + WindowLiftAvoidance.appReassertWindow
+        ))
+        XCTAssertFalse(WindowLiftAvoidance.isDetourReturn(
+            clearedAt: 100,
+            at: 100 + WindowLiftAvoidance.appReassertWindow + 0.01
+        ))
+    }
+
     func testLockedStandoffStopsRetryingAndResetsOnlyOnExternalFrame() throws {
         let target = try XCTUnwrap(geometry.adjustedFrame(for: visibleFrame))
         let manualFrame = CGRect(x: 160, y: 120, width: 920, height: 720)
