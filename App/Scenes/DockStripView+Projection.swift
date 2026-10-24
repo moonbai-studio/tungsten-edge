@@ -23,9 +23,11 @@ extension DockStripView {
         // This is the only snapshot-to-strip conversion in one body evaluation. Everything below,
         // including drag callbacks captured by that body, consumes the same immutable projection.
         // The Trash chip stands in for Finder's Trash window, so that window gets no card of its own.
+        let trashAbsorbed = settingsStore.showTrash
+            ? TrashWindowAbsorption.absorbedWindowIDs(in: runtime.snapshot, trashTitles: TrashWindowLookup.liveTitles) : []
         let stripSnapshot = settingsStore.showTrash
             ? TrashWindowAbsorption.removing(
-                TrashWindowAbsorption.absorbedWindowIDs(in: runtime.snapshot, trashTitles: TrashWindowLookup.liveTitles),
+                trashAbsorbed,
                 from: runtime.snapshot)
             : runtime.snapshot
         let snapshotItems = StripItem.items(from: stripSnapshot)
@@ -151,6 +153,7 @@ extension DockStripView {
         let claimedStrip = dragController.activeStripSurfaceID
         // 有运行圆点但没窗口的（应用级兜底卡、在运行却只剩占位的保留应用）只落主屏；
         // 没运行的占位是纯启动器，每屏都在（owner 2026-09-02：有圆点 = 只在一条上）。
+        var otherDisplayIDs = Set<String>()
         let renderedLive = orderedLive.filter { entry in
             let subject: StripDisplayFilter.Subject
             switch entry {
@@ -169,9 +172,13 @@ extension DockStripView {
             }
             // 拖动中 / 归位飞行的那张卡按认领画（启动器类每屏都在，不用改）。
             if displayFilter.scope != nil, subject != .launcher, entry.id == carriedStripID, let claimedStrip {
-                return claimedStrip == stripSurfaceID
+                let shows = claimedStrip == stripSurfaceID
+                if !shows { otherDisplayIDs.insert(entry.id) }
+                return shows
             }
-            return displayFilter.shows(subject)
+            let shows = displayFilter.shows(subject)
+            if !shows { otherDisplayIDs.insert(entry.id) }
+            return shows
         }
         // 卡片标签：同一应用的几张卡共享的那一段不承担区分作用，去掉（issue #41）。
         //
@@ -286,6 +293,10 @@ extension DockStripView {
             )
             : []
         return StripProjection(
+            drawerBundleIDs: drawerStore.bundleIDs,
+            messagingAbsorbedIDs: absorbedWindowIDs,
+            trashAbsorbedIDs: trashAbsorbed,
+            otherDisplayIDs: otherDisplayIDs,
             snapshotItems: snapshotItems,
             snapshotBundleIDs: snapshotBundleIDs,
             hiddenBundleIDs: hiddenBundleIDs,

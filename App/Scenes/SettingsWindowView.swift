@@ -15,6 +15,8 @@ struct SettingsWindowView: View {
     @ObservedObject var licenseStore: LicenseStore
     @ObservedObject var tabState: SettingsTabState
     let feedbackDraft: FeedbackDraftState
+    @ObservedObject var diagnostics: DiagnosticsSession
+    let collectDiagnostics: (Bool, @escaping (String) -> Void) -> Void
     /// 「通用」页那颗「重新打开新手引导」按钮的动作。**不给默认值**：这里没有任何测试
     /// 会检查 SwiftUI 调用点，给了默认值就等于让"漏传"编译通过（AGENTS.md 的 no-default 铁律）。
     let onShowWelcomeGuide: () -> Void
@@ -30,6 +32,8 @@ struct SettingsWindowView: View {
                 licenseStore: licenseStore,
                 tabState: tabState,
                 feedbackDraft: feedbackDraft,
+                diagnostics: diagnostics,
+                collectDiagnostics: collectDiagnostics,
                 onShowWelcomeGuide: onShowWelcomeGuide
             )
         }
@@ -45,6 +49,8 @@ struct SettingsWindowContent: View {
     /// Feedback drafts live on the controller, not in `@State`: they must survive closing the
     /// window, which tears this whole tree down.
     @ObservedObject var feedbackDraft: FeedbackDraftState
+    @ObservedObject var diagnostics: DiagnosticsSession
+    let collectDiagnostics: (Bool, @escaping (String) -> Void) -> Void
     let onShowWelcomeGuide: () -> Void
 
     @State private var presentedAlert: SettingsAlert?
@@ -59,6 +65,7 @@ struct SettingsWindowContent: View {
             case .advanced: advancedPane
             case .license: licensePane
             case .feedback: feedbackPane
+            case .diagnostics: diagnosticsPane
             case .about: aboutPane
             }
         }
@@ -319,61 +326,97 @@ struct SettingsWindowContent: View {
             systemForm {
                 aboutVersionRow
                 autoUpdateToggle
-                diagnosticsRow
             }
             .padding(.bottom, Self.afterFormMargin)
         } else {
             settingsPane {
                 aboutVersionRow
                 autoUpdateToggle
-                diagnosticsRow
             }
             .padding(Self.paneMargin)
         }
     }
 
-    /// Copies `DiagnosticReport` to the clipboard so a user can paste it into a chat or the
-    /// feedback box. Nothing is sent: the feedback form's disclosed fields stay as they are.
-    private var diagnosticsRow: some View {
-        HStack(spacing: 12) {
-            Text("Diagnostic Info")
-            Spacer()
-            Button("Copy") {
-                let report = DiagnosticReport.collect(appVersion: coordinator.versionTitle)
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(report.text, forType: .string)
-                Self.presentCopiedDiagnostics(report.text)
-            }
+    @ViewBuilder
+    private var diagnosticsPane: some View {
+        if #available(macOS 13.0, *) {
+            systemForm { diagnosticsControls }
+                .padding(.bottom, Self.afterFormMargin)
+        } else {
+            settingsPane { diagnosticsControls }
+                .padding(Self.paneMargin)
         }
     }
 
-    /// Shows what was just copied, so the user sees exactly what they are about to paste.
-    /// An `NSAlert` sheet rather than `SettingsAlert`: a SwiftUI alert cannot hold a scrolling
-    /// text box, and the report as a plain message makes the alert a screen tall.
-    private static func presentCopiedDiagnostics(_ text: String) {
-        // The scrollable-text-view factory sizes the document to its content and starts at the
-        // top; a hand-built NSTextView in a scroll view opens scrolled one line down.
-        let scrollView = NSTextView.scrollableTextView()
-        scrollView.frame = NSRect(x: 0, y: 0, width: 420, height: 236)
-        scrollView.borderType = .bezelBorder
-        if let textView = scrollView.documentView as? NSTextView {
-            textView.isEditable = false
-            textView.isSelectable = true
-            textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-            textView.textContainerInset = NSSize(width: 6, height: 6)
-            textView.string = text
+    @ViewBuilder
+    private var diagnosticsControls: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Diagnostic Report")
+            Text("The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        Toggle("Include Window Titles", isOn: Binding(
+            get: { diagnostics.includesTitles },
+            set: { diagnostics.setIncludesTitles($0); refreshDiagnostics() }
+        ))
+        VStack(alignment: .leading, spacing: 8) {
+            DiagnosticsReportTextView(text: diagnostics.report ?? "")
+                .frame(height: Self.diagnosticsReportHeight)
+                .overlay {
+                    if diagnostics.isCollecting {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+            diagnosticsActionRow
+        }
+        .onAppear {
+            if diagnostics.report == nil { refreshDiagnostics() }
+        }
+    }
 
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Diagnostic Info Copied")
-        alert.informativeText = String(localized: "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information.")
-        alert.accessoryView = scrollView
-        alert.addButton(withTitle: String(localized: "OK"))
-        if let window = NSApp.keyWindow {
-            alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
+    /// The report box keeps one height whether empty, collecting or full: content that grows
+    /// after the window opens does not resize it, so a box sized to its text would be clipped.
+    private static let diagnosticsReportHeight: CGFloat = 200
+
+    private var diagnosticsActionRow: some View {
+        HStack(spacing: 12) {
+            Text(diagnosticsStatusText)
+                .font(.caption).foregroundStyle(.secondary)
+            Button("Collect Again", action: refreshDiagnostics)
+                .disabled(diagnostics.isCollecting)
+            Spacer()
+            Button(action: copyDiagnostics) {
+                if diagnostics.showsCopied {
+                    Label("Copied", systemImage: "checkmark")
+                } else {
+                    Text("Copy Report")
+                }
+            }
+            .disabled(diagnostics.report == nil)
         }
+    }
+
+    private var diagnosticsStatusText: String {
+        guard !diagnostics.isCollecting, let collectedAt = diagnostics.collectedAt else {
+            return String(localized: "Collecting…")
+        }
+        let time = DateFormatter.localizedString(from: collectedAt, dateStyle: .none, timeStyle: .short)
+        return String(format: String(localized: "Collected at %@"), time)
+    }
+
+    private func refreshDiagnostics() {
+        guard let request = diagnostics.begin() else { return }
+        collectDiagnostics(request.includesTitles) { text in
+            diagnostics.complete(request, text: text)
+        }
+    }
+
+    private func copyDiagnostics() {
+        guard let report = diagnostics.report else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(report, forType: .string)
+        diagnostics.markCopied()
     }
 
     // 登录时启动 2026-08-24 当天两度搬家：随去重进过设置窗口，owner 复议后定为
@@ -1208,5 +1251,31 @@ extension DiagnosticReport {
         var buffer = [CChar](repeating: 0, count: size)
         guard sysctlbyname("hw.model", &buffer, &size, nil, 0) == 0 else { return nil }
         return String(cString: buffer)
+    }
+}
+
+/// Read-only, selectable report text. AppKit rather than a SwiftUI `Text`: a busy machine's
+/// report runs to hundreds of lines, which a SwiftUI text view scrolls and selects poorly.
+private struct DiagnosticsReportTextView: NSViewRepresentable {
+    let text: String
+
+    func makeNSView(context: Context) -> NSScrollView {
+        // The factory sizes the document to its content and starts at the top; a hand-built
+        // NSTextView in a scroll view opens scrolled one line down.
+        let scrollView = NSTextView.scrollableTextView()
+        scrollView.borderType = .bezelBorder
+        if let textView = scrollView.documentView as? NSTextView {
+            textView.isEditable = false
+            textView.isSelectable = true
+            textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+            textView.textContainerInset = NSSize(width: 6, height: 6)
+        }
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView, textView.string != text else { return }
+        textView.string = text
+        textView.scrollToBeginningOfDocument(nil)
     }
 }

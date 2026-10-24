@@ -21,21 +21,27 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     /// Feedback drafts outlive the window for the same reason: closing drops the host, and with
     /// it every `@State`. Deliberately not persisted across launches.
     private let feedbackDraft = FeedbackDraftState()
+    private var diagnosticsSession: DiagnosticsSession?
+    private let collectDiagnostics: (Bool, @escaping (String) -> Void) -> Void
 
     init(
         store: AppSettingsStore,
         coordinator: SettingsCoordinator,
         licenseStore: LicenseStore,
+        collectDiagnostics: @escaping (Bool, @escaping (String) -> Void) -> Void,
         onShowWelcomeGuide: @escaping () -> Void
     ) {
         self.store = store
         self.coordinator = coordinator
         self.licenseStore = licenseStore
+        self.collectDiagnostics = collectDiagnostics
         self.onShowWelcomeGuide = onShowWelcomeGuide
     }
 
     func present() {
         let window = window ?? makeWindow()
+        let diagnostics = diagnosticsSession ?? DiagnosticsSession()
+        diagnosticsSession = diagnostics
         if let closedFrame {
             window.setFrame(closedFrame, display: false)
             self.closedFrame = nil
@@ -47,6 +53,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 licenseStore: licenseStore,
                 tabState: tabState,
                 feedbackDraft: feedbackDraft,
+                diagnostics: diagnostics,
+                collectDiagnostics: collectDiagnostics,
                 onShowWelcomeGuide: onShowWelcomeGuide
             )
         )
@@ -90,6 +98,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let window, notification.object as? NSWindow === window else { return }
         closedFrame = window.frame
+        diagnosticsSession?.close()
+        diagnosticsSession = nil
         sessionSubscriptions.removeAll()
         window.contentView = NSView()
         hostingView = nil
@@ -153,7 +163,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     /// `animated` 只有切页路径传 true（顶边左边固定、底边动画到新页高度）。
     /// `present()` 与授权 sink 走默认 false——与一页式时代的行为一致。
     private func resizeToFitKeepingTopEdge(animated: Bool = false) {
-        guard let window else { return }
+        guard let window, let diagnosticsSession else { return }
         // The probe must carry the same fixed width as the real window (`SettingsWindowView` puts
         // `.frame(width:)` outside its ScrollView). `fittingSize` proposes no width, so without it
         // every wrapping note measures single-line and the window comes up short by one line per
@@ -165,6 +175,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 licenseStore: licenseStore,
                 tabState: tabState,
                 feedbackDraft: feedbackDraft,
+                diagnostics: diagnosticsSession,
+                collectDiagnostics: collectDiagnostics,
                 onShowWelcomeGuide: onShowWelcomeGuide
             )
             .frame(width: SettingsWindowView.contentWidth)

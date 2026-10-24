@@ -393,6 +393,8 @@ final class PanelCoordinator: NSObject {
     var lastActiveApplicationPID: pid_t?
     var visibilityState = PanelVisibilityState()
     var panelsAreVisible = true
+    var diagnosticFullscreenSource = "not recorded"
+    var diagnosticFullscreenVerdict: Bool?
     var edgeIdleHideTimer: Timer?
     var edgeWakeTimer: Timer?
     var edgeWakeTargetScreen: NSScreen?
@@ -520,6 +522,8 @@ final class PanelCoordinator: NSObject {
     /// ③④ 下拔掉一块屏也走这里拆那块屏的单元（编排层调）。共享的拖动控制器 / 载体面板
     /// **不在这里收**——那是全进程一份的，由编排层在真正挂起时收一次。
     func tearDown() {
+        DiagnosticVisibilityRecorder.shared.history.remove(unit: stripSurfaceID)
+        StripProjectionRegistry.shared.remove(surface: stripSurfaceID)
         guard !isSuspendedForPermissionLoss else { return }
         isSuspendedForPermissionLoss = true
         cancelInteractiveResize()

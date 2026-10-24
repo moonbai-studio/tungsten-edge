@@ -203,6 +203,7 @@ struct DockStripView: View {
     var body: some View {
         let projectionStart = HoverTrace.now()
         let projection = makeProjection()
+        let _ = StripProjectionRegistry.shared.store(projection, surface: stripSurfaceID, displayUUID: displayUUID)
         let _ = HoverTrace.span("makeProjection", since: projectionStart)
         // 「一次点击让整条重算了几次」——`DockStripView` 订阅整个 `AppRuntime`，
         // 任何一个 `@Published` 变化都会打翻整条。默认关，`DOCK_HOVER_TRACE=1` 才记。
@@ -468,6 +469,7 @@ struct DockStripView: View {
             bubbleOwnerID = request?.chipID
         }
         .onDisappear {
+            StripProjectionRegistry.shared.remove(surface: stripSurfaceID)
             if let previous = bubbleOwnerID { onWindowTitleTooltipEvent(.exit(chipID: previous)) }
             bubbleOwnerID = nil
         }

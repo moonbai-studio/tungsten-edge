@@ -276,6 +276,8 @@ extension PanelCoordinator {
                 closeDrawer()
                 closeFolderPopup()
                 dismissWindowTitleTooltip(suppressCurrentUntilExit: true)
+                diagnosticFullscreenSource = source
+                diagnosticFullscreenVerdict = true
                 reconcilePanelVisibility()
                 logFullscreenVerdict(true, source: source)
                 return
@@ -330,6 +332,8 @@ extension PanelCoordinator {
             if fullscreenIntentTransaction != nil { return }
             visibilityState.setFullscreen(false)
         }
+        diagnosticFullscreenSource = source
+        diagnosticFullscreenVerdict = isFullscreen
         reconcilePanelVisibility()
         logFullscreenVerdict(isFullscreen, source: source)
     }
@@ -369,6 +373,8 @@ extension PanelCoordinator {
         fullscreenIntentTimeoutTimer?.invalidate()
         visibilityState.beginFullscreenTransition(generation: generation)
 
+        diagnosticFullscreenSource = request.source.rawValue + "-prediction"
+
         edgeIdleHideTimer?.invalidate()
         edgeIdleHideTimer = nil
         cancelEdgeWake()
@@ -399,6 +405,7 @@ extension PanelCoordinator {
         }
         finishFullscreenIntentTransaction()
         fullscreenProbeGeneration &+= 1
+        diagnosticFullscreenSource = "intent-cancel-" + reason
         fullscreenIntentLogger.notice(
             "cancelled reason=\(reason, privacy: .public) generation=\(generation, privacy: .public)"
         )
@@ -423,7 +430,7 @@ extension PanelCoordinator {
         closeFolderPopup(immediately: true)
         dismissWindowTitleTooltip(suppressCurrentUntilExit: true)
 
-        panelsAreVisible = false
+        noteVisibilityChange(visible: false, source: diagnosticFullscreenSource)
         // 预测路径也是「因全屏而藏」：之后的揭示同样走淡入。
         lastHideWasForFullscreen = true
         // 全屏预测的快速隐藏路径不经过 applyPanelVisibility，角标门控要单独通知。
@@ -458,13 +465,15 @@ extension PanelCoordinator {
         fullscreenProbeGeneration &+= 1
         visibilityState.beginFullscreenTransition(generation: generation)
 
+        diagnosticFullscreenSource = "space-intent-" + direction.rawValue
+
         // 淡出再藏（owner 2026-08-30 的入场/退场动画诉求）。**只有这条空间路径可以淡**：
         // 方向键领先空间切换 ~550ms、三指滑 ~950–1130ms（实测），0.15s 淡出完成时离
         // WindowServer 抓过渡快照还有充足余量；绿键路径领先只有几十 ms，必须维持
         // 同步瞬时 orderOut。handoff 在淡出调度后立即返回，输入不被阻塞。
         // 逻辑态立刻置「已藏」：不然本函数末尾的异步 reconcile 会看到 shouldShow=false、
         // panelsAreVisible=true，直接走硬 orderOut 把淡出绕过去。视觉上的 orderOut 等淡出完。
-        panelsAreVisible = false
+        noteVisibilityChange(visible: false, source: diagnosticFullscreenSource)
         lastHideWasForFullscreen = true
         onLogicalVisibilityChanged?(false)
         let fadingPanels = [dockGlassBackgroundPanel, dockPanel, capsulePanel].compactMap { $0 }
@@ -511,6 +520,7 @@ extension PanelCoordinator {
         }
         clearFullscreenSpaceArrowIntent()
         fullscreenProbeGeneration &+= 1
+        diagnosticFullscreenSource = "space-intent-cancel-" + reason
         fullscreenIntentLogger.notice(
             "space-cancelled reason=\(reason, privacy: .public) generation=\(generation, privacy: .public)"
         )

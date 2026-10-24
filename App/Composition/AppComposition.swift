@@ -82,6 +82,9 @@ final class AppRuntime: ObservableObject {
     private var appearanceGeneration: UInt64 = 0
 
     private let tracker: AppTracker
+
+    func diagnosticApps() -> [AppEntry] { tracker.diagnosticApps() }
+    var diagnosticAdmissions: [pid_t: DiagnosticAdmissionRecord] { tracker.lastAdmissionVerdictByPID }
     private let displayTableProvider: @MainActor () -> WindowDisplayAttribution.Table
     private let intentPipeline = IntentPipeline(actionPlanning: LifecycleActionPlanner())
     private let actionExecutor = PlatformActionExecutor()

@@ -471,6 +471,9 @@
 		F3A0000000000000000000A1 /* DiagnosticReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A0000000000000000000A0 /* DiagnosticReport.swift */; };
 		F3A0000000000000000000A2 /* DiagnosticReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A0000000000000000000A0 /* DiagnosticReport.swift */; };
 		F3A0000000000000000000B1 /* DiagnosticReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A0000000000000000000B0 /* DiagnosticReportTests.swift */; };
+		D1A000000000000000000001 /* DiagnosticSnapshotCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000011 /* DiagnosticSnapshotCollector.swift */; };
+		D1A000000000000000000002 /* StripProjectionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000012 /* StripProjectionRegistry.swift */; };
+		D1A000000000000000000003 /* DiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000013 /* DiagnosticsTests.swift */; };
 		F1E0000000000000000000C4 /* FeedbackAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E0000000000000000000C3 /* FeedbackAttachmentTests.swift */; };
 		F1D0000000000000000000A1 /* DocumentUsageRanking.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D0000000000000000000A0 /* DocumentUsageRanking.swift */; };
 		F1D0000000000000000000A2 /* DocumentUsageRanking.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D0000000000000000000A0 /* DocumentUsageRanking.swift */; };
@@ -690,6 +693,9 @@
 		F1E0000000000000000000B0 /* FeedbackSubmitterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackSubmitterTests.swift; sourceTree = "<group>"; };
 		F3A0000000000000000000A0 /* DiagnosticReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReport.swift; sourceTree = "<group>"; };
 		F3A0000000000000000000B0 /* DiagnosticReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticReportTests.swift; sourceTree = "<group>"; };
+		D1A000000000000000000011 /* DiagnosticSnapshotCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticSnapshotCollector.swift; sourceTree = "<group>"; };
+		D1A000000000000000000012 /* StripProjectionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StripProjectionRegistry.swift; sourceTree = "<group>"; };
+		D1A000000000000000000013 /* DiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsTests.swift; sourceTree = "<group>"; };
 		F1E0000000000000000000C3 /* FeedbackAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackAttachmentTests.swift; sourceTree = "<group>"; };
 		F1D0000000000000000000A0 /* DocumentUsageRanking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentUsageRanking.swift; sourceTree = "<group>"; };
 		F1D0000000000000000000B0 /* DocumentUsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentUsageStore.swift; sourceTree = "<group>"; };
@@ -1047,6 +1053,7 @@
 				F1D0000000000000000000B0 /* DocumentUsageStore.swift */,
 				F1E0000000000000000000A0 /* FeedbackSubmitter.swift */,
 				F3A0000000000000000000A0 /* DiagnosticReport.swift */,
+				D1A000000000000000000011 /* DiagnosticSnapshotCollector.swift */,
 				F1E0000000000000000000C0 /* FeedbackAttachment.swift */,
 				F1A0000000000000000000A0 /* HotKeyShortcutValidation.swift */,
 				F1A0000000000000000000B0 /* HotKeyGlyphs.swift */,
@@ -1112,6 +1119,7 @@
 				B75000000000000000000013 /* WelcomeGuideView.swift */,
 				F1A0000000000000000000C0 /* HotKeyRecorderView.swift */,
 				F2A0000000000000000000A0 /* SettingsTab.swift */,
+				D1A000000000000000000012 /* StripProjectionRegistry.swift */,
 				D10000000000000000000002 /* SettingsWindowView.swift */,
 				A00000000000000000000067 /* DockStripView.swift */,
 				A00000000000000000009D00 /* WindowTitleTooltip.swift */,
@@ -1576,6 +1584,7 @@
 				F1D0000000000000000000C0 /* DocumentUsageRankingTests.swift */,
 				F1E0000000000000000000B0 /* FeedbackSubmitterTests.swift */,
 				F3A0000000000000000000B0 /* DiagnosticReportTests.swift */,
+				D1A000000000000000000013 /* DiagnosticsTests.swift */,
 				F1E0000000000000000000C3 /* FeedbackAttachmentTests.swift */,
 				F1F0000000000000000000B0 /* AppLanguageOptionTests.swift */,
 				B78000000000000000000033 /* LicenseStoreTests.swift */,
@@ -1875,6 +1884,8 @@
 					F1D0000000000000000000B1 /* DocumentUsageStore.swift in Sources */,
 					F1E0000000000000000000A1 /* FeedbackSubmitter.swift in Sources */,
 					F3A0000000000000000000A1 /* DiagnosticReport.swift in Sources */,
+					D1A000000000000000000001 /* DiagnosticSnapshotCollector.swift in Sources */,
+					D1A000000000000000000002 /* StripProjectionRegistry.swift in Sources */,
 					F1E0000000000000000000C1 /* FeedbackAttachment.swift in Sources */,
 					A0000000000000000000FA01 /* LauncherChipVisualPlan.swift in Sources */,
 					A0000000000000000000EA01 /* FrontWindowIndicatorDecision.swift in Sources */,
@@ -2288,6 +2299,7 @@
 					F1D0000000000000000000C1 /* DocumentUsageRankingTests.swift in Sources */,
 					F1E0000000000000000000B1 /* FeedbackSubmitterTests.swift in Sources */,
 					F3A0000000000000000000B1 /* DiagnosticReportTests.swift in Sources */,
+					D1A000000000000000000003 /* DiagnosticsTests.swift in Sources */,
 					F1E0000000000000000000C4 /* FeedbackAttachmentTests.swift in Sources */,
 					F1F0000000000000000000B1 /* AppLanguageOptionTests.swift in Sources */,
 					B78000000000000000000031 /* LicenseStoreTests.swift in Sources */,

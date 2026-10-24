@@ -10,6 +10,7 @@ enum SettingsTab: String, CaseIterable {
     case advanced
     case license
     case feedback
+    case diagnostics
     case about
 
     var title: String {
@@ -18,6 +19,7 @@ enum SettingsTab: String, CaseIterable {
         case .advanced: return String(localized: "Advanced")
         case .license: return String(localized: "License")
         case .feedback: return String(localized: "Feedback")
+        case .diagnostics: return String(localized: "Diagnostics")
         case .about: return String(localized: "About")
         }
     }
@@ -28,6 +30,7 @@ enum SettingsTab: String, CaseIterable {
         case .advanced: return "wrench.and.screwdriver"
         case .license: return "key"
         case .feedback: return "paperplane"
+        case .diagnostics: return "stethoscope"
         case .about: return "info.circle"
         }
     }
@@ -39,6 +42,76 @@ enum SettingsTab: String, CaseIterable {
 @MainActor
 final class SettingsTabState: ObservableObject {
     @Published var selected: SettingsTab = .general
+}
+
+@MainActor
+final class DiagnosticsSession: ObservableObject {
+    struct Request: Equatable {
+        let generation: UInt64
+        let includesTitles: Bool
+    }
+
+    @Published private(set) var includesTitles = false
+    @Published private(set) var isCollecting = false
+    @Published private(set) var report: String?
+    @Published private(set) var collectedAt: Date?
+    @Published private(set) var showsCopied = false
+    private var generation: UInt64 = 0
+    private var copiedToken: UInt64 = 0
+    private var isOpen = true
+
+    func setIncludesTitles(_ value: Bool) {
+        guard value != includesTitles else { return }
+        includesTitles = value
+        invalidate()
+    }
+
+    func begin() -> Request? {
+        guard isOpen, !isCollecting else { return nil }
+        generation &+= 1
+        copiedToken &+= 1
+        report = nil
+        collectedAt = nil
+        showsCopied = false
+        isCollecting = true
+        return Request(generation: generation, includesTitles: includesTitles)
+    }
+
+    @discardableResult
+    func complete(_ request: Request, text: String) -> Bool {
+        guard isOpen, isCollecting, request.generation == generation, request.includesTitles == includesTitles else { return false }
+        isCollecting = false
+        report = text
+        collectedAt = Date()
+        return true
+    }
+
+    /// Flips the copy button to its confirmation for two seconds; a later copy restarts the clock.
+    func markCopied() {
+        copiedToken &+= 1
+        let token = copiedToken
+        showsCopied = true
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard let self, self.copiedToken == token else { return }
+            self.showsCopied = false
+        }
+    }
+
+    func close() {
+        isOpen = false
+        includesTitles = false
+        invalidate()
+    }
+
+    private func invalidate() {
+        generation &+= 1
+        copiedToken &+= 1
+        isCollecting = false
+        report = nil
+        collectedAt = nil
+        showsCopied = false
+    }
 }
 
 /// The feedback pane's four drafts. Owned by the controller, like `SettingsTabState`, because

@@ -102,6 +102,410 @@
         }
       }
     },
+    "Copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拷貝"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copié"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiato"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복사됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировано"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopyalandı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कॉपी हो गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép"
+          }
+        }
+      }
+    },
+    "Collect Again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collect Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新收集"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新收集"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再収集"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut erfassen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecter à nouveau"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilar de nuevo"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilar de nuevo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletar novamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher novamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccogli di nuovo"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 수집"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрать заново"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden Topla"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर से एकत्र करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu thập lại"
+          }
+        }
+      }
+    },
+    "Collecting…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecting…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "収集中…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird erfasst …"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecte en cours…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando…"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletando…"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A recolher…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccolta in corso…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수집 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сбор…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplanıyor…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एकत्र किया जा रहा है…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang thu thập…"
+          }
+        }
+      }
+    },
+    "Collected at %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collected at %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收集于 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收集於 %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に収集"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasst um %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecté à %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilado a las %@"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilado a las %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletado às %@"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolhido às %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccolto alle %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@에 수집됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрано в %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ itibarıyla toplandı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर एकत्र किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu thập lúc %@"
+          }
+        }
+      }
+    },
     "Large": {
       "comment": "状态栏菜单 · Dock 栏大小",
       "localizations": {
@@ -6234,6 +6638,107 @@
         }
       }
     },
+    "Copy Report": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Report"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制报告"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷貝報告"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レポートをコピー"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bericht kopieren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier le rapport"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar informe"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar informe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar relatório"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar relatório"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia rapporto"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보고서 복사"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать отчёт"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raporu Kopyala"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिपोर्ट कॉपी करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép báo cáo"
+          }
+        }
+      }
+    },
     "Couldn’t Activate": {
       "localizations": {
         "zh-Hans": {
@@ -7439,202 +7944,204 @@
         }
       }
     },
-    "Diagnostic Info": {
+    "Diagnostic Report": {
+      "extractionState": "manual",
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "诊断信息"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnostic Info"
+            "value": "Diagnostic Report"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断报告"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "診斷資訊"
+            "value": "診斷報告"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "診断情報"
+            "value": "診断レポート"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnoseinformationen"
+            "value": "Diagnosebericht"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informations de diagnostic"
+            "value": "Rapport de diagnostic"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico"
+            "value": "Informe de diagnóstico"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico"
+            "value": "Informe de diagnóstico"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico"
+            "value": "Relatório de diagnóstico"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico"
+            "value": "Relatório de diagnóstico"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informazioni di diagnostica"
+            "value": "Rapporto diagnostico"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "진단 정보"
+            "value": "진단 보고서"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Диагностическая информация"
+            "value": "Диагностический отчёт"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tanılama Bilgileri"
+            "value": "Tanılama Raporu"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "डायग्नोस्टिक जानकारी"
+            "value": "निदान रिपोर्ट"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thông tin chẩn đoán"
+            "value": "Báo cáo chẩn đoán"
           }
         }
       }
     },
-    "Diagnostic Info Copied": {
+    "Diagnostics": {
+      "extractionState": "manual",
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "诊断信息已拷贝"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnostic Info Copied"
+            "value": "Diagnostics"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已拷貝診斷資訊"
+            "value": "診斷"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "診断情報をコピーしました"
+            "value": "診断"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnoseinformationen kopiert"
+            "value": "Diagnose"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informations de diagnostic copiées"
+            "value": "Diagnostic"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico copiada"
+            "value": "Diagnóstico"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico copiada"
+            "value": "Diagnóstico"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico copiadas"
+            "value": "Diagnóstico"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico copiadas"
+            "value": "Diagnóstico"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informazioni di diagnostica copiate"
+            "value": "Diagnostica"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "진단 정보를 복사했습니다"
+            "value": "진단"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Диагностическая информация скопирована"
+            "value": "Диагностика"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tanılama bilgileri kopyalandı"
+            "value": "Tanılama"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "डायग्नोस्टिक जानकारी कॉपी की गई"
+            "value": "निदान"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã sao chép thông tin chẩn đoán"
+            "value": "Chẩn đoán"
           }
         }
       }
@@ -11257,6 +11764,107 @@
         }
       }
     },
+    "Include Window Titles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Include Window Titles"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包括窗口标题"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含視窗標題"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウのタイトルを含める"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fenstertitel einschließen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclure les titres des fenêtres"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos de ventanas"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos de ventanas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos das janelas"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos das janelas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includi titoli delle finestre"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우 제목 포함"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включить заголовки окон"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pencere Başlıklarını Dahil Et"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विंडो शीर्षक शामिल करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bao gồm tiêu đề cửa sổ"
+          }
+        }
+      }
+    },
     "Install %@ — update available": {
       "comment": "菜单项的辅助功能描述：红点 VoiceOver 念不出来，用这句代替",
       "localizations": {
@@ -13866,6 +14474,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hãy thoát ứng dụng rồi thử lại."
+          }
+        }
+      }
+    },
+    "The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极现在看到的窗口、权限和设置。主目录显示为 ~。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge目前看到的視窗、權限與設定。個人專屬目錄顯示為 ~。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edgeが現在認識しているウインドウ、アクセス権、設定です。ホームディレクトリは ~ と表示されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die von Tungsten Edge erkannten Fenster, Berechtigungen und Einstellungen. Dein Benutzerordner wird als ~ angezeigt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les fenêtres, autorisations et réglages actuellement vus par Tungsten Edge. Le dossier de départ est remplacé par ~."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las ventanas, permisos y ajustes que ve Tungsten Edge. Tu carpeta de inicio se muestra como ~."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las ventanas, permisos y ajustes que ve Tungsten Edge. Tu carpeta de inicio se muestra como ~."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As janelas, permissões e ajustes que o Tungsten Edge vê no momento. Sua pasta pessoal aparece como ~."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As janelas, permissões e definições que o Tungsten Edge vê atualmente. A pasta pessoal aparece como ~."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le finestre, le autorizzazioni e le impostazioni attualmente rilevate da Tungsten Edge. La cartella Inizio appare come ~."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge가 현재 인식하는 윈도우, 권한 및 설정입니다. 홈 디렉토리는 ~로 표시됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Окна, разрешения и настройки, которые сейчас видит Tungsten Edge. Домашняя папка отображается как ~."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge’in şu anda gördüğü pencereler, izinler ve ayarlar. Ana klasörünüz ~ olarak gösterilir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge को अभी दिखाई देने वाली विंडो, अनुमतियाँ और सेटिंग्ज़। आपका होम फ़ोल्डर ~ के रूप में दिखता है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các cửa sổ, quyền và cài đặt Tungsten Edge hiện nhận biết. Thư mục chính được hiển thị bằng ~."
           }
         }
       }
@@ -16974,106 +17683,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã mua"
-          }
-        }
-      }
-    },
-    "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以粘贴到反馈里，或直接发给我们。内容就是下面这些：只有应用、系统和显示器的信息，不含个人信息。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以貼到意見回饋裡，或直接傳給我們。內容就是下方這些：只有 App、系統和顯示器的資訊，不含個人資訊。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィードバックにペーストするか、そのままお送りください。内容は以下のとおりで、アプリ、システム、ディスプレイの情報のみです。個人情報は含まれません。"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Füge sie in eine Feedback-Nachricht ein oder sende sie uns. Sie enthalten nur die unten gezeigten Angaben zu App, System und Displays – keine persönlichen Daten."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collez-les dans un message de commentaires ou envoyez-les-nous. Elles ne contiennent que les détails ci-dessous sur l’app, le système et les écrans — aucune information personnelle."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pégala en un mensaje de comentarios o envíanosla. Solo contiene los datos de la app, el sistema y las pantallas que se muestran abajo; ninguna información personal."
-          }
-        },
-        "es-419": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pégala en un mensaje de comentarios o envíanosla. Solo contiene los datos de la app, el sistema y las pantallas que se muestran abajo; ninguna información personal."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cole em uma mensagem de feedback ou envie para nós. Contém apenas os detalhes do app, do sistema e das telas mostrados abaixo — nenhuma informação pessoal."
-          }
-        },
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cole numa mensagem de comentários ou envie-nos. Contém apenas os detalhes da app, do sistema e dos ecrãs mostrados abaixo — nenhuma informação pessoal."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Incollale in un messaggio di feedback o inviacele. Contengono solo i dettagli su app, sistema e schermi mostrati qui sotto: nessuna informazione personale."
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "피드백 메시지에 붙여넣거나 저희에게 보내 주세요. 아래에 보이는 앱, 시스템, 디스플레이 정보만 들어 있으며 개인 정보는 포함되지 않습니다."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вставьте эту информацию в сообщение с отзывом или отправьте нам. Она содержит только сведения о приложении, системе и дисплеях, показанные ниже, — никаких персональных данных."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bunu bir geri bildirim mesajına yapıştırın veya bize gönderin. Yalnızca aşağıda gösterilen uygulama, sistem ve ekran bilgilerini içerir — kişisel bilgi içermez."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इसे फ़ीडबैक संदेश में पेस्ट करें या हमें भेजें। इसमें सिर्फ़ नीचे दिखाई गई ऐप, सिस्टम और डिस्प्ले की जानकारी है — कोई निजी जानकारी नहीं।"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hãy dán thông tin này vào tin nhắn phản hồi hoặc gửi cho chúng tôi. Thông tin chỉ gồm chi tiết về ứng dụng, hệ thống và màn hình hiển thị bên dưới — không có thông tin cá nhân."
           }
         }
       }

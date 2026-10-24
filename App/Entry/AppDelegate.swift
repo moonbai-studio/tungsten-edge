@@ -75,6 +75,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store: settingsStore,
         coordinator: settingsCoordinator,
         licenseStore: licenseStore,
+        collectDiagnostics: { [weak self] includesTitles, completion in
+            guard let self else { return }
+            DiagnosticSnapshotCollector.collect(
+                runtime: self.runtime, orchestrator: self.panelCoordinator, store: self.settingsStore,
+                kept: self.keptAppStore, drawer: self.drawerStore, messaging: self.messagingStore,
+                folders: self.pinnedFolderStore, appVersion: self.settingsCoordinator.versionTitle,
+                includeTitles: includesTitles, completion: completion
+            )
+        },
         // 直通 showWelcomeWindow()，不走 presentWelcomeGuideIfNeeded()——那条对
         // hasSeenWelcome 已置位的存量用户永远静默跳过，而存量用户正是这个入口的全部受众。
         // 入口 2026-09-01 从状态栏菜单搬进设置卡「通用」页（owner 拍板）；直通这一点不变。

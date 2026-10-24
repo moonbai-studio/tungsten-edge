@@ -11,6 +11,14 @@ struct DockWindowEligibilityPolicy {
         case filter
     }
 
+    enum Verdict: String, Equatable, CaseIterable {
+        case eligible, selfApp, transparent
+        case systemSurfaceBundle, systemSurfaceAppName, systemSurfaceExtension
+        case systemSurfaceExecutable, systemSurfaceTitle
+        case prohibitedPolicy, accessoryWithoutTitleOrTooSmall, emptyTitleNotStandardOrTooSmall
+        case belowNormalLayer, feishuNotMainWindow, finderNotTrackable, notMainWindow
+    }
+
     struct Candidate {
         let bundleIdentifier: String?
         let appName: String
@@ -23,71 +31,78 @@ struct DockWindowEligibilityPolicy {
     }
 
     func evaluate(_ candidate: Candidate) -> Decision {
+        verdict(candidate) == .eligible ? .keep : .filter
+    }
+
+    func verdict(_ candidate: Candidate) -> Verdict {
         if candidate.bundleIdentifier == Self.selfBundleIdentifier {
-            return .filter
+            return .selfApp
         }
 
         if candidate.alpha == 0 {
-            return .filter
+            return .transparent
         }
 
         if FeishuBundleRules.isFeishu(bundleIdentifier: candidate.bundleIdentifier) {
-            return .keep
+            return .eligible
         }
 
-        if isFilteredSystemWindow(candidate) {
-            return .filter
-        }
+        if let rejection = systemSurfaceVerdict(candidate) { return rejection }
 
         switch candidate.activationPolicy {
         case .prohibited:
-            return .filter
+            return .prohibitedPolicy
         case .accessory:
             guard hasTitle(candidate.title),
                   hasMinimumFrame(candidate.bounds) else {
-                return .filter
+                return .accessoryWithoutTitleOrTooSmall
             }
-            return .keep
+            return .eligible
         case .regular:
             if hasTitle(candidate.title) {
-                return .keep
+                return .eligible
             }
             guard candidate.subrole == (kAXStandardWindowSubrole as String),
                   hasMinimumFrame(candidate.bounds) else {
-                return .filter
+                return .emptyTitleNotStandardOrTooSmall
             }
-            return .keep
+            return .eligible
         @unknown default:
-            return hasTitle(candidate.title) ? .keep : .filter
+            return hasTitle(candidate.title) ? .eligible : .emptyTitleNotStandardOrTooSmall
         }
     }
 
-    private func isFilteredSystemWindow(_ candidate: Candidate) -> Bool {
+    private func systemSurfaceVerdict(_ candidate: Candidate) -> Verdict? {
         if let bundleIdentifier = candidate.bundleIdentifier,
            filteredBundleIdentifiers.contains(bundleIdentifier) {
-            return true
+            return .systemSurfaceBundle
         }
 
         if filteredAppNames.contains(candidate.appName) {
-            return true
+            return .systemSurfaceAppName
         }
 
         if let executablePath = candidate.executablePath {
             if executablePath.contains(".appex/") {
-                return true
+                return .systemSurfaceExtension
             }
 
             if filteredExecutablePathFragments.contains(where: { executablePath.contains($0) }) {
-                return true
+                return .systemSurfaceExecutable
             }
         }
 
         if let title = candidate.title?.trimmingCharacters(in: .whitespacesAndNewlines),
            filteredTitles.contains(title) {
-            return true
+            return .systemSurfaceTitle
         }
 
-        return false
+        return nil
+    }
+
+    static func matchesFilteredTitle(_ title: String?) -> Bool {
+        guard let title else { return false }
+        return DockWindowEligibilityPolicy().filteredTitles.contains(title.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private func hasTitle(_ title: String?) -> Bool {
@@ -146,9 +161,18 @@ struct AppTrackerWindowEligibility {
         isBelowNormalLayer: Bool,
         application: Application
     ) -> Bool {
+        verdict(title: title, role: role, subrole: subrole, bounds: bounds, alpha: alpha,
+                isMinimized: isMinimized, isBelowNormalLayer: isBelowNormalLayer,
+                application: application) == .eligible
+    }
+
+    func verdict(
+        title: String?, role: String?, subrole: String?, bounds: CGRect?, alpha: Double?,
+        isMinimized: Bool, isBelowNormalLayer: Bool, application: Application
+    ) -> DockWindowEligibilityPolicy.Verdict {
         // Desktop-layer windows (widgets, wallpaper surfaces) are not windows the user switches
         // to. No default on the parameter: an omitted layer check must not compile.
-        guard !isBelowNormalLayer else { return false }
+        guard !isBelowNormalLayer else { return .belowNormalLayer }
         let candidate = DockWindowEligibilityPolicy.Candidate(
             bundleIdentifier: application.bundleIdentifier,
             appName: application.appName,
@@ -159,10 +183,12 @@ struct AppTrackerWindowEligibility {
             activationPolicy: application.activationPolicy,
             executablePath: application.executablePath
         )
-        guard policy.evaluate(candidate) == .keep else { return false }
+        let verdict = policy.verdict(candidate)
+        guard verdict == .eligible else { return verdict }
 
         if FeishuBundleRules.isFeishu(bundleIdentifier: application.bundleIdentifier) {
             return AXTaskbarWindowRules.isMainWindow(role: role, subrole: subrole, bounds: bounds)
+                ? .eligible : .feishuNotMainWindow
         }
 
         if FinderWindowRules.isFinder(bundleIdentifier: application.bundleIdentifier) {
@@ -172,10 +198,11 @@ struct AppTrackerWindowEligibility {
                 subrole: subrole,
                 bounds: bounds,
                 isMinimized: isMinimized
-            )
+            ) ? .eligible : .finderNotTrackable
         }
 
         return AXTaskbarWindowRules.isMainWindow(role: role, subrole: subrole, bounds: bounds)
+            ? .eligible : .notMainWindow
     }
 }
 

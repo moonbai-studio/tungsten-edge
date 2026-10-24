@@ -53,6 +53,10 @@ enum StripEntry: Identifiable, Hashable {
 }
 
 struct StripProjection {
+    var drawerBundleIDs: [String] = []
+    var messagingAbsorbedIDs: Set<String> = []
+    var trashAbsorbedIDs: Set<WindowID> = []
+    var otherDisplayIDs: Set<String> = []
     let snapshotItems: [StripItem]
     let snapshotBundleIDs: Set<String>
     let hiddenBundleIDs: Set<String>
