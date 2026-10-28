@@ -2397,7 +2397,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "macos-dock-cc Local Code Signing";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 56;
+				CURRENT_PROJECT_VERSION = 57;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				SWIFT_OBJC_BRIDGING_HEADER = "App/TungstenEdge-Bridging-Header.h";
@@ -2405,7 +2405,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.18.3;
+				MARKETING_VERSION = 0.18.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2420,7 +2420,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "macos-dock-cc Local Code Signing";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 56;
+				CURRENT_PROJECT_VERSION = 57;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				SWIFT_OBJC_BRIDGING_HEADER = "App/TungstenEdge-Bridging-Header.h";
@@ -2428,7 +2428,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.18.3;
+				MARKETING_VERSION = 0.18.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2441,8 +2441,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
-				CURRENT_PROJECT_VERSION = 56;
-				MARKETING_VERSION = 0.18.3;
+				CURRENT_PROJECT_VERSION = 57;
+				MARKETING_VERSION = 0.18.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.windowlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_STRICT_CONCURRENCY = targeted;
@@ -2454,8 +2454,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
-				CURRENT_PROJECT_VERSION = 56;
-				MARKETING_VERSION = 0.18.3;
+				CURRENT_PROJECT_VERSION = 57;
+				MARKETING_VERSION = 0.18.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.caye.macosdockcc.v2.windowlab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
