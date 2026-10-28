@@ -13,7 +13,7 @@ final class BuildProvenanceTests: XCTestCase {
         // 事故现场：登录项钉在 DerivedData 上，开机起来的是这个包。
         XCTAssertEqual(BuildProvenance.suffix(
             isDebugBuild: true,
-            bundlePath: "/Users/caye/Projects/macos-dock-cc-v2/build/DerivedData/Build/Products/Debug/macos-dock-cc-v2.app"
+            bundlePath: "/Users/someone/Projects/macos-dock-cc-v2/build/DerivedData/Build/Products/Debug/macos-dock-cc-v2.app"
         ), String(localized: "Debug Build"))
         // 开发构建即使被拷进 /Applications 也仍然是开发构建：Debug 判断优先于位置判断。
         XCTAssertEqual(BuildProvenance.suffix(
@@ -25,12 +25,12 @@ final class BuildProvenanceTests: XCTestCase {
     func testReleaseBuildOutsideApplicationsIsMarked() {
         XCTAssertEqual(BuildProvenance.suffix(
             isDebugBuild: false,
-            bundlePath: "/Users/caye/Projects/macos-dock-cc-v2/build/ReleaseDD/Build/Products/Release/macos-dock-cc-v2.app"
+            bundlePath: "/Users/someone/Projects/macos-dock-cc-v2/build/ReleaseDD/Build/Products/Release/macos-dock-cc-v2.app"
         ), String(localized: "Not Installed"))
         // 回滚备份包也在 /Applications 之外，同样要能认出来。
         XCTAssertEqual(BuildProvenance.suffix(
             isDebugBuild: false,
-            bundlePath: "/Users/caye/Projects/tungsten-edge-rebuild-artifacts/2026-07-25-stage4/rollback/Tungsten Edge.app"
+            bundlePath: "/Users/someone/Projects/tungsten-edge-rebuild-artifacts/2026-07-25-stage4/rollback/Tungsten Edge.app"
         ), String(localized: "Not Installed"))
     }
 
