@@ -11663,6 +11663,106 @@
         }
       }
     },
+    "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Device Control and Data Access, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已经打开了开关却还是没生效，可能是旧版本留下的授权记录不再匹配当前这份钨极。可以这样重置一次：\n\n1. 先退出钨极——应用还在运行时，列表里的减号是灰的，删不掉。\n2. 在“隐私与安全性 → 设备控制和数据访问”里把列表中的 Tungsten Edge 用减号删掉，可能不止一条，都删掉。\n3. 从“应用程序”重新打开钨极，按提示重新添加并打开开关。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Device Control and Data Access, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已經打開開關卻還是沒有反應，可能是舊版本留下的權限記錄已經不符合目前這份Tungsten Edge。你可以重設一次：\n\n1. 先結束Tungsten Edge——App還在執行時，列表裡的減號是灰的，項目刪不掉。\n2. 在「隱私權與安全性」>「裝置控制和資料取用」裡選取列表中的Tungsten Edge，用減號移除；可能不只一項，全部移除。\n3. 從「應用程式」檔案夾重新打開Tungsten Edge，再依照提示重新加入並打開開關。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スイッチがすでにオンなのに何も起きない場合は、古いバージョンが残した許可の記録が現在のTungsten Edgeと一致していない可能性があります。次の手順でリセットできます。\n\n1. 先にTungsten Edgeを終了してください。実行中はリストの削除（-）ボタンが淡色表示になり、項目を削除できません。\n2. 「プライバシーとセキュリティ」>「デバイスの制御とデータへのアクセス」でリストからTungsten Edgeを選び、削除（-）ボタンで削除します。項目が複数ある場合は、すべて削除してください。\n3. 「アプリケーション」フォルダからTungsten Edgeを開き直し、表示される案内に従って追加し、スイッチをオンにします。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn der Schalter bereits aktiviert ist und trotzdem nichts passiert, passt womöglich ein Berechtigungseintrag aus einer älteren Version nicht mehr zu dieser Kopie von Tungsten Edge. So setzt du ihn zurück:\n\n1. Beende zuerst Tungsten Edge – solange es läuft, ist die Minustaste in der Liste grau und der Eintrag lässt sich nicht entfernen.\n2. Wähle unter „Datenschutz & Sicherheit“ > „Gerätesteuerung und Datenzugriff“ Tungsten Edge in der Liste aus und entferne es mit der Minustaste. Es können mehrere Einträge vorhanden sein; entferne sie alle.\n3. Öffne Tungsten Edge erneut aus dem Ordner „Programme“, füge es dann hinzu und aktiviere den Schalter, wenn du dazu aufgefordert wirst."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si l’interrupteur est déjà activé et que rien ne se passe, il se peut qu’une autorisation laissée par une version antérieure ne corresponde plus à cette copie de Tungsten Edge. Vous pouvez la réinitialiser :\n\n1. Quittez d’abord Tungsten Edge — tant qu’il est en cours d’exécution, le bouton moins de la liste est grisé et l’entrée ne peut pas être supprimée.\n2. Dans Confidentialité et sécurité > Contrôle de l’appareil et accès aux données, sélectionnez Tungsten Edge dans la liste et supprimez-le à l’aide du bouton moins. Il peut y avoir plusieurs entrées ; supprimez-les toutes.\n3. Rouvrez Tungsten Edge depuis votre dossier Applications, puis ajoutez-le et activez l’interrupteur lorsque vous y êtes invité."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si el interruptor ya está activado y no pasa nada, puede que un registro de permiso que dejó una versión anterior ya no coincida con esta copia de Tungsten Edge. Puedes restablecerlo:\n\n1. Sal primero de Tungsten Edge: mientras se está ejecutando, el botón menos de la lista aparece atenuado y no se puede eliminar la entrada.\n2. En Privacidad y seguridad > Control de dispositivos y acceso a datos, selecciona Tungsten Edge en la lista y elimínalo con el botón menos. Puede haber más de una entrada; elimínalas todas.\n3. Vuelve a abrir Tungsten Edge desde la carpeta Aplicaciones, añádelo y activa el interruptor cuando se te pida."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si el interruptor ya está activado y no pasa nada, puede que un registro de permiso que dejó una versión anterior ya no coincida con esta copia de Tungsten Edge. Puedes restablecerlo:\n\n1. Primero sal de Tungsten Edge: mientras se está ejecutando, el botón menos de la lista aparece atenuado y no se puede eliminar la entrada.\n2. En Privacidad y seguridad > Control de dispositivos y acceso a los datos, selecciona Tungsten Edge en la lista y elimínalo con el botón menos. Puede haber más de una entrada; elimínalas todas.\n3. Vuelve a abrir Tungsten Edge desde la carpeta Aplicaciones, agrégalo y activa el interruptor cuando se te solicite."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se o interruptor já estiver ativado e nada acontecer, um registro de permissão deixado por uma versão anterior pode não corresponder mais a esta cópia do Tungsten Edge. Você pode redefini-lo:\n\n1. Primeiro, encerre o Tungsten Edge — enquanto ele estiver em execução, o botão de menos na lista fica acinzentado e a entrada não pode ser removida.\n2. Em Privacidade e Segurança > Controle do Dispositivo e Acesso a Dados, selecione Tungsten Edge na lista e remova-o com o botão de menos. Pode haver mais de uma entrada; remova todas.\n3. Abra o Tungsten Edge novamente a partir da pasta Aplicativos, depois adicione-o e ative o interruptor quando solicitado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se o interruptor já estiver ativado e nada acontecer, é possível que um registo de permissão deixado por uma versão anterior já não corresponda a esta cópia do Tungsten Edge. Pode repô-lo:\n\n1. Comece por sair do Tungsten Edge – enquanto estiver em execução, o botão de menos na lista fica acinzentado e não é possível remover a entrada.\n2. Em Privacidade e segurança > Controlo do dispositivo e acesso a dados, selecione Tungsten Edge na lista e remova-o com o botão de menos. Pode existir mais de uma entrada; remova todas.\n3. Volte a abrir o Tungsten Edge a partir da pasta Aplicações, adicione-o e ative o interruptor quando lhe for pedido."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se l’interruttore è già attivo e non succede nulla, è possibile che un’autorizzazione rimasta da una versione precedente non corrisponda più a questa copia di Tungsten Edge. Puoi reimpostarla:\n\n1. Esci prima da Tungsten Edge: finché è in esecuzione, il pulsante con il segno meno (–) nell’elenco è disattivato (in grigio) e non è possibile rimuovere la voce.\n2. In Privacy e sicurezza > Controllo del dispositivo e accesso ai dati, seleziona Tungsten Edge nell’elenco e rimuovilo con il pulsante con il segno meno (–). Potrebbero esserci più voci: rimuovile tutte.\n3. Riapri Tungsten Edge dalla cartella Applicazioni, poi aggiungilo e attiva l’interruttore quando richiesto."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스위치가 이미 켜져 있는데도 아무 반응이 없다면, 이전 버전이 남긴 권한 기록이 이 Tungsten Edge 사본과 더 이상 일치하지 않을 수 있습니다. 다음과 같이 재설정할 수 있습니다.\n\n1. 먼저 Tungsten Edge를 종료하십시오. 실행 중에는 목록의 빼기(−) 버튼이 비활성화되어 항목을 제거할 수 없습니다.\n2. 개인정보 보호 및 보안 > 기기 제어 및 데이터 접근에서 목록의 Tungsten Edge를 선택하고 빼기(−) 버튼으로 제거하십시오. 항목이 여러 개일 수 있으니 모두 제거하십시오.\n3. 응용 프로그램 폴더에서 Tungsten Edge를 다시 열고, 안내가 나타나면 추가한 다음 스위치를 켜십시오."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если переключатель уже включен, но ничего не происходит, возможно, запись о разрешении, оставшаяся от старой версии, больше не соответствует этой копии Tungsten Edge. Ее можно сбросить:\n\n1. Сначала завершите Tungsten Edge: пока приложение запущено, кнопка «минус» в списке неактивна, и запись удалить нельзя.\n2. В разделе «Конфиденциальность и безопасность» > «Управление устройством и доступ к данным» выберите Tungsten Edge в списке и удалите запись кнопкой «минус». Записей может быть несколько — удалите все.\n3. Снова откройте Tungsten Edge из папки «Приложения», затем, когда появится запрос, добавьте приложение и включите переключатель."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anahtar zaten açıksa ve hiçbir şey olmuyorsa, eski bir sürümden kalan izin kaydı Tungsten Edge’in bu kopyasıyla artık eşleşmiyor olabilir. Kaydı sıfırlayabilirsiniz:\n\n1. Önce Tungsten Edge’den çıkın — uygulama çalışırken listedeki eksi düğmesi soluk görünür ve kayıt çıkarılamaz.\n2. Gizlilik ve Güvenlik > Aygıt Denetimi ve Veri Erişimi bölümünde listeden Tungsten Edge’i seçin ve eksi düğmesiyle çıkarın. Birden fazla kayıt olabilir; hepsini çıkarın.\n3. Tungsten Edge’i Uygulamalar klasöründen yeniden açın, ardından istendiğinde onu ekleyin ve anahtarı açın."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगर स्विच पहले से चालू है और कुछ नहीं हो रहा, तो हो सकता है कि किसी पुराने संस्करण से बचा अनुमति रिकॉर्ड Tungsten Edge की इस कॉपी से अब मेल न खा रहा हो। आप इसे रीसेट कर सकते हैं:\n\n1. पहले Tungsten Edge बंद करें — जब तक यह चल रहा है, सूची में माइनस बटन ग्रे रहता है और एंट्री हटाई नहीं जा सकती।\n2. गोपनीयता और सुरक्षा > डिवाइस नियंत्रण और डेटा ऐक्सेस में सूची से Tungsten Edge चुनें और माइनस बटन से उसे हटाएँ। एक से ज़्यादा एंट्री हो सकती हैं; सभी हटा दें।\n3. Tungsten Edge को ऐप्लिकेशन फ़ोल्डर से दोबारा खोलें, फिर संकेत मिलने पर इसे जोड़ें और स्विच चालू करें।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu công tắc đã bật mà không có gì xảy ra, bản ghi quyền do phiên bản cũ để lại có thể không còn khớp với bản Tungsten Edge này. Bạn có thể đặt lại như sau:\n\n1. Trước tiên hãy thoát Tungsten Edge — khi ứng dụng đang chạy, nút dấu trừ trong danh sách bị mờ và không thể xóa mục.\n2. Trong Quyền riêng tư & Bảo mật > Điều khiển thiết bị và truy cập dữ liệu, chọn Tungsten Edge trong danh sách rồi xóa bằng nút dấu trừ. Có thể có nhiều hơn một mục; hãy xóa tất cả.\n3. Mở lại Tungsten Edge từ thư mục Ứng dụng, sau đó thêm ứng dụng và bật công tắc khi được nhắc."
+          }
+        }
+      }
+    },
     "Image Is Too Large": {
       "comment": "反馈附件被拒 · 单张图片超 10MB",
       "localizations": {
@@ -23506,6 +23606,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Trợ năng"
+          }
+        }
+      }
+    },
+    "System Settings > Privacy & Security > Device Control and Data Access": {
+      "comment": "macOS 27+ 的权限路径，必须与英文系统界面的原词一致",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置的“隐私与安全性 > 设备控制和数据访问”"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings > Privacy & Security > Device Control and Data Access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定的「隱私權與安全性」>「裝置控制和資料取用」"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定 > プライバシーとセキュリティ > デバイスの制御とデータへのアクセス"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemeinstellungen > Datenschutz & Sicherheit > Gerätesteuerung und Datenzugriff"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages Système > Confidentialité et sécurité > Contrôle de l’appareil et accès aux données"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes del Sistema > Privacidad y seguridad > Control de dispositivos y acceso a datos"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuración del Sistema > Privacidad y seguridad > Control de dispositivos y acceso a los datos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes do Sistema > Privacidade e Segurança > Controle do Dispositivo e Acesso a Dados"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definições do Sistema > Privacidade e segurança > Controlo do dispositivo e acesso a dados"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni di Sistema > Privacy e sicurezza > Controllo del dispositivo e accesso ai dati"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정 > 개인정보 보호 및 보안 > 기기 제어 및 데이터 접근"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«Системные настройки» > «Конфиденциальность и безопасность» > «Управление устройством и доступ к данным»"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem Ayarları > Gizlilik ve Güvenlik > Aygıt Denetimi ve Veri Erişimi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिस्टम सेटिंग > गोपनीयता और सुरक्षा > डिवाइस नियंत्रण और डेटा ऐक्सेस"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Điều khiển thiết bị và truy cập dữ liệu"
           }
         }
       }
