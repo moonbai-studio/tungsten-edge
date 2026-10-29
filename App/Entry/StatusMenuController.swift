@@ -78,9 +78,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// **刻意不设 delegate**：`menuWillOpen` / `menuDidClose` 不区分 menu 参数，
     /// 子菜单一开一关会被当成主菜单开关，提前解除边缘自动隐藏抑制。内容改为在父菜单
     /// 显示前（`prepareMenuForPresentation`）建好。
-    /// Its delegate is `taskbarScreenIconSwapper`, a separate object, for that reason.
     private let taskbarScreenMenu = NSMenu()
-    private let taskbarScreenIconSwapper = MenuGlassIconSwapper()
     /// The parent row's icon, swapped from the main menu's own `willHighlight`.
     private let taskbarScreenParentIconSwapper = MenuGlassIconSwapper()
     /// Always present (rows must not be added or removed while the menu is up); state lands in
@@ -268,7 +266,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         // `taskbarScreenItem` 的显隐仍只在 `prepareMenuForPresentation` 翻转
         //（菜单在屏时增删行会让任务条弹出路径的锚点漂移）。
         taskbarScreenItem.submenu = taskbarScreenMenu
-        taskbarScreenMenu.delegate = taskbarScreenIconSwapper
         taskbarScreenItem.isHidden = true
         menu.addItem(taskbarScreenItem)
         taskbarScreenSeparator.isHidden = true
@@ -420,8 +417,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             applyTaskbarScreenItemTitle()
         }
         taskbarScreenMenu.removeAllItems()
-        taskbarScreenIconSwapper.removeAll()
-        let isDark = isMenuDark
         for row in presentation.rows {
             switch row {
             case .header(let title):
@@ -446,12 +441,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
                 // Options sit one step in from their group header.
                 menuItem.indentationLevel = 1
                 // Same line, not `NSMenuItem.subtitle`: a subtitle makes the row taller than its siblings.
-                let text = item.hint.map {
-                    Self.titleWithHint(item.title, $0, alignedAfter: TaskbarScreenMenuPresentation.pinnedTitlePrefix)
-                } ?? NSAttributedString(string: item.title, attributes: [.font: NSFont.menuFont(ofSize: 0)])
-                let glyph = Self.glassGlyph(for: item.selection)
-                if !taskbarScreenIconSwapper.attach(glyph, before: text, isDark: isDark, to: menuItem), item.hint != nil {
-                    menuItem.attributedTitle = text
+                if let hint = item.hint {
+                    menuItem.attributedTitle = Self.titleWithHint(
+                        item.title,
+                        hint,
+                        alignedAfter: TaskbarScreenMenuPresentation.pinnedTitlePrefix
+                    )
                 }
                 taskbarScreenMenu.addItem(menuItem)
             }
@@ -578,15 +573,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             installUpdateItem.attributedTitle = nil
             installUpdateItem.setAccessibilityLabel(nil)
             if allowsLayoutChange { installUpdateItem.isHidden = true }
-        }
-    }
-
-    private static func glassGlyph(for selection: TaskbarScreenMenuPresentation.Selection) -> MenuGlassGlyph {
-        switch selection {
-        case .followMouse: return .followMouse
-        case .screen: return .pinnedScreen
-        case .allScreens: return .mirroredBars
-        case .allScreensPerDisplay: return .perDisplayBars
         }
     }
 
