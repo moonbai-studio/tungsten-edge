@@ -52,20 +52,18 @@ struct MenuGlassGlyph {
         }
     )
 
-    /// Three app chips standing in a glass taskbar; the larger middle one is the front window,
-    /// with the bar under it and dots under the others.
+    /// Two glass window chips, a dot under one and a bar under the other: the dot that becomes
+    /// a bar under the front window.
     static let activeBar = MenuGlassGlyph(
         back: {
-            roundedRect(&$0, 2.2, 6.5, 5.4, 7, 1.6)
-            roundedRect(&$0, 8.2, 3, 7.6, 10.5, 2.2)
-            roundedRect(&$0, 16.4, 6.5, 5.4, 7, 1.6)
+            $0.addEllipse(in: CGRect(x: 4.9, y: 17.4, width: 3.2, height: 3.2))
+            roundedRect(&$0, 13.5, 17.4, 8, 3.2, 1.6)
         },
-        front: { roundedRect(&$0, 0.8, 10.5, 22.4, 9.5, 4.2) },
-        detail: {
-            line(&$0, 4.9, 16.6, 4.95, 16.6)
-            line(&$0, 9.8, 16.6, 14.2, 16.6)
-            line(&$0, 19.05, 16.6, 19.1, 16.6)
-        }
+        front: {
+            roundedRect(&$0, 1.5, 4, 10, 11, 2.6)
+            roundedRect(&$0, 12.5, 4, 10, 11, 2.6)
+        },
+        detail: { _ in }
     )
 
     /// Not a toggle: the icon in front of the "Single/Multi-Display Mode" title.
