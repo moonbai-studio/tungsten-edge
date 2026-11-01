@@ -52,20 +52,6 @@ struct MenuGlassGlyph {
         }
     )
 
-    /// Two glass window chips, a dot under one and a bar under the other: the dot that becomes
-    /// a bar under the front window.
-    static let activeBar = MenuGlassGlyph(
-        back: {
-            $0.addEllipse(in: CGRect(x: 4.9, y: 17.4, width: 3.2, height: 3.2))
-            roundedRect(&$0, 13.5, 17.4, 8, 3.2, 1.6)
-        },
-        front: {
-            roundedRect(&$0, 1.5, 4, 10, 11, 2.6)
-            roundedRect(&$0, 12.5, 4, 10, 11, 2.6)
-        },
-        detail: { _ in }
-    )
-
     /// Not a toggle: the icon in front of the "Single/Multi-Display Mode" title.
     static let displays = MenuGlassGlyph(
         back: {

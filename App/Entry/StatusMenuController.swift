@@ -88,7 +88,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         MenuToggleTileSpec(glyph: .trash, shortTitle: String(localized: "Trash"), fullTitle: String(localized: "Show Trash")) { [weak self] in self?.toggleShowTrash() },
         MenuToggleTileSpec(glyph: .hoverName, shortTitle: String(localized: "Name on Hover"), fullTitle: String(localized: "Show app name on hover")) { [weak self] in self?.toggleHoverName() },
         MenuToggleTileSpec(glyph: .avoidTaskbar, shortTitle: String(localized: "Avoid Taskbar"), fullTitle: String(localized: "Keep maximized windows above the taskbar")) { [weak self] in self?.toggleWindowLift() },
-        MenuToggleTileSpec(glyph: .activeBar, shortTitle: String(localized: "Active Bar"), fullTitle: String(localized: "Mark the active window with a bar")) { [weak self] in self?.toggleFrontWindowBar() },
     ])
     private let nativeDockSliderView: PreferenceSliderMenuItemView
     private let edgeSliderView: PreferenceSliderMenuItemView
@@ -526,7 +525,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshTaskbarPreferenceStates()
     }
 
-    /// The taskbar tiles. Only flips tile state — no rows added, removed or hidden — so it is
+    /// The four taskbar tiles. Only flips tile state — no rows added, removed or hidden — so it is
     /// safe while the menu is tracking (not bound by `allowsLayoutChange`).
     private func refreshTaskbarPreferenceStates() {
         taskbarToggleTiles.setStates([
@@ -534,7 +533,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             store.showTrash,
             store.hoverStyle.isExpressive,
             store.windowLiftEnabled,
-            store.frontWindowBar,
         ])
     }
 
@@ -748,11 +746,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     private func toggleWindowLift() {
         store.setWindowLiftEnabled(!store.windowLiftEnabled)
-        refreshTaskbarPreferenceStates()
-    }
-
-    private func toggleFrontWindowBar() {
-        store.setFrontWindowBar(!store.frontWindowBar)
         refreshTaskbarPreferenceStates()
     }
 
