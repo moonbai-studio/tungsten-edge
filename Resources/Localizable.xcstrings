@@ -12770,6 +12770,107 @@
         }
       }
     },
+    "Keyboard Shortcuts": {
+      "comment": "设置窗口 · 显隐快捷键",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard Shortcuts"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードショートカット"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastaturkurzbefehle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccourcis clavier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de teclado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de teclado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalhos de Teclado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalhos de teclado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbreviazioni da tastiera"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 단축키"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сочетания клавиш"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klavye Kestirmeleri"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कीबोर्ड शॉर्टकट"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phím tắt bàn phím"
+          }
+        }
+      }
+    },
     "Kind": {
       "localizations": {
         "zh-Hans": {
@@ -22304,103 +22405,103 @@
         }
       }
     },
-    "Show/hide taskbar shortcut": {
+    "Show/hide taskbar": {
       "comment": "设置窗口 · 显隐快捷键",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显隐 Dock 栏快捷键"
+            "value": "显隐 Dock 栏"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show/hide taskbar shortcut"
+            "value": "Show/hide taskbar"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "工作列顯示／隱藏快速鍵"
+            "value": "顯示／隱藏工作列"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "タスクバーの表示/非表示ショートカット"
+            "value": "タスクバーの表示/非表示"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kurzbefehl zum Ein- und Ausblenden der Taskleiste"
+            "value": "Taskleiste ein-/ausblenden"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Raccourci afficher/masquer la barre des tâches"
+            "value": "Afficher/masquer la barre des tâches"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atajo para mostrar u ocultar la barra de tareas"
+            "value": "Mostrar u ocultar la barra de tareas"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atajo para mostrar u ocultar la barra de tareas"
+            "value": "Mostrar u ocultar la barra de tareas"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalho para mostrar/ocultar a barra de tarefas"
+            "value": "Mostrar/ocultar a barra de tarefas"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalho para mostrar/ocultar a barra de tarefas"
+            "value": "Mostrar/ocultar a barra de tarefas"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scorciatoia mostra/nascondi barra"
+            "value": "Mostra/nascondi barra"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "작업 표시줄 보기/가리기 단축키"
+            "value": "작업 표시줄 보기/가리기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сочетание клавиш для показа/скрытия панели задач"
+            "value": "Показать/скрыть панель задач"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Görev çubuğunu gösterme/gizleme kestirmesi"
+            "value": "Görev çubuğunu göster/gizle"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "टास्कबार दिखाने/छिपाने का शॉर्टकट"
+            "value": "टास्कबार दिखाएँ/छिपाएँ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Phím tắt hiển thị/ẩn thanh tác vụ"
+            "value": "Hiển thị/ẩn thanh tác vụ"
           }
         }
       }

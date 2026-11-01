@@ -45,17 +45,16 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 设置窗口不再放（仍不重复）。别再挪回设置窗口，除非 owner 再开口。
     private let launchAtLoginItem = NSMenuItem(title: String(localized: "Open at Login"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     private let openLoginItemsSettingsItem = NSMenuItem(title: String(localized: "Open Login Items Settings…"), action: #selector(openLoginItemsSettings), keyEquivalent: "")
-    /// 「安装 vX.Y.Z…」：**只在有待装新版时可见**（2026-08-24 菜单去重）。登录项、检查更新、
-    /// 版本号都只住设置窗口了；这一行是菜单里唯一的更新表面，因为它是一条**消息**不是命令——
-    /// 红点要在用户没主动去查的时候也能被看见。可见性只允许在 `prepareMenuForPresentation`
-    /// 翻转（菜单开着时增删行会让任务条锚点漂移，见 refreshInstallUpdateItem）。
-    private let installUpdateItem = NSMenuItem(title: "", action: #selector(installPendingUpdate), keyEquivalent: "")
+    /// The menu's one update row, always present: 「检查更新…」, or 「安装 vX.Y.Z…」 with a red dot
+    /// while an update waits — the dot has to be seen even when nobody went looking. Both
+    /// states run the same Sparkle check, and swapping text instead of adding a row keeps the
+    /// menu's height fixed while it is on screen (a taskbar-anchored menu would drift).
+    private let updateItem = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
     /// 钨极组的分组标题，恒不可点（title 在 refreshEdgeSectionTitle 里随热键注册状态落）。
     private let edgeSectionItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     // 中转站 / 悬停显示应用名 / 最大化避让 / 任务条大小 2026-09-01 从设置窗口搬回菜单
     // （owner 拍板，反转 2026-08-03 的分工）：它们是调外观时随手要切的，为此开一次窗不值。
     // 四项并进钨极组（不另起帽子），与「单/多屏模式 ▸」同组。
-    // 登录项 / 检查更新 / 版本号仍按 2026-08-24 的去重结果：只在设置窗口。
 
     /// 分组标题，恒不可点（title 在 configureMenu 里落）。
     private let nativeDockSectionItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -114,7 +113,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         configureStatusItem()
         configureMenu()
         refreshCheckmarks()
-        refreshInstallUpdateItem(allowsLayoutChange: true)
+        refreshUpdateItem()
         // 钨极滑块是即时生效的本地值：⌥⇧⌘D、设置窗口都可能在菜单开着时改它，滑块要跟着动。
         // sink 用 publisher 发出的新值：@Published 在赋值完成前发布，此刻回读 store 是旧值。
         //
@@ -133,9 +132,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             .sink { [weak self] _ in
                 guard let self else { return }
                 self.refreshStatusItemBadge()
-                // 文字与可用态可以随时跟着变；**行的显隐不行**——菜单开着时增删行，
-                // 任务条那条路径按左上角定位，底边会从任务条上沿漂走（行数不变规则）。
-                self.refreshInstallUpdateItem(allowsLayoutChange: !self.isMenuOpen)
+                self.refreshUpdateItem()
             }
         refreshStatusItemBadge()
         refreshSystemTruth()
@@ -287,7 +284,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         // 「设置…」和「退出」归为底部一组（owner 2026-08-03）：菜单栏应用的普遍习惯是
         // 把这类"进另一个界面"的入口放在下面，上面留给随手切的开关。
-        // 登录项 / 检查更新 / 版本号已于 2026-08-24 去重，只留设置窗口。
         settingsItem.target = self
         settingsItem.keyEquivalentModifierMask = [.command]
         menu.addItem(settingsItem)
@@ -297,9 +293,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         openNativeDockSettingsItem.target = self
         menu.addItem(openNativeDockSettingsItem)
 
-        installUpdateItem.target = self
-        installUpdateItem.isHidden = true
-        menu.addItem(installUpdateItem)
+        updateItem.target = self
+        menu.addItem(updateItem)
 
         let quitItem = NSMenuItem(title: String(localized: "Quit Tungsten Edge"), action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
@@ -356,7 +351,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         permissionWarningItem.isHidden = granted
         permissionWarningSeparator.isHidden = granted
         refreshCheckmarks()
-        refreshInstallUpdateItem(allowsLayoutChange: true)
+        refreshUpdateItem()
         // 没点确认就关菜单 = 作废：什么都不写，下次打开一切从系统真值重新起步。
         // （否则「随手拨一下看看」也会招来一次 killall Dock——关个菜单屏幕突然闪一下，
         // 正是这次要消除的怪异感。）
@@ -514,31 +509,26 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         openLoginItemsSettingsItem.isHidden = !presentation.showsSettingsItem
     }
 
-    /// 「安装 vX.Y.Z…」行的唯一刷新入口。`allowsLayoutChange` = 本次刷新可不可以改行的显隐：
-    /// 展示前（`prepareMenuForPresentation`）与菜单关着时可以，菜单开着时**不可以**——
-    /// 增删行会改菜单高度，任务条那条路径按左上角定位，底边会从任务条上沿漂走。
-    /// 迟一轮不要紧：下次 `prepareMenuForPresentation` 在菜单显示**之前**会补上。
-    private func refreshInstallUpdateItem(allowsLayoutChange: Bool) {
-        // 有一版在等着装的时候，这行直接写出版本号并挂一个红点（owner 2026-08-20 画的样子）——
-        // 「安装 0.9.2…」加个红点是一条消息；主动的「检查更新…」入口只在设置窗口（2026-08-24）。
+    /// The only refresh of `updateItem`; text and enabled state only, so it is safe while the
+    /// menu is open.
+    private func refreshUpdateItem() {
         if let version = settingsCoordinator.pendingUpdateVersion {
             let title = String(format: String(localized: "Install %@…"), version)
-            installUpdateItem.title = title
-            installUpdateItem.attributedTitle = Self.pendingUpdateTitle(title)
-            // 那个「●」在 VoiceOver 里会被念成「实心圆」，所以另给一句人话。
-            installUpdateItem.setAccessibilityLabel(
+            updateItem.title = title
+            updateItem.attributedTitle = Self.pendingUpdateTitle(title)
+            // VoiceOver reads the 「●」 as "black circle"; give it a sentence instead.
+            updateItem.setAccessibilityLabel(
                 String(format: String(localized: "Install %@ — update available"), version)
             )
-            // 可用态归 Sparkle：正在下载 / 安装时它自己会报 false，不再维护"在飞"标志。
-            installUpdateItem.isEnabled = settingsCoordinator.canCheckForUpdates
-            if allowsLayoutChange { installUpdateItem.isHidden = false }
         } else {
-            // ⚠️ attributedTitle 必须清回 nil。留着的话 `title` 再怎么改都不生效，
-            // 这行会永远卡在上一次那个版本号上。
-            installUpdateItem.attributedTitle = nil
-            installUpdateItem.setAccessibilityLabel(nil)
-            if allowsLayoutChange { installUpdateItem.isHidden = true }
+            // ⚠️ attributedTitle must go back to nil: while it is set, assigning `title` does
+            // nothing and the row stays frozen on the last version number.
+            updateItem.attributedTitle = nil
+            updateItem.title = String(localized: "Check for Updates…")
+            updateItem.setAccessibilityLabel(nil)
         }
+        // Sparkle owns availability: it reports false while a check, download or install runs.
+        updateItem.isEnabled = settingsCoordinator.canCheckForUpdates
     }
 
     /// 两条分组标题的样式。**必须走 `attributedTitle`**：组标题是 `action: nil` 的 disabled 项，
@@ -720,7 +710,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 所以这里既不用 `NSAlert`、也不用 `runModalInForeground`。
     /// 只从「安装 vX.Y.Z…」触发：对一版已就绪的更新，`checkForUpdates()` 就是「继续安装」；
     /// 主动检查的入口在设置窗口（2026-08-24 菜单去重）。
-    @objc private func installPendingUpdate() {
+    @objc private func checkForUpdates() {
         menu.cancelTrackingWithoutAnimation()
         settingsCoordinator.checkForUpdates()
     }
