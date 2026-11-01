@@ -114,10 +114,8 @@ struct SettingsWindowContent: View {
                         Spacer(minLength: 12)
                         appearanceCards
                     }
-                    if Self.showsFrontWindowBarToggle {
-                        frontWindowBarToggle
-                            .toggleStyle(.switch)
-                    }
+                    frontWindowBarToggle
+                        .toggleStyle(.switch)
                     HStack {
                         Text("Show/hide taskbar shortcut")
                         Spacer(minLength: 12)
@@ -151,16 +149,14 @@ struct SettingsWindowContent: View {
                     } control: {
                         appearanceCards
                     }
-                    if Self.showsFrontWindowBarToggle {
-                        Divider().opacity(0.5)
-                        groupRow {
-                            Text("Mark the active window with a bar")
-                        } control: {
-                            frontWindowBarToggle
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                                .labelsHidden()
-                        }
+                    Divider().opacity(0.5)
+                    groupRow {
+                        Text("Mark the active window with a bar")
+                    } control: {
+                        frontWindowBarToggle
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
                     }
                     Divider().opacity(0.5)
                     groupRow {
@@ -522,10 +518,6 @@ struct SettingsWindowContent: View {
             isOn: binding(get: { store.scrollReverserEnabled }, set: store.setScrollReverserEnabled)
         )
     }
-
-    /// The front-window bar is held back from release: the row stays built (its strings stay referenced
-    /// for check_localization) but is not shown, so `frontWindowBar` keeps its default off.
-    private static let showsFrontWindowBarToggle = false
 
     private var frontWindowBarToggle: some View {
         Toggle(
