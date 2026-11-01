@@ -21914,7 +21914,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "用横条标记当前窗口"
+            "value": "焦点横条"
           }
         },
         "zh-Hant": {
