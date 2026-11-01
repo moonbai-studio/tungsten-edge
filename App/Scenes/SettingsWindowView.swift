@@ -98,8 +98,9 @@ struct SettingsWindowContent: View {
     /// fill and dividers follow each OS release; macOS 12 has no grouped form and keeps the
     /// hand-built layouts in the `else` branches.
     ///
-    /// 「通用」页: three boxes — app-wide, Taskbar, Keyboard Shortcuts; label leading, control
-    /// trailing — with the setup-guide entry under them. Rows carry no grey note; the one
+    /// 「通用」页: three boxes — app-wide (scroll reversal included: it acts system-wide),
+    /// Taskbar, Keyboard Shortcuts; label leading, control trailing — with the setup-guide
+    /// entry under them. Rows carry no grey note; the one
     /// disclosure this page owes (scroll reversal) sits behind that row's help button.
     @ViewBuilder
     private var generalPane: some View {
@@ -116,12 +117,7 @@ struct SettingsWindowContent: View {
                             Spacer(minLength: 12)
                             appearanceCards
                         }
-                    }
-                    // Headers as `Text`: Scripts/check_localization.py scans `Text(` literals,
-                    // not `Section(`.
-                    Section {
-                        frontWindowBarToggle
-                            .toggleStyle(.switch)
+                        // System-wide, not a taskbar setting — it stays out of the Taskbar box.
                         HStack {
                             scrollReverserLabel
                             Spacer(minLength: 12)
@@ -129,6 +125,12 @@ struct SettingsWindowContent: View {
                                 .toggleStyle(.switch)
                                 .labelsHidden()
                         }
+                    }
+                    // Headers as `Text`: Scripts/check_localization.py scans `Text(` literals,
+                    // not `Section(`.
+                    Section {
+                        frontWindowBarToggle
+                            .toggleStyle(.switch)
                     } header: {
                         Text("Taskbar")
                     }
@@ -162,6 +164,15 @@ struct SettingsWindowContent: View {
                     } control: {
                         appearanceCards
                     }
+                    Divider().opacity(0.5)
+                    groupRow {
+                        scrollReverserLabel
+                    } control: {
+                        scrollReverserToggle
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
+                    }
                 }
                 settingsSection("Taskbar") {
                     settingsGroup {
@@ -169,15 +180,6 @@ struct SettingsWindowContent: View {
                             Text("Mark the active window with a bar")
                         } control: {
                             frontWindowBarToggle
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                                .labelsHidden()
-                        }
-                        Divider().opacity(0.5)
-                        groupRow {
-                            scrollReverserLabel
-                        } control: {
-                            scrollReverserToggle
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                                 .labelsHidden()
