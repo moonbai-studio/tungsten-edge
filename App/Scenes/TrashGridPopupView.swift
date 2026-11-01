@@ -90,7 +90,7 @@ struct TrashGridPopupView: View {
     @Environment(\.displayScale) private var displayScale
     /// The light rendition on purpose, whatever the app's appearance (`TrashIconArt`), at the cell's pixel size.
     private var emptyIcon: NSImage {
-        TrashIconArt.image(isFull: true, points: StackPopupMetrics.iconSize, displayScale: displayScale, allowsRendering: true)
+        TrashIconArt.image(isFull: true, ejects: false, points: StackPopupMetrics.iconSize, displayScale: displayScale, allowsRendering: true)
     }
 }
 

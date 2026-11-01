@@ -185,7 +185,7 @@ final class DrawerAppDropView: NSView {
         // Trash items are dropped before the app check, as on the strip; plain files are not ours.
         let applications = dragged
             .filter { $0.isFileURL && !StripFileDropDelegate.DragPasteboardInspector.isInsideTrash($0) }
-            .filter(StripFileDropDelegate.DragPasteboardInspector.isApplication)
+            .compactMap(StripFileDropDelegate.DragPasteboardInspector.applicationURL)
         guard !applications.isEmpty else { onHoverLocation(nil); return false }
         onDropApplications(applications, point, landing)
         return true
@@ -257,9 +257,9 @@ final class DrawerAppDropView: NSView {
     /// The app bundle behind a dragging item. `Bundle` instances are cached per path, and the
     /// hover's pasteboard inspection already made these.
     private func applicationID(_ item: NSDraggingItem) -> String? {
-        guard let url = (item.item as? NSURL) as URL?, url.isFileURL,
-              StripFileDropDelegate.DragPasteboardInspector.isApplication(url) else { return nil }
-        return Bundle(url: url)?.bundleIdentifier
+        guard let url = (item.item as? NSURL) as URL?,
+              let app = StripFileDropDelegate.DragPasteboardInspector.applicationURL(url) else { return nil }
+        return Bundle(url: app)?.bundleIdentifier
     }
 
     /// Each app item's image becomes its drawer cell, the pointer keeping its place on the icon;

@@ -170,6 +170,8 @@ Two more settings under **System Settings → Desktop & Dock** pair well with a 
 
 Issues and discussions are answered in English and Chinese alike — write in whichever you prefer.
 
+**Contributing code** — read [CONTRIBUTING.md](CONTRIBUTING.md) first: pull requests need to agree to the Contributor License Agreement in it, and bigger changes are best talked through in [Discussions](https://github.com/moonbai-studio/tungsten-edge/discussions) before you start.
+
 **Discord** — [Join the server](https://discord.gg/QnKjUMVzdC) for announcements and support in English (Chinese is welcome too).
 
 **WeChat Group** *(for Chinese-speaking users)*
@@ -206,7 +208,7 @@ The application source code, build scripts, and assets required to build it are 
 
 The license covers the source code; it does not require official signed/notarized binaries or related services to be provided free of charge.
 
-The names "Tungsten Edge" and "钨极" and the logo are trademarks and are not covered by the GPL. Forks and self-built binaries must use a different name and icon — see [TRADEMARK.md](TRADEMARK.md).
+The names "Tungsten Edge" and "钨极" and the logo are trademarks and are not covered by the GPL. Modified or self-built binaries you distribute must use a different name and icon (just forking the repository to open a pull request is not affected) — see [TRADEMARK.md](TRADEMARK.md).
 
 ---
 
@@ -243,6 +245,6 @@ Two habits keep it maintainable: decision logic is extracted into `Core/Support`
 
 **Signing.** The Xcode project signs with a local certificate on purpose; the real Developer ID signature, hardened runtime, notarization and packaging happen in `Scripts/package_release.sh` (fail-closed: it will not produce `dist/` unless every check passes). `Scripts/install_local_release.sh` installs the same signed build into `/Applications` for daily use.
 
-**Contributing.** Open an issue first for anything beyond a small fix — the bug template asks for the details that make window-identification problems reproducible. English is the source language and the UI ships in twelve localizations; a new user-facing string needs a value in every one of them (`Scripts/check_localization.py` fails otherwise).
+**Contributing.** Open an issue first for anything beyond a small fix — the bug template asks for the details that make window-identification problems reproducible. English is the source language and the UI ships in twelve localizations; a new user-facing string needs a value in every one of them (`Scripts/check_localization.py` fails otherwise). Pull requests need your agreement to the CLA in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **A note on the source comments.** They are written in Chinese. Everything facing a user or a reporter — the UI strings, this README, the release notes, the issue templates — is bilingual, but the in-code rationale is not, and it is where most of the *why* lives. If a specific area blocks you, open an issue naming the files and I'll translate that part.

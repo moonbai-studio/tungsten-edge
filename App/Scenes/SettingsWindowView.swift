@@ -15,6 +15,8 @@ struct SettingsWindowView: View {
     @ObservedObject var licenseStore: LicenseStore
     @ObservedObject var tabState: SettingsTabState
     let feedbackDraft: FeedbackDraftState
+    @ObservedObject var diagnostics: DiagnosticsSession
+    let collectDiagnostics: (Bool, @escaping (String) -> Void) -> Void
     /// 「通用」页那颗「重新打开新手引导」按钮的动作。**不给默认值**：这里没有任何测试
     /// 会检查 SwiftUI 调用点，给了默认值就等于让"漏传"编译通过（AGENTS.md 的 no-default 铁律）。
     let onShowWelcomeGuide: () -> Void
@@ -30,6 +32,8 @@ struct SettingsWindowView: View {
                 licenseStore: licenseStore,
                 tabState: tabState,
                 feedbackDraft: feedbackDraft,
+                diagnostics: diagnostics,
+                collectDiagnostics: collectDiagnostics,
                 onShowWelcomeGuide: onShowWelcomeGuide
             )
         }
@@ -45,6 +49,8 @@ struct SettingsWindowContent: View {
     /// Feedback drafts live on the controller, not in `@State`: they must survive closing the
     /// window, which tears this whole tree down.
     @ObservedObject var feedbackDraft: FeedbackDraftState
+    @ObservedObject var diagnostics: DiagnosticsSession
+    let collectDiagnostics: (Bool, @escaping (String) -> Void) -> Void
     let onShowWelcomeGuide: () -> Void
 
     @State private var presentedAlert: SettingsAlert?
@@ -59,6 +65,7 @@ struct SettingsWindowContent: View {
             case .advanced: advancedPane
             case .license: licensePane
             case .feedback: feedbackPane
+            case .diagnostics: diagnosticsPane
             case .about: aboutPane
             }
         }
@@ -91,35 +98,48 @@ struct SettingsWindowContent: View {
     /// fill and dividers follow each OS release; macOS 12 has no grouped form and keeps the
     /// hand-built layouts in the `else` branches.
     ///
-    /// 「通用」页: one box — label leading, control trailing — with the setup-guide entry under
-    /// it. Rows carry no grey note; the one disclosure this page owes (scroll reversal) sits
-    /// behind that row's help button.
+    /// 「通用」页: three boxes — app-wide, Taskbar, Keyboard Shortcuts; label leading, control
+    /// trailing — with the setup-guide entry under them. Rows carry no grey note; the one
+    /// disclosure this page owes (scroll reversal) sits behind that row's help button.
     @ViewBuilder
     private var generalPane: some View {
         if #available(macOS 13.0, *) {
             VStack(alignment: .trailing, spacing: 0) {
                 systemForm {
-                    languagePicker
-                    // Plain stacks, not `LabeledContent`: that aligns on the text baseline, which
-                    // an AppKit-backed control lacks — the recorder drops below its own label.
-                    HStack {
-                        Text("Appearance")
-                        Spacer(minLength: 12)
-                        appearanceCards
+                    Section {
+                        languagePicker
+                        // Plain stacks, not `LabeledContent`: that aligns on the text baseline,
+                        // which an AppKit-backed control lacks — the recorder drops below its
+                        // own label.
+                        HStack {
+                            Text("Appearance")
+                            Spacer(minLength: 12)
+                            appearanceCards
+                        }
                     }
-                    frontWindowBarToggle
-                        .toggleStyle(.switch)
-                    HStack {
-                        Text("Show/hide taskbar shortcut")
-                        Spacer(minLength: 12)
-                        hotKeyControls
-                    }
-                    HStack {
-                        scrollReverserLabel
-                        Spacer(minLength: 12)
-                        scrollReverserToggle
+                    // Headers as `Text`: Scripts/check_localization.py scans `Text(` literals,
+                    // not `Section(`.
+                    Section {
+                        frontWindowBarToggle
                             .toggleStyle(.switch)
-                            .labelsHidden()
+                        HStack {
+                            scrollReverserLabel
+                            Spacer(minLength: 12)
+                            scrollReverserToggle
+                                .toggleStyle(.switch)
+                                .labelsHidden()
+                        }
+                    } header: {
+                        Text("Taskbar")
+                    }
+                    Section {
+                        HStack {
+                            Text("Show/hide taskbar")
+                            Spacer(minLength: 12)
+                            hotKeyControls
+                        }
+                    } header: {
+                        Text("Keyboard Shortcuts")
                     }
                 }
                 welcomeGuideButton
@@ -142,29 +162,35 @@ struct SettingsWindowContent: View {
                     } control: {
                         appearanceCards
                     }
-                    Divider().opacity(0.5)
-                    groupRow {
-                        Text("Mark the active window with a bar")
-                    } control: {
-                        frontWindowBarToggle
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                            .labelsHidden()
+                }
+                settingsSection("Taskbar") {
+                    settingsGroup {
+                        groupRow {
+                            Text("Mark the active window with a bar")
+                        } control: {
+                            frontWindowBarToggle
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                                .labelsHidden()
+                        }
+                        Divider().opacity(0.5)
+                        groupRow {
+                            scrollReverserLabel
+                        } control: {
+                            scrollReverserToggle
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                                .labelsHidden()
+                        }
                     }
-                    Divider().opacity(0.5)
-                    groupRow {
-                        Text("Show/hide taskbar shortcut")
-                    } control: {
-                        hotKeyControls
-                    }
-                    Divider().opacity(0.5)
-                    groupRow {
-                        scrollReverserLabel
-                    } control: {
-                        scrollReverserToggle
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                            .labelsHidden()
+                }
+                settingsSection("Keyboard Shortcuts") {
+                    settingsGroup {
+                        groupRow {
+                            Text("Show/hide taskbar")
+                        } control: {
+                            hotKeyControls
+                        }
                     }
                 }
                 HStack {
@@ -315,61 +341,97 @@ struct SettingsWindowContent: View {
             systemForm {
                 aboutVersionRow
                 autoUpdateToggle
-                diagnosticsRow
             }
             .padding(.bottom, Self.afterFormMargin)
         } else {
             settingsPane {
                 aboutVersionRow
                 autoUpdateToggle
-                diagnosticsRow
             }
             .padding(Self.paneMargin)
         }
     }
 
-    /// Copies `DiagnosticReport` to the clipboard so a user can paste it into a chat or the
-    /// feedback box. Nothing is sent: the feedback form's disclosed fields stay as they are.
-    private var diagnosticsRow: some View {
-        HStack(spacing: 12) {
-            Text("Diagnostic Info")
-            Spacer()
-            Button("Copy") {
-                let report = DiagnosticReport.collect(appVersion: coordinator.versionTitle)
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(report.text, forType: .string)
-                Self.presentCopiedDiagnostics(report.text)
-            }
+    @ViewBuilder
+    private var diagnosticsPane: some View {
+        if #available(macOS 13.0, *) {
+            systemForm { diagnosticsControls }
+                .padding(.bottom, Self.afterFormMargin)
+        } else {
+            settingsPane { diagnosticsControls }
+                .padding(Self.paneMargin)
         }
     }
 
-    /// Shows what was just copied, so the user sees exactly what they are about to paste.
-    /// An `NSAlert` sheet rather than `SettingsAlert`: a SwiftUI alert cannot hold a scrolling
-    /// text box, and the report as a plain message makes the alert a screen tall.
-    private static func presentCopiedDiagnostics(_ text: String) {
-        // The scrollable-text-view factory sizes the document to its content and starts at the
-        // top; a hand-built NSTextView in a scroll view opens scrolled one line down.
-        let scrollView = NSTextView.scrollableTextView()
-        scrollView.frame = NSRect(x: 0, y: 0, width: 420, height: 236)
-        scrollView.borderType = .bezelBorder
-        if let textView = scrollView.documentView as? NSTextView {
-            textView.isEditable = false
-            textView.isSelectable = true
-            textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-            textView.textContainerInset = NSSize(width: 6, height: 6)
-            textView.string = text
+    @ViewBuilder
+    private var diagnosticsControls: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Diagnostic Report")
+            Text("The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        Toggle("Include Window Titles", isOn: Binding(
+            get: { diagnostics.includesTitles },
+            set: { diagnostics.setIncludesTitles($0); refreshDiagnostics() }
+        ))
+        VStack(alignment: .leading, spacing: 8) {
+            DiagnosticsReportTextView(text: diagnostics.report ?? "")
+                .frame(height: Self.diagnosticsReportHeight)
+                .overlay {
+                    if diagnostics.isCollecting {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+            diagnosticsActionRow
+        }
+        .onAppear {
+            if diagnostics.report == nil { refreshDiagnostics() }
+        }
+    }
 
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Diagnostic Info Copied")
-        alert.informativeText = String(localized: "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information.")
-        alert.accessoryView = scrollView
-        alert.addButton(withTitle: String(localized: "OK"))
-        if let window = NSApp.keyWindow {
-            alert.beginSheetModal(for: window)
-        } else {
-            alert.runModal()
+    /// The report box keeps one height whether empty, collecting or full: content that grows
+    /// after the window opens does not resize it, so a box sized to its text would be clipped.
+    private static let diagnosticsReportHeight: CGFloat = 200
+
+    private var diagnosticsActionRow: some View {
+        HStack(spacing: 12) {
+            Text(diagnosticsStatusText)
+                .font(.caption).foregroundStyle(.secondary)
+            Button("Collect Again", action: refreshDiagnostics)
+                .disabled(diagnostics.isCollecting)
+            Spacer()
+            Button(action: copyDiagnostics) {
+                if diagnostics.showsCopied {
+                    Label("Copied", systemImage: "checkmark")
+                } else {
+                    Text("Copy Report")
+                }
+            }
+            .disabled(diagnostics.report == nil)
         }
+    }
+
+    private var diagnosticsStatusText: String {
+        guard !diagnostics.isCollecting, let collectedAt = diagnostics.collectedAt else {
+            return String(localized: "Collecting…")
+        }
+        let time = DateFormatter.localizedString(from: collectedAt, dateStyle: .none, timeStyle: .short)
+        return String(format: String(localized: "Collected at %@"), time)
+    }
+
+    private func refreshDiagnostics() {
+        guard let request = diagnostics.begin() else { return }
+        collectDiagnostics(request.includesTitles) { text in
+            diagnostics.complete(request, text: text)
+        }
+    }
+
+    private func copyDiagnostics() {
+        guard let report = diagnostics.report else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(report, forType: .string)
+        diagnostics.markCopied()
     }
 
     // 登录时启动 2026-08-24 当天两度搬家：随去重进过设置窗口，owner 复议后定为
@@ -605,12 +667,6 @@ struct SettingsWindowContent: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            // Sparkle 自带结果界面（有新版 / 已是最新 / 查不到），所以这里不再接
-            // `SettingsAlert`——原来那条「去官网手动下载」的提示随之删掉了。
-            Button("Check for Updates…") {
-                coordinator.checkForUpdates()
-            }
-            .disabled(!coordinator.canCheckForUpdates)
         }
     }
 
@@ -892,6 +948,19 @@ struct SettingsWindowContent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// macOS 12 stand-in for a grouped form's titled `Section`: the title sits above its box.
+    private func settingsSection<Content: View>(
+        _ title: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+                .padding(.leading, 4)
+            content()
+        }
+    }
+
     /// macOS 12 stand-in for the grouped form's box: rows stacked edge to edge, a `Divider()`
     /// between them.
     private func settingsGroup<Content: View>(
@@ -1086,20 +1155,88 @@ extension DiagnosticReport {
             },
             glassPath: glassPath(),
             glassComposite: glassComposite(),
+            glassRefresh: TEDockGlassSupportsWindowStateRefresh()
+                ? "supported" : "unsupported (no _windowChangedKeyState)",
             glassTint: UserDefaults.standard.object(forKey: "NSGlassTintAmount").map { "\($0)" },
             glassVariants: glassVariantReadings(),
-            // Hidden panels stay listed: an auto-hidden bar reads "none" otherwise, which looks
-            // like "no glass" — the very thing this line exists to tell apart.
-            glassPanels: NSApp.windows
-                .filter { $0 is DockLiquidGlassPanel }
-                .map { window in
-                    GlassReading(
-                        label: "\(Int(window.frame.width))x\(Int(window.frame.height))"
-                            + (window.isVisible ? "" : " hidden"),
-                        reading: window.contentView?.layer.flatMap { TEDockGlassDescribeLayer($0) }
-                    )
-                }
+            glassPanels: livePanelReadings(),
+            glassPanelsAtFirstActivation: panelsAtFirstActivation
         )
+    }
+
+    /// Hidden panels stay listed: an auto-hidden bar reads "none" otherwise, which looks like
+    /// "no glass" — the very thing this line exists to tell apart.
+    private static func livePanelReadings() -> [GlassReading] {
+        NSApp.windows
+            .filter { $0 is DockLiquidGlassPanel }
+            .map { window in
+                GlassReading(
+                    label: "\(Int(window.frame.width))x\(Int(window.frame.height))"
+                        + (window.isVisible ? "" : " hidden"),
+                    reading: window.contentView?.layer.flatMap { TEDockGlassDescribeLayer($0) },
+                    state: glassState(of: window)
+                )
+            }
+    }
+
+    private static var panelsAtFirstActivation: [GlassReading]?
+    private static var firstActivationObserver: NSObjectProtocol?
+
+    /// Records the live panels the first time the app becomes active with the bar up. AppKit posts
+    /// `willBecomeActive` before it re-samples the window state into the glass (on 27.0 the
+    /// re-sample lands after `didBecomeActive`; `scratch/order_probe.swift`), so this is a reading
+    /// the activation has not touched yet. One shot, for those panels only — later faults and
+    /// panels rebuilt after a display change are not covered. An activation before the bar
+    /// exists (permission onboarding) is skipped, not consumed.
+    static func armFirstActivationSnapshot() {
+        guard firstActivationObserver == nil, panelsAtFirstActivation == nil else { return }
+        firstActivationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willBecomeActiveNotification, object: nil, queue: .main
+        ) { _ in
+            let panels = livePanelReadings()
+            guard !panels.isEmpty else { return }
+            panelsAtFirstActivation = panels
+            if let observer = firstActivationObserver { NotificationCenter.default.removeObserver(observer) }
+            firstActivationObserver = nil
+        }
+    }
+
+    /// The window state baked into a system-variant plate, told apart by two never-shown windows
+    /// of the plate's own size: a plain `NSWindow` (inactive) and a `DockLiquidGlassPanel` (its
+    /// predicates answer active). Nil for panels on another material.
+    private static func glassState(of window: NSWindow) -> GlassState? {
+        guard let variant = DockGlassPresentation.activeSystemVariant,
+              let plate = DockGlassPresentation.systemVariantGlassViews(in: window).first,
+              let reading = plate.layer.flatMap({ TEDockGlassDescribeLayer($0) }) else { return nil }
+        let size = plate.bounds.size
+        return classify(
+            reading: reading,
+            inactive: referenceReading(variant: variant, size: size, activePredicates: false),
+            active: referenceReading(variant: variant, size: size, activePredicates: true)
+        )
+    }
+
+    /// `TEDockGlassDescribeVariant` at a chosen size and window class. Main thread, from a user
+    /// action only: it builds a throwaway window.
+    private static func referenceReading(variant: Int, size: NSSize, activePredicates: Bool) -> String? {
+        guard #available(macOS 26.0, *), size.width > 0, size.height > 0 else { return nil }
+        let frame = NSRect(origin: .zero, size: size)
+        let window: NSWindow = activePredicates
+            ? DockLiquidGlassPanel(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: true)
+            : NSWindow(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: true)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let glass = NSGlassEffectView(frame: frame)
+        glass.contentView = NSView(frame: frame)
+        guard TEDockGlassSetSystemVariant(glass, variant) else { return nil }
+        window.contentView = NSView(frame: frame)
+        window.contentView?.addSubview(glass)
+        window.contentView?.layoutSubtreeIfNeeded()
+        window.displayIfNeeded()
+        // The live plate re-samples once after attach (`DockSystemGlassEffectView`); mirror it so
+        // the reference is what that plate would read, not what a plain view reads.
+        _ = TEDockGlassRefreshWindowState(glass)
+        return glass.layer.flatMap { TEDockGlassDescribeLayer($0) }
     }
 
     /// `glassPath` is the configuration; this is what the running bar actually got. The glass
@@ -1132,5 +1269,31 @@ extension DiagnosticReport {
         var buffer = [CChar](repeating: 0, count: size)
         guard sysctlbyname("hw.model", &buffer, &size, nil, 0) == 0 else { return nil }
         return String(cString: buffer)
+    }
+}
+
+/// Read-only, selectable report text. AppKit rather than a SwiftUI `Text`: a busy machine's
+/// report runs to hundreds of lines, which a SwiftUI text view scrolls and selects poorly.
+private struct DiagnosticsReportTextView: NSViewRepresentable {
+    let text: String
+
+    func makeNSView(context: Context) -> NSScrollView {
+        // The factory sizes the document to its content and starts at the top; a hand-built
+        // NSTextView in a scroll view opens scrolled one line down.
+        let scrollView = NSTextView.scrollableTextView()
+        scrollView.borderType = .bezelBorder
+        if let textView = scrollView.documentView as? NSTextView {
+            textView.isEditable = false
+            textView.isSelectable = true
+            textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+            textView.textContainerInset = NSSize(width: 6, height: 6)
+        }
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView, textView.string != text else { return }
+        textView.string = text
+        textView.scrollToBeginningOfDocument(nil)
     }
 }

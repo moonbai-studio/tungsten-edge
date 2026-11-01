@@ -213,6 +213,19 @@ enum DockGlassPresentation {
 
     static var usesSystemVariant: Bool { activeSystemVariant != nil }
 
+    /// The system-variant plates hosted in `window`, for diagnostics: their material is the one a
+    /// same-size reference can be built for. Empty on the SwiftUI-clear and frosted paths.
+    static func systemVariantGlassViews(in window: NSWindow) -> [NSView] {
+        guard #available(macOS 26.0, *), let root = window.contentView else { return [] }
+        var found: [NSView] = []
+        var pending: [NSView] = [root]
+        while let view = pending.popLast() {
+            if view is DockSystemGlassEffectView { found.append(view) }
+            pending.append(contentsOf: view.subviews)
+        }
+        return found
+    }
+
     /// 能不能给任务条建玻璃合成。三道门：系统 ≥ 26、开关打开、SkyLight 的两个符号都取到。
     static var shouldAttemptTaskbarComposite: Bool {
         let glassAvailable: Bool
@@ -246,6 +259,39 @@ enum DockGlassPresentation {
     }
 }
 
+/// AppKit bakes the window's active state into the glass once, when the view lands in its window,
+/// and re-samples only through `_windowChangedKeyState` (a key change, or the app activating or
+/// deactivating). Our panels never produce either, so the first sample is the material for the
+/// bar's whole life; the inactive material is the uniform milky plate (+89 over black against the
+/// active +50). Re-sample once attached and on every occlusion change (the first order-in included),
+/// when `DockLiquidGlassPanel`'s predicates answer.
+@available(macOS 26.0, *)
+private final class DockSystemGlassEffectView: NSGlassEffectView {
+    private var occlusionObserver: NSObjectProtocol?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let observer = occlusionObserver {
+            NotificationCenter.default.removeObserver(observer)
+            occlusionObserver = nil
+        }
+        guard let window else { return }
+        // Next turn: `presentInitialPanels` orders the panel in after this layout pass.
+        DispatchQueue.main.async { [weak self] in self?.refreshWindowState() }
+        occlusionObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main
+        ) { [weak self] _ in self?.refreshWindowState() }
+    }
+
+    private func refreshWindowState() {
+        _ = TEDockGlassRefreshWindowState(self)
+    }
+
+    deinit {
+        if let observer = occlusionObserver { NotificationCenter.default.removeObserver(observer) }
+    }
+}
+
 /// The plate rendered by AppKit's `NSGlassEffectView` with a private system variant (the Dock's).
 @available(macOS 26.0, *)
 private struct DockSystemGlassVariantPlate: NSViewRepresentable {
@@ -256,8 +302,8 @@ private struct DockSystemGlassVariantPlate: NSViewRepresentable {
 
     func makeCoordinator() -> DockGlassRefractionObserver { DockGlassRefractionObserver() }
 
-    func makeNSView(context: Context) -> NSGlassEffectView {
-        let view = NSGlassEffectView()
+    func makeNSView(context: Context) -> DockSystemGlassEffectView {
+        let view = DockSystemGlassEffectView()
         view.contentView = NSView()
         apply(to: view)
         configureObserver(context.coordinator, for: view)
@@ -265,7 +311,7 @@ private struct DockSystemGlassVariantPlate: NSViewRepresentable {
     }
 
     // SwiftUI re-runs update, never re-creates the view — the radius follows drag-to-resize here.
-    func updateNSView(_ view: NSGlassEffectView, context: Context) {
+    func updateNSView(_ view: DockSystemGlassEffectView, context: Context) {
         apply(to: view)
         configureObserver(context.coordinator, for: view)
     }
@@ -282,7 +328,7 @@ private struct DockSystemGlassVariantPlate: NSViewRepresentable {
         }
     }
 
-    static func dismantleNSView(_ view: NSGlassEffectView, coordinator: DockGlassRefractionObserver) {
+    static func dismantleNSView(_ view: DockSystemGlassEffectView, coordinator: DockGlassRefractionObserver) {
         coordinator.stop()
     }
 

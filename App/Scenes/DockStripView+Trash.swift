@@ -4,6 +4,8 @@ extension DockStripView {
     func trashChip(hovered: Bool) -> some View {
         TrashChip(isFull: trashStore.isFull,
                   isDropTargeted: externalDropTarget == .trash,
+                  // While a volume is dragged over the bar the Trash offers to eject it, as on the native Dock.
+                  showsEject: externalDropHoverActive && StripFileDropDelegate.DragPasteboardInspector.ejectsVolumes(),
                   scale: dockScale,
                   hoverStyle: hoverStyle,
                   isHovered: hovered,

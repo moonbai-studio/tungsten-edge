@@ -203,6 +203,7 @@ struct DockStripView: View {
     var body: some View {
         let projectionStart = HoverTrace.now()
         let projection = makeProjection()
+        let _ = StripProjectionRegistry.shared.store(projection, surface: stripSurfaceID, displayUUID: displayUUID)
         let _ = HoverTrace.span("makeProjection", since: projectionStart)
         // 「一次点击让整条重算了几次」——`DockStripView` 订阅整个 `AppRuntime`，
         // 任何一个 `@Published` 变化都会打翻整条。默认关，`DOCK_HOVER_TRACE=1` 才记。
@@ -342,6 +343,7 @@ struct DockStripView: View {
             onHoverMoved: { externalDropHoverMoved($0) },
             onHoverEnded: { isLanding in externalDropHoverEnded(isLanding: isLanding) },
             onCommit: { target, urls in handleExternalDrop(target, urls: urls) },
+            onCommitTrash: { urls in handleTrashDrop(urls) },
             onCommitApplications: { urls, location in
                 handleExternalApplicationDrop(urls, atX: location.x)
             },
@@ -371,7 +373,16 @@ struct DockStripView: View {
         // `StripHoverResolution` 算。每张卡各自挂 `.onHover` 的老做法漏格又带方向性，
         // 成因与实测数据见那个类型的注释。
         .background(StripPointerTracker { pointer in
+            // Arrow once per entry, not per tick: re-asserting every tick fights cursors the
+            // foreground app keeps over the bar.
+            let enteredBar = pointerBox.value == nil && pointer != nil
             pointerBox.value = pointer
+            if enteredBar {
+                onInteractiveResize(.pointerEnteredBar(hitTest: { currentPointer in
+                    (isInContent: stripRootScreenRect != .zero && stripRootScreenRect.contains(currentPointer),
+                     isInGrip: resizeGripZoneClaims(atScreen: currentPointer))
+                }))
+            }
             refreshHoveredEntry(frames: stripHoverFrames, origin: stripRootScreenRect)
             // Grip-zone hover for the ▲▼ glyph; rides the same ≤60Hz poll, `nil` on leave or while a press is held.
             onInteractiveResize(.hover(pointer.flatMap { resizeGripHoverClaims(atScreen: $0) ? $0 : nil }))
@@ -458,6 +469,7 @@ struct DockStripView: View {
             bubbleOwnerID = request?.chipID
         }
         .onDisappear {
+            StripProjectionRegistry.shared.remove(surface: stripSurfaceID)
             if let previous = bubbleOwnerID { onWindowTitleTooltipEvent(.exit(chipID: previous)) }
             bubbleOwnerID = nil
         }
@@ -1349,6 +1361,7 @@ struct DockStripView: View {
             PinnedFolderChip(
                 path: path,
                 cover: folderCoverStore.covers[path],
+                folderIcon: folderCoverStore.folderIcon(forPath: path, dark: colorScheme == .dark),
                 sortOrder: pinnedFolderStore.sortOrder(for: path),
                 displayMode: pinnedFolderStore.displayMode(for: path),
                 viewMode: pinnedFolderStore.viewMode(for: path),

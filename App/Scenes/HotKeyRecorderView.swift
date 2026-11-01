@@ -3,7 +3,7 @@ import Carbon.HIToolbox
 import SwiftUI
 
 /// 设置窗口里的快捷键录制框。点击进入录制态（「按下新组合…」），按下组合立即上报；
-/// Esc、再点一下或失焦都取消。**固定尺寸**：录制态只换文案不换行高，
+/// Esc、再点一下、失焦或设置窗口失去前台（`SettingsWindowController.windowDidResignKey`）都取消。**固定尺寸**：录制态只换文案不换行高，
 /// 设置窗口不用重新量高度（`SettingsWindowController` 的量高规则）。
 ///
 /// 用第一响应者的 `keyDown` 而不是 `NSEvent.addLocalMonitorForEvents`：monitor 要记着拆、

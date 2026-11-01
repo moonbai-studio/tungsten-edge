@@ -63,6 +63,13 @@ struct WindowEntry {
     var displayUUIDHoldUntil: Date? = nil
     /// Absence fallback for a window hidden without a destroy notification (`AbsentSeatReleaseDecision`).
     var absentProbe: AbsentSeatProbeState? = nil
+    var createdAt = Date()
+}
+
+struct DiagnosticAdmissionRecord: Equatable {
+    let verdict: String
+    let source: String
+    let at: Date
 }
 
 protocol AppTrackerProcessProviding: Sendable {
@@ -105,6 +112,15 @@ final class AppTracker: ObservableObject {
     @Published private(set) var snapshot: DockSnapshot = .empty
 
     private var apps: [pid_t: AppEntry] = [:]
+    private(set) var lastAdmissionVerdictByPID: [pid_t: DiagnosticAdmissionRecord] = [:]
+
+    func diagnosticApps() -> [AppEntry] {
+        appOrder.compactMap { apps[$0] }
+    }
+
+    func noteAdmissionVerdict(pid: pid_t, verdict: String, source: String) {
+        lastAdmissionVerdictByPID[pid] = DiagnosticAdmissionRecord(verdict: verdict, source: source, at: Date())
+    }
     private var appOrder: [pid_t] = []
     private var observers: [pid_t: AppWindowObserver] = [:]
     private var workspaceObservers: [NSObjectProtocol] = []
@@ -240,6 +256,16 @@ final class AppTracker: ObservableObject {
     private let windowEligibility = AppTrackerWindowEligibility()
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "app-tracker")
     private let inventoryLog: WindowInventoryAnomalyLog
+    #if DEBUG
+    private var admissionAppsForTesting: [NSRunningApplication]?
+    #endif
+
+    private var runningApplications: [NSRunningApplication] {
+        #if DEBUG
+        if let admissionAppsForTesting { return admissionAppsForTesting }
+        #endif
+        return NSWorkspace.shared.runningApplications
+    }
 
     init(
         inventoryLog: WindowInventoryAnomalyLog = WindowInventoryAnomalyLog(),
@@ -329,6 +355,7 @@ final class AppTracker: ObservableObject {
         for obs in observers.values { obs.stop() }
         observers.removeAll()
         apps.removeAll()
+        lastAdmissionVerdictByPID.removeAll()
         appOrder.removeAll()
         destroyedCGIDs.removeAll()
         reconcileOrdinalsByPID.removeAll()
@@ -472,6 +499,8 @@ final class AppTracker: ObservableObject {
         var usedEligible: Set<CGWindowID> = []
         var newOrder: [CGWindowID] = []
         var newByID: [CGWindowID: WindowEntry] = [:]
+        let createdAtByToken = Dictionary(app.windowsByID.values.map { ($0.token, $0.createdAt) },
+                                         uniquingKeysWith: { first, _ in first })
         func place(_ e: WindowEntry) { newOrder.append(e.cgWindowID); newByID[e.cgWindowID] = e }
         // history = 座位延续时继承的「曾任活跃标签」集合。与 CG 全列表求交集：真关掉的标签
         // 随之出列，防 cgID 复用后被误折叠进旧座位。wasEverVisible = 座位此前是否可见过（延续时
@@ -503,7 +532,8 @@ final class AppTracker: ObservableObject {
                                everSeenVisible: wasEverVisible || !s.isMinimized,
                                formerCgIDs: history.subtracting([s.cgWindowID!]).intersection(cgIDs),
                                displayUUID: displayUUID,
-                               displayUUIDHoldUntil: holdUntil)
+                               displayUUIDHoldUntil: holdUntil,
+                               createdAt: createdAtByToken[token] ?? now)
         }
         // 某 frame 当前有几个老座位认领（>1 = 窗口重叠歧义，切标签顶替时跳过，保守不误并）
         func seatsAtFrame(_ key: String) -> Int {
@@ -1186,6 +1216,7 @@ final class AppTracker: ObservableObject {
     }
 
     private func clearInventoryDiagnostics(pid: pid_t) {
+        lastAdmissionVerdictByPID.removeValue(forKey: pid)
         reconcileOrdinalsByPID.removeValue(forKey: pid)
         lastReconcileAtByPID.removeValue(forKey: pid)
         shadowPoolDiagnosticsByPID.removeValue(forKey: pid)
@@ -1375,7 +1406,7 @@ final class AppTracker: ObservableObject {
         var unreadList: [String] = []
         let cgSnapshot = cgSnapshotProvider()
 
-        for app in NSWorkspace.shared.runningApplications {
+        for app in runningApplications {
             guard isRegularNonSelf(app) else { continue }
             let pid = app.processIdentifier
             let bid = app.bundleIdentifier
@@ -1415,6 +1446,7 @@ final class AppTracker: ObservableObject {
             } else {
                 seedVerdict = .admit
             }
+            noteAdmissionVerdict(pid: pid, verdict: seedVerdict.rawValue, source: "seed")
             if let probeIdentity {
                 recordAdmissionProbe(
                     source: .seed,
@@ -1661,13 +1693,27 @@ final class AppTracker: ObservableObject {
                     self.enumerateWindows(for: pid, source: .initialEnumeration)
                     return
                 }
-                guard NSRunningApplication(processIdentifier: pid)?.isTerminated == false else { return }
-                let windows = self.reader.windows(forPID: pid)
+                guard self.processProvider.isAlive(pid: pid) else { return }
+                let identity = self.processIdentity(pid: pid, bundleID: app.bundleIdentifier)
+                let reader = self.reader
+                let result: AXWindowReadResult = await withCheckedContinuation { continuation in
+                    DispatchQueue.global(qos: .utility).async {
+                        continuation.resume(returning: reader.windowReadResult(forPID: pid))
+                    }
+                }
+                guard self.processProvider.isAlive(pid: pid),
+                      ScanAdmissionDecision.ProcessIdentity.matches(
+                        probed: identity, current: self.processIdentity(pid: pid, bundleID: app.bundleIdentifier)
+                      ) else { return }
+                let windows = result.windowsOrEmpty
                 let cgSnapshot = self.cgSnapshotProvider()
                 let eligibilityApplication = self.eligibilityApplication(for: app)
                 let hasEligible = windows.contains {
                     self.isEligible($0, application: eligibilityApplication, cgSnapshot: cgSnapshot)
                 }
+                self.noteAdmissionVerdict(pid: pid,
+                    verdict: !result.isSuccess ? "skipUnread" : (hasEligible ? "admit" : "skipNoEligible"),
+                    source: "launchRetry")
                 if hasEligible {
                     self.addApp(app, enumerateImmediately: true)
                     self.rebuildSnapshot()
@@ -1786,7 +1832,12 @@ final class AppTracker: ObservableObject {
     }
 
     private func eligibilityApplication(for app: NSRunningApplication) -> AppTrackerWindowEligibility.Application {
-        AppTrackerWindowEligibility.Application(
+        #if DEBUG
+        if admissionAppsForTesting?.contains(where: { $0.processIdentifier == app.processIdentifier }) == true {
+            return .init(bundleIdentifier: "test.diagnostics", appName: "Diagnostics", activationPolicy: .regular, executablePath: nil)
+        }
+        #endif
+        return AppTrackerWindowEligibility.Application(
             bundleIdentifier: app.bundleIdentifier,
             appName: app.localizedName ?? app.bundleIdentifier ?? "\(app.processIdentifier)",
             activationPolicy: app.activationPolicy,
@@ -2469,7 +2520,7 @@ final class AppTracker: ObservableObject {
             }
         } else {
             // 旁路（启动补扫轮 / DOCK_SCAN_GATE=0）：与改造前逐位一致，现场全量枚举。
-            candidates = NSWorkspace.shared.runningApplications.compactMap { app in
+            candidates = runningApplications.compactMap { app in
                 let pid = app.processIdentifier
                 guard isRegularNonSelf(app), !app.isTerminated, apps[pid] == nil else { return nil }
                 scanDirtyPIDs.remove(pid)
@@ -2506,7 +2557,7 @@ final class AppTracker: ObservableObject {
 
     /// 一次真实的 NSWorkspace 枚举（每 app 属性访问都是同步 LS XPC，别在安静 tick 调它）。
     private func enumerateScanCandidates() -> [(pid: pid_t, bundleID: String?)] {
-        NSWorkspace.shared.runningApplications.compactMap { app in
+        runningApplications.compactMap { app in
             let pid = app.processIdentifier
             guard isRegularNonSelf(app), !app.isTerminated, apps[pid] == nil else { return nil }
             return (pid, app.bundleIdentifier)
@@ -2537,6 +2588,7 @@ final class AppTracker: ObservableObject {
         for entry in probed {
             guard let app = NSRunningApplication(processIdentifier: entry.pid) else {
                 scanMemos.removeValue(forKey: entry.pid)
+                noteAdmissionVerdict(pid: entry.pid, verdict: "skipProcessUnavailable", source: "scan")
                 recordAdmissionProbe(
                     source: .scan,
                     identity: entry.identity,
@@ -2574,6 +2626,7 @@ final class AppTracker: ObservableObject {
                 isTerminated: app.isTerminated,
                 alreadyTracked: apps[entry.pid] != nil
             )
+            noteAdmissionVerdict(pid: entry.pid, verdict: inventoryAdmissionVerdict(verdict).rawValue, source: "scan")
             recordAdmissionProbe(
                 source: .scan,
                 identity: entry.identity,
@@ -2773,11 +2826,24 @@ final class AppTracker: ObservableObject {
     }
 
     private func isRegularNonSelf(_ app: NSRunningApplication) -> Bool {
-        app.activationPolicy == .regular &&
+        #if DEBUG
+        if admissionAppsForTesting?.contains(where: { $0.processIdentifier == app.processIdentifier }) == true { return true }
+        #endif
+        return app.activationPolicy == .regular &&
         app.bundleIdentifier != DockWindowEligibilityPolicy.selfBundleIdentifier
     }
 
     #if DEBUG
+    func runAdmissionForTesting(source: String, app: NSRunningApplication = .current) {
+        admissionAppsForTesting = [app]
+        switch source {
+        case "seed": seedRunningApps()
+        case "scan": scanNonAdmittedApps()
+        case "launchRetry": scheduleRetryAdmission(app: app, delays: [0])
+        default: preconditionFailure("Unknown admission fixture source")
+        }
+    }
+
     // MARK: - Deterministic inventory fixtures
 
     func installFixtureForTesting(_ app: AppEntry) {

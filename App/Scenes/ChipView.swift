@@ -42,6 +42,7 @@ extension EnvironmentValues {
 }
 
 struct ChipView: View {
+    @ObservedObject private var iconRevision = AppIconRevision.shared
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var messagingStore: MessagingAppStore

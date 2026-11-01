@@ -8,6 +8,7 @@ import SwiftUI
 /// `.hover` comes from the strip's pointer tracker: the pointer is on a grip zone (`pointer`)
 /// or not (`nil`); the coordinator draws the ▲▼ glyph from it.
 enum StripResizeGripEvent {
+    case pointerEnteredBar(hitTest: (CGPoint) -> (isInContent: Bool, isInGrip: Bool))
     case hover(CGPoint?)
     case began(pointer: CGPoint)
     case changed(pointer: CGPoint)

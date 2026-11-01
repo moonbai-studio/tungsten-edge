@@ -29,7 +29,7 @@ final class PermissionOnboardingTests: XCTestCase {
         )
         // 可写的外置卷 / 网络盘是合法安装位置，不该被当成临时副本误伤。
         XCTAssertEqual(location("/Volumes/Samsung T7/Tungsten Edge.app", readOnly: false), .other)
-        XCTAssertEqual(location("/Users/caye/Downloads/Tungsten Edge.app"), .other)
+        XCTAssertEqual(location("/Users/someone/Downloads/Tungsten Edge.app"), .other)
     }
 
     func testClassifiesTransientLocations() {

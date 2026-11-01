@@ -241,6 +241,15 @@ final class WindowLiftAvoidanceController {
         /// Hold the window until its native frame reappears; `userEra` additionally lets a new
         /// eligible frame release it (`Geometry.suppressionReleasesOnNewFrame`).
         case untilNative(userEra: Bool)
+        /// `untilNative(userEra: false)` for a clear that was the app answering our lift: the
+        /// cleared session's standoff rounds ride along, so a native return soon after counts as
+        /// one more round (`WindowLiftAvoidance.isDetourReturn`).
+        case afterAppAnswer
+    }
+
+    private struct DetourCarry {
+        let standoffRounds: Int
+        let clearedAt: TimeInterval
     }
 
     private enum OperationOutcome {
@@ -292,6 +301,9 @@ final class WindowLiftAvoidanceController {
     /// (`WindowLiftAvoidance.externalFrameIsUserEra`). Always a subset of `suppressedFrames.keys`:
     /// written only through `setSuppression` / `clearSuppression` / `clearAllSuppressions`.
     private var userEraSuppressedKeys: Set<WindowLiftAvoidance.WindowKey> = []
+    /// Suppressed keys cleared by `.afterAppAnswer`. Subset of `suppressedFrames.keys`, disjoint from
+    /// `userEraSuppressedKeys`, same three writers.
+    private var detourCarries: [WindowLiftAvoidance.WindowKey: DetourCarry] = [:]
     private var observationWatermarks: [WindowLiftAvoidance.WindowKey: UInt64] = [:]
     private var validationGenerations: [WindowLiftAvoidance.WindowKey: UInt64] = [:]
     private var lastTraceClassifications: [
@@ -968,6 +980,7 @@ final class WindowLiftAvoidanceController {
             fromQuartz: candidate.quartzFrame,
             primaryScreenHeight: context.primaryScreenHeight
         )
+        var detourReturn: (carry: DetourCarry, frames: ManagedFrames)?
         if let suppressed = suppressedFrames[candidate.key] {
             let classification = WindowLiftAvoidance.frameClassification(
                 of: appKitFrame,
@@ -983,6 +996,14 @@ final class WindowLiftAvoidanceController {
                     includesTiles: includesTiles
                 ) else {
                 return false
+            }
+            if classification == .native,
+               let carry = detourCarries[candidate.key],
+               WindowLiftAvoidance.isDetourReturn(
+                   clearedAt: carry.clearedAt,
+                   at: ProcessInfo.processInfo.systemUptime
+               ) {
+                detourReturn = (carry, suppressed)
             }
             clearSuppression(for: candidate.key)
             updatePollTimerLifecycle()
@@ -1011,14 +1032,30 @@ final class WindowLiftAvoidanceController {
         }
 
         let operationGeneration = observationGeneration
-        let transition = WindowLiftAvoidance.reduce(
-            state: states[candidate.key] ?? .idle,
-            event: .maximizedDetected(
+        let event: WindowLiftAvoidance.Event
+        if let detourReturn, states[candidate.key] == nil {
+            event = .detourReturnObserved(
+                generation: operationGeneration,
+                at: ProcessInfo.processInfo.systemUptime,
+                nativeFrame: appKitFrame,
+                targetFrame: targetFrame,
+                standoffRounds: detourReturn.carry.standoffRounds
+            )
+            // A capped return parks the window in `.abandoned` without a write; the tracked
+            // observation needs its frames to see the user's later external frame, or the cap
+            // never clears.
+            managedFrames[candidate.key] = detourReturn.frames
+        } else {
+            event = .maximizedDetected(
                 generation: operationGeneration,
                 at: ProcessInfo.processInfo.systemUptime,
                 nativeFrame: appKitFrame,
                 targetFrame: targetFrame
             )
+        }
+        let transition = WindowLiftAvoidance.reduce(
+            state: states[candidate.key] ?? .idle,
+            event: event
         )
         apply(
             transition,
@@ -1076,7 +1113,7 @@ final class WindowLiftAvoidanceController {
                 for: candidate.key,
                 cancelWriter: true,
                 reason: "reducerClear",
-                suppression: .untilNative(userEra: userEra)
+                suppression: userEra ? .untilNative(userEra: true) : .afterAppAnswer
             )
             return
         }
@@ -2024,11 +2061,13 @@ final class WindowLiftAvoidanceController {
                 "lift validation transient pid=\(key.pid, privacy: .public) wid=\(key.cgWindowID, privacy: .public) stage=\(stage.rawValue, privacy: .public)"
             )
             // Validation has not written the window yet. A moving zoom candidate must return to
-            // idle so the next global sample can establish a fresh native frame.
+            // idle so the next global sample can establish a fresh native frame — except mid
+            // standoff, where a plain clear would hand the next lift a fresh budget.
             clearManagedSession(
                 for: key,
                 cancelWriter: false,
-                reason: stage.rawValue
+                reason: stage.rawValue,
+                suppression: attempt.standoffRounds > 0 ? .afterAppAnswer : .none
             )
 
         case let .unsupportedValidation(stage):
@@ -2071,7 +2110,7 @@ final class WindowLiftAvoidanceController {
                 for: key,
                 cancelWriter: false,
                 reason: "externalFrame",
-                suppression: .untilNative(userEra: false)
+                suppression: .afterAppAnswer
             )
 
         case let .reliftLimitReached(_, reliftCount, anomalies):
@@ -2631,9 +2670,16 @@ final class WindowLiftAvoidanceController {
         validationGenerations.removeValue(forKey: key)
         let previous = states.removeValue(forKey: key)
         let frames = managedFrames.removeValue(forKey: key)
-        if case let .untilNative(userEra) = suppression, let frames {
-            setSuppression(frames, userEra: userEra, for: key)
-        } else {
+        switch (suppression, frames) {
+        case let (.untilNative(userEra), frames?):
+            setSuppression(frames, userEra: userEra, detourCarry: nil, for: key)
+        case let (.afterAppAnswer, frames?):
+            let carry = DetourCarry(
+                standoffRounds: previous.map(Self.standoffRounds(of:)) ?? 0,
+                clearedAt: ProcessInfo.processInfo.systemUptime
+            )
+            setSuppression(frames, userEra: false, detourCarry: carry, for: key)
+        default:
             clearSuppression(for: key)
         }
         lastTraceClassifications.removeValue(forKey: key)
@@ -2649,6 +2695,7 @@ final class WindowLiftAvoidanceController {
     private func setSuppression(
         _ frames: ManagedFrames,
         userEra: Bool,
+        detourCarry: DetourCarry?,
         for key: WindowLiftAvoidance.WindowKey
     ) {
         suppressedFrames[key] = frames
@@ -2657,16 +2704,28 @@ final class WindowLiftAvoidanceController {
         } else {
             userEraSuppressedKeys.remove(key)
         }
+        detourCarries[key] = userEra ? nil : detourCarry
     }
 
     private func clearSuppression(for key: WindowLiftAvoidance.WindowKey) {
         suppressedFrames.removeValue(forKey: key)
         userEraSuppressedKeys.remove(key)
+        detourCarries.removeValue(forKey: key)
     }
 
     private func clearAllSuppressions() {
         suppressedFrames.removeAll()
         userEraSuppressedKeys.removeAll()
+        detourCarries.removeAll()
+    }
+
+    private static func standoffRounds(of state: WindowLiftAvoidance.SessionState) -> Int {
+        switch state {
+        case .idle: return 0
+        case let .writing(attempt): return attempt.standoffRounds
+        case let .lifted(session): return session.standoffRounds
+        case let .abandoned(session): return session.standoffRounds
+        }
     }
 
     private func traceClassification(

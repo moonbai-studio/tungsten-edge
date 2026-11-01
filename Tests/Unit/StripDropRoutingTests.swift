@@ -9,6 +9,16 @@ final class StripDropRoutingTests: XCTestCase {
             for x: CGFloat in [320, 340, 360, 380] {
                 XCTAssertEqual(StripDropRouting.route(location: CGPoint(x: x, y: 20), isApplicationDrag: false, isTrashItemDrag: false,
                     shelfFrame: shelf, trashFrame: trash, folderFrames: [:], orderedPaths: []), .trash)
+                // An app released over the Trash chip is moved to the Trash, as on the native Dock —
+                // only on the chip: the padding right of it keeps.
+                XCTAssertEqual(StripDropRouting.route(location: CGPoint(x: x, y: 20), isApplicationDrag: true, isTrashItemDrag: false,
+                    shelfFrame: shelf, trashFrame: trash, folderFrames: [:], orderedPaths: []), x <= 360 ? .trash : .keepApp)
+                // Something already in the Trash is refused there too.
+                XCTAssertEqual(StripDropRouting.route(location: CGPoint(x: x, y: 20), isApplicationDrag: true, isTrashItemDrag: true,
+                    shelfFrame: shelf, trashFrame: trash, folderFrames: [:], orderedPaths: []), .none)
+            }
+            // Anywhere left of the chip, an app is still kept.
+            for x: CGFloat in [0, 160, 300, 319] {
                 XCTAssertEqual(StripDropRouting.route(location: CGPoint(x: x, y: 20), isApplicationDrag: true, isTrashItemDrag: false,
                     shelfFrame: shelf, trashFrame: trash, folderFrames: [:], orderedPaths: []), .keepApp)
             }
@@ -485,5 +495,103 @@ final class StripDropRoutingTests: XCTestCase {
             XCTAssertFalse(StripDropRouting.appDropMayWidenOnHover(isRunning: b.0, isMessaging: b.1,
                                                                    isFinder: b.2, hasEntryOnStrip: b.3), "\(b)")
         }
+    }
+
+    /// `/Applications/Safari.app` is a symlink since macOS 13: a link or Finder alias to an app is
+    /// that app, resolved to the bundle `Bundle(url:)` can read; a link to anything else is not.
+    func testSymlinkAndAliasToAnAppAreThatApp() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("strip-drop-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let app = root.appendingPathComponent("Fake.app")
+        try fm.createDirectory(at: app.appendingPathComponent("Contents"), withIntermediateDirectories: true)
+        let info: [String: Any] = ["CFBundleIdentifier": "com.example.fake", "CFBundlePackageType": "APPL"]
+        try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            .write(to: app.appendingPathComponent("Contents/Info.plist"))
+        let folder = root.appendingPathComponent("Folder")
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        let link = root.appendingPathComponent("Link.app")
+        try fm.createSymbolicLink(at: link, withDestinationURL: app)
+        let folderLink = root.appendingPathComponent("FolderLink.app")
+        try fm.createSymbolicLink(at: folderLink, withDestinationURL: folder)
+        let brokenLink = root.appendingPathComponent("Broken.app")
+        try fm.createSymbolicLink(at: brokenLink, withDestinationURL: root.appendingPathComponent("Missing.app"))
+        let alias = root.appendingPathComponent("Alias")
+        try URL.writeBookmarkData(try app.bookmarkData(options: .suitableForBookmarkFile), to: alias)
+
+        let home = fm.homeDirectoryForCurrentUser
+        for item in [app, link, alias] {
+            // What the keep / stash paths read downstream: the returned URL must open as the bundle.
+            let bundleURL = DroppedApplication.bundleURL(for: item, homeDirectory: home)
+            XCTAssertEqual(bundleURL.flatMap { Bundle(url: $0)?.bundleIdentifier }, "com.example.fake",
+                           item.lastPathComponent)
+        }
+        for item in [folder, folderLink, brokenLink] {
+            XCTAssertNil(DroppedApplication.bundleURL(for: item, homeDirectory: home), item.lastPathComponent)
+        }
+        XCTAssertNil(DroppedApplication.bundleURL(for: URL(string: "https://example.com/Fake.app")!, homeDirectory: home))
+    }
+
+    /// An app's gap closes over the pinned folders and the Trash, so the Trash is never clipped off.
+    func testAppGhostClosesOverTheFoldersAndTheTrash() {
+        XCTAssertTrue(StripDropRouting.appGhostCloses(pointerX: 900, target: .trash, rightZoneMinX: nil))
+        XCTAssertTrue(StripDropRouting.appGhostCloses(pointerX: 900, target: .keepApp, rightZoneMinX: 880))
+        XCTAssertTrue(StripDropRouting.appGhostCloses(pointerX: 880, target: .keepApp, rightZoneMinX: 880))
+        XCTAssertFalse(StripDropRouting.appGhostCloses(pointerX: 879, target: .keepApp, rightZoneMinX: 880))
+        XCTAssertFalse(StripDropRouting.appGhostCloses(pointerX: 2000, target: .keepApp, rightZoneMinX: nil))
+    }
+
+    func testTrashDropPlanSortsVolumesAppsAndFiles() {
+        let volume = URL(fileURLWithPath: "/Volumes/Stick")
+        let idle = URL(fileURLWithPath: "/Applications/Idle.app")
+        let running = URL(fileURLWithPath: "/Applications/Running.app")
+        let alias = URL(fileURLWithPath: "/Users/me/Desktop/Running alias")
+        let file = URL(fileURLWithPath: "/Users/me/notes.txt")
+        let plan = TrashDropPlan.build(
+            urls: [volume, idle, running, alias, file],
+            applicationURL: { url in
+                switch url {
+                case alias: return running
+                case idle, running: return url
+                default: return nil
+                }
+            },
+            isVolumeRoot: { $0 == volume },
+            // A running app's `bundleURL` carries a trailing slash; the dragged URL does not.
+            runningBundlePaths: [TrashDropPlan.canonicalPath(URL(fileURLWithPath: running.path + "/"))])
+        XCTAssertEqual(plan.ejects, [volume])
+        XCTAssertEqual(plan.trashesApplications, [idle])
+        XCTAssertEqual(plan.refusesRunningApplications, [running, alias],
+                       "an alias is checked against the app it opens")
+        XCTAssertEqual(plan.trashesFiles, [file])
+    }
+
+    func testStartupDiskIsNeverAVolumeToEject() {
+        XCTAssertFalse(TrashDropPlan.isVolumeRoot(URL(fileURLWithPath: "/")))
+        XCTAssertFalse(TrashDropPlan.isVolumeRoot(URL(string: "https://example.com/")!))
+        XCTAssertFalse(TrashDropPlan.isVolumeRoot(URL(fileURLWithPath: NSTemporaryDirectory())))
+    }
+
+    func testCommitSplitSendsEachItemToItsEntryPoint() {
+        let app = URL(fileURLWithPath: "/Applications/A.app"), file = URL(fileURLWithPath: "/tmp/f.txt")
+        let isApp: (URL) -> Bool = { $0 == app }
+        // Over the Trash chip: everything goes the Trash way.
+        XCTAssertEqual(StripDropRouting.commitSplit(target: .trash, fileTarget: .trash, urls: [app, file], isApplication: isApp),
+                       .init(trash: [app, file]))
+        // Past the chip's right edge: the app keeps, the file still goes to the Trash.
+        XCTAssertEqual(StripDropRouting.commitSplit(target: .keepApp, fileTarget: .trash, urls: [app, file], isApplication: isApp),
+                       .init(trash: [file], keepApplications: [app]))
+        // Elsewhere: the app keeps, the file follows its own route.
+        XCTAssertEqual(StripDropRouting.commitSplit(target: .keepApp, fileTarget: .stash, urls: [app, file], isApplication: isApp),
+                       .init(keepApplications: [app], files: (.stash, [file])))
+        XCTAssertEqual(StripDropRouting.commitSplit(target: .keepApp, fileTarget: .none, urls: [app, file], isApplication: isApp),
+                       .init(keepApplications: [app]))
+    }
+
+    /// A hover that inherits the previous drop's gap keeps that drop's gap-free boundary.
+    func testRightZoneBoundaryIgnoresFramesPushedByAnInheritedGap() {
+        XCTAssertEqual(StripDropRouting.dropRightZoneBoundary(previous: 900, inheritsOpenGap: true, measured: 954), 900)
+        XCTAssertEqual(StripDropRouting.dropRightZoneBoundary(previous: 900, inheritsOpenGap: false, measured: 954), 954)
+        XCTAssertEqual(StripDropRouting.dropRightZoneBoundary(previous: nil, inheritsOpenGap: true, measured: 954), 954)
     }
 }

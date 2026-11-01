@@ -22,6 +22,14 @@ enum HoverTrace {
     /// 8ms 卡顿采样和指针轮询——那两样会让主循环一直醒着，量动画时本身就是干扰。
     static let widthProbesEnabled = isEnabled || DebugSwitch.labelProbe.isEnabled(in: ProcessInfo.processInfo.environment)
 
+    static func barArrowCursor(surface: String, decision: String) {
+        guard isEnabled else { return }
+        Writer.shared.append(
+            "{\"t\":\(stamp()),\"kind\":\"barArrowCursor\",\"surface\":\(quote(surface))," +
+            "\"decision\":\(quote(decision))}"
+        )
+    }
+
     /// chip 报告悬停进入 / 离开。
     static func hover(chipID: String, entered: Bool) {
         guard isEnabled else { return }

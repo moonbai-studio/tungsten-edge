@@ -19,7 +19,7 @@ enum StripDropRouting {
         case moveInto(path: String)
         /// 落在文件夹区 → 固定目录到显示序 index 位（仅目录有效，由调用方过滤）。
         case pin(insertIndex: Int)
-        /// 拖的是应用 bundle → 勾「在程序坞中保留」+ 落到光标那个位置。**整条都是它的落点**，
+        /// 拖的是应用 bundle → 勾「在程序坞中保留」+ 落到光标那个位置。**除废纸篓外整条都是它的落点**，
         /// 不带 index：live 区的插入位由 `StripBlockLanding` 按 `chipFrames` 算（见 `handleExternalApplicationDrop`）。
         case keepApp
         /// 其他位置 → 拒绝。
@@ -67,11 +67,15 @@ enum StripDropRouting {
         // Trash items are refused everywhere on the bar, the Trash chip and app landing included.
         if isTrashItemDrag { return .none }
 
+        // The Trash chip takes everything released over it, apps included: dropping an app on the
+        // Dock's Trash is how a Mac user deletes it. An app only on the chip itself — the bar's
+        // padding right of it still keeps, so a release past the end never deletes.
+        if let trashFrame, trashFrame != .zero, location.x >= trashFrame.minX,
+           !isApplicationDrag || location.x <= trashFrame.maxX { return .trash }
+
         // ⚠️ 安全闸，紧跟废纸篓那一句：应用永远走保留，绝不落到 .moveInto / .pin / .stash。
         // 整条任务条都是它的落点——用户的直觉是「拖到 Dock 上」，落在窗口区必须算数。
         if isApplicationDrag { return .keepApp }
-
-        if let trashFrame, trashFrame != .zero, location.x >= trashFrame.minX { return .trash }
 
         // The shelf is its own target, away from the folders (last cell of the pinned-app zone).
         if let shelfFrame {
@@ -207,6 +211,60 @@ extension StripDropRouting {
         !(isRunning || isMessaging || isFinder || hasEntryOnStrip)
     }
 
+    /// Whether an app drag's make-way gap closes because the pointer is over the pinned folders or
+    /// the Trash. An app already on the bar hovers at a frozen width, where the gap's extra card is
+    /// absorbed by clipping the right end — the Trash itself, so it could not be reached.
+    ///
+    /// `pointerX` and `rightZoneMinX` are **screen** x, and `rightZoneMinX` is where that zone (the
+    /// leftmost pinned folder, else the Trash; nil = neither) starts with **no gap open**, taken when
+    /// the hover begins. Opening or closing the gap moves neither value, so the decision cannot loop —
+    /// measured against the live frames, the open gap has already pushed the zone (out of sight).
+    static func appGhostCloses(pointerX: CGFloat, target: Target, rightZoneMinX: CGFloat?) -> Bool {
+        if target == .trash { return true }
+        guard let rightZoneMinX else { return false }
+        return pointerX >= rightZoneMinX
+    }
+
+    /// The pre-gap boundary for `appGhostCloses` when a hover begins. A gap still being handed over
+    /// from the previous drop has already pushed the live frames, so the boundary that drop took is
+    /// kept; otherwise the current frames are gap-free and are measured.
+    static func dropRightZoneBoundary(previous: CGFloat?, inheritsOpenGap: Bool, measured: CGFloat?) -> CGFloat? {
+        inheritsOpenGap && previous != nil ? previous : measured
+    }
+
+    /// How a committed drop splits between its entry points (pure, unit-tested). Over the Trash
+    /// everything goes to the Trash. Otherwise apps are kept, and the plain files follow their own
+    /// route — which can still be the Trash: the padding right of the chip keeps an app but trashes
+    /// a file, so a mixed drop released there sends the files the Trash way.
+    struct CommitSplit: Equatable {
+        var trash: [URL] = []
+        var keepApplications: [URL] = []
+        var files: (target: Target, urls: [URL])?
+
+        static func == (lhs: CommitSplit, rhs: CommitSplit) -> Bool {
+            lhs.trash == rhs.trash && lhs.keepApplications == rhs.keepApplications
+                && lhs.files?.target == rhs.files?.target && lhs.files?.urls == rhs.files?.urls
+        }
+    }
+
+    static func commitSplit(target: Target, fileTarget: Target, urls: [URL],
+                            isApplication: (URL) -> Bool) -> CommitSplit {
+        var split = CommitSplit()
+        if target == .trash {
+            split.trash = urls
+            return split
+        }
+        split.keepApplications = urls.filter(isApplication)
+        let files = urls.filter { !isApplication($0) }
+        guard !files.isEmpty, fileTarget != .none else { return split }
+        if fileTarget == .trash {
+            split.trash = files
+        } else {
+            split.files = (fileTarget, files)
+        }
+        return split
+    }
+
     /// The URLs a drop commits. The item providers are the authority; only when **none** of them
     /// yields a URL does the drop fall back to the drag pasteboard snapshot — an in-process drag
     /// (our folder / shelf popup) may not coerce to `URL` at all.
@@ -215,5 +273,53 @@ extension StripDropRouting {
         let resolved = loaded.compactMap { $0 }
         return (resolved.isEmpty ? pasteboard : resolved)
             .filter { !TrashPath.isInsideTrash($0, homeDirectory: homeDirectory) }
+    }
+}
+
+/// What a drop on the Trash chip does with each item (pure, unit-tested): a volume root is ejected,
+/// an app is moved to the Trash unless it is running, everything else is moved to the Trash.
+struct TrashDropPlan: Equatable {
+    var ejects: [URL] = []
+    var trashesApplications: [URL] = []
+    /// Apps left where they are because a process runs from that very bundle. Finder would move a
+    /// running app without a word, so the check is ours.
+    var refusesRunningApplications: [URL] = []
+    var trashesFiles: [URL] = []
+
+    /// - Parameters:
+    ///   - applicationURL: the bundle an item stands for (`DroppedApplication.bundleURL`), so an alias
+    ///     or a symlink to an app is checked against the app it opens. The item itself is what moves.
+    ///   - runningBundlePaths: `canonicalPath` of every running app's bundle.
+    static func build(urls: [URL], applicationURL: (URL) -> URL?, isVolumeRoot: (URL) -> Bool,
+                      runningBundlePaths: Set<String>) -> TrashDropPlan {
+        var plan = TrashDropPlan()
+        for url in urls {
+            if isVolumeRoot(url) {
+                plan.ejects.append(url)
+            } else if let bundle = applicationURL(url) {
+                if runningBundlePaths.contains(canonicalPath(bundle)) {
+                    plan.refusesRunningApplications.append(url)
+                } else {
+                    plan.trashesApplications.append(url)
+                }
+            } else {
+                plan.trashesFiles.append(url)
+            }
+        }
+        return plan
+    }
+
+    /// A mounted volume's root other than the startup disk — what the native Dock's Trash ejects.
+    /// Reads the disk: off the main thread at drop time, once per drag session while hovering.
+    static func isVolumeRoot(_ url: URL) -> Bool {
+        guard url.isFileURL, canonicalPath(url) != "/" else { return false }
+        return (try? url.resourceValues(forKeys: [.isVolumeKey]))?.isVolume == true
+    }
+
+    /// Symlinks resolved, trailing slash dropped: a running app's `bundleURL` and a dragged URL spell
+    /// the same bundle differently (`/private/var` vs `/var`, `Foo.app/` vs `Foo.app`).
+    static func canonicalPath(_ url: URL) -> String {
+        let path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
     }
 }

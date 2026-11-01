@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SwiftUI
 
 struct ContentView: View {
@@ -438,14 +439,56 @@ struct DebugConsoleView: View {
     }
 }
 
+@MainActor
 enum AppIconResolver {
     /// **普通字典，不是 `NSCache`。** 2026-09-04 主线程采样（120s）：`NSCache` 版本实测在不停地失效——
     /// `iconForFile:` 占了约 1 秒主线程（LaunchServices 绑定 + IconServices 解析，每次约 1ms），而每张
     /// 卡的 body 每重算一次就查一次：抽屉打开重算全部卡、拖拽起落整条重算十几遍、每秒一次的快照心跳
     /// 重算两块屏的条——全都在付这笔钱。它是「面板动画帧率感」那张卡里可量化的最大单项。
     /// 条目数 = 出现过的 bundle id 数（几十个），永远住得下；只在主线程（SwiftUI body / 位图快照）调用。
-    private static var cache: [String: NSImage] = [:]
+    private struct CachedIcon {
+        let image: NSImage
+        let path: String?
+        let stamp: AppIconStamp?
+    }
+
+    private static var cache: [String: CachedIcon] = [:]
+    private static var lastKnownPaths: [String: String] = [:]
     @MainActor private static let bitmaps = IconBitmapCache()
+    private static let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "AppIconResolver")
+    private static var activationObserver: NSObjectProtocol?
+    private static let freshnessChecker = AppIconFreshnessChecker(
+        snapshot: {
+            cache.compactMap { bundleID, cached in
+                guard let path = cached.path else { return nil }
+                return AppIconFreshnessChecker.Entry(key: bundleID, path: path, stamp: cached.stamp)
+            }
+        },
+        didCheck: { entries in
+            var invalidated = false
+            for entry in entries {
+                // A cache miss may have replaced this entry while the filesystem check ran.
+                guard let current = cache[entry.key], current.path == entry.path,
+                      current.stamp != entry.stamp else { continue }
+                cache.removeValue(forKey: entry.key)
+                bitmaps.removeAll(name: entry.key)
+                logger.debug("图标变了：\(entry.key, privacy: .public)")
+                invalidated = true
+            }
+            if invalidated { AppIconRevision.shared.advance() }
+        }
+    )
+
+    private static func observeActivationIfNeeded() {
+        guard activationObserver == nil else { return }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { freshnessChecker.requestCheck() }
+        }
+    }
 
     /// The icon as a chip draws it: rendered at exactly `points × displayScale` pixels, in the
     /// appearance of `colorScheme` (an icon may carry a dark rendition). `allowsRendering: false`
@@ -461,14 +504,34 @@ enum AppIconResolver {
     /// The system icon with its small plated renditions removed — the source every rendered size
     /// comes from; chips draw the sized variant above.
     static func icon(for bundleIdentifier: String) -> NSImage {
+        observeActivationIfNeeded()
         if let cached = cache[bundleIdentifier] {
-            return cached
+            return cached.image
         }
 
         let shared: NSImage
+        let path: String?
+        let stamp: AppIconStamp?
         if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            if lastKnownPaths[bundleIdentifier] == nil, lastKnownPaths.count >= 512 {
+                lastKnownPaths.removeAll()
+            }
+            lastKnownPaths[bundleIdentifier] = appURL.path
+            path = appURL.path
+            stamp = AppIconStamp.stamp(atPath: appURL.path)
+            logger.debug("取图标：\(bundleIdentifier, privacy: .public)")
             shared = NSWorkspace.shared.icon(forFile: appURL.path)
+        } else if let lastPath = lastKnownPaths[bundleIdentifier],
+                  FileManager.default.fileExists(atPath: lastPath) {
+            // LaunchServices may briefly miss a just-modified bundle; without this fallback,
+            // a pathless generic icon would never be checked again.
+            path = lastPath
+            stamp = AppIconStamp.stamp(atPath: lastPath)
+            logger.debug("取图标（按上次路径）：\(bundleIdentifier, privacy: .public)")
+            shared = NSWorkspace.shared.icon(forFile: lastPath)
         } else {
+            path = nil
+            stamp = nil
             shared = NSWorkspace.shared.icon(for: .applicationBundle)
         }
 
@@ -477,7 +540,7 @@ enum AppIconResolver {
         removePlatedRepresentations(from: icon)
         icon.size = NSSize(width: 32, height: 32)
         if cache.count >= 512 { cache.removeAll() }   // 只防无限增长；正常一辈子都碰不到
-        cache[bundleIdentifier] = icon
+        cache[bundleIdentifier] = CachedIcon(image: icon, path: path, stamp: stamp)
         return icon
     }
 

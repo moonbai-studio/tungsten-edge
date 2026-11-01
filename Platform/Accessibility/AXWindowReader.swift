@@ -47,7 +47,24 @@ struct AXWindowSnapshot {
     let isFocusedWindow: Bool
     let element: AXUIElement
 
+    let isMinimizedRead: Bool?
+
     var title: String? { titleRead.title }
+
+    init(pid: Int32, cgWindowID: UInt32?, titleRead: AXWindowTitleRead, bounds: CGRect?,
+         role: String?, subrole: String?, isMinimized: Bool, isFocusedWindow: Bool, element: AXUIElement,
+         isMinimizedRead: Bool? = nil) {
+        self.pid = pid
+        self.cgWindowID = cgWindowID
+        self.titleRead = titleRead
+        self.bounds = bounds
+        self.role = role
+        self.subrole = subrole
+        self.isMinimized = isMinimized
+        self.isFocusedWindow = isFocusedWindow
+        self.element = element
+        self.isMinimizedRead = isMinimizedRead
+    }
 }
 
 struct AXWindowTarget {
@@ -192,6 +209,7 @@ struct AXWindowReader: AppTrackerWindowReading, Sendable {
         let focusedElement = elementAttribute(kAXFocusedWindowAttribute as CFString, from: appElement)
         return .success(elements.map { element in
             applyMessagingTimeout(messagingTimeout, to: element)
+            let minimized = boolAttribute(kAXMinimizedAttribute as CFString, from: element, maxAttempts: maxAttempts)
             return AXWindowSnapshot(
                 pid: pid,
                 cgWindowID: cgWindowID(for: element, maxAttempts: maxAttempts),
@@ -199,9 +217,10 @@ struct AXWindowReader: AppTrackerWindowReading, Sendable {
                 bounds: frame(of: element, maxAttempts: maxAttempts),
                 role: stringAttribute(kAXRoleAttribute as CFString, from: element, maxAttempts: maxAttempts),
                 subrole: stringAttribute(kAXSubroleAttribute as CFString, from: element, maxAttempts: maxAttempts),
-                isMinimized: boolAttribute(kAXMinimizedAttribute as CFString, from: element, maxAttempts: maxAttempts) ?? false,
+                isMinimized: minimized ?? false,
                 isFocusedWindow: focusedElement.map { CFEqual($0, element) } ?? false,
-                element: element
+                element: element,
+                isMinimizedRead: minimized
             )
         })
     }

@@ -16,6 +16,12 @@ extension DockStripView {
         if !appDropMayWidenOnHover(), frozenStripWidth == nil, stripRootScreenRect != .zero {
             frozenStripWidth = stripRootScreenRect.width
         }
+        let trashMinX = settingsStore.showTrash && frames.trashFrame != .zero ? frames.trashFrame.minX : nil
+        let measured = stripRootScreenRect == .zero ? nil
+            : (frames.folderChipFrames.values.map(\.minX) + [trashMinX].compactMap { $0 }).min()
+                .map { stripRootScreenRect.minX + $0 }
+        frames.dropRightZoneScreenMinX = StripDropRouting.dropRightZoneBoundary(
+            previous: frames.dropRightZoneScreenMinX, inheritsOpenGap: appDropGhost != nil, measured: measured)
         // A gap still waiting for the previous drop's landing now belongs to this session.
         externalDropGhostTimeout?.invalidate()
         externalDropGhostTimeout = nil
@@ -73,6 +79,10 @@ extension DockStripView {
                                                           pinsFolder: pinsFolder)
             setExternalDropGhost(index.map { StripDropGhost(zone: .folder, insertIndex: $0) })
             return
+        }
+        if StripDropRouting.appGhostCloses(pointerX: stripRootScreenRect.minX + x, target: target,
+                                           rightZoneMinX: frames.dropRightZoneScreenMinX) {
+            return setExternalDropGhost(nil)
         }
         // 落点判定与抽屉转正共用一份（`StripBlockLanding`）。空档不上报卡帧，所以 `chipFrames`
         // 里只有真卡——但它们的**位置**已经被空档推开了，所以判定结果必须折成插入序号才稳定
@@ -187,12 +197,10 @@ extension DockStripView {
     /// 中转收一切；命中 chip 移入；间隙/尾部固定只收目录。
     ///
     /// **`urls` 里绝不会有应用 bundle**——`StripFileDropDelegate` 已经把它们分流到
-    /// `handleExternalApplicationDrop`，`.keepApp` 也不会走到这里来。
+    /// `handleExternalApplicationDrop`，`.keepApp` 也不会走到这里来。A drop on the Trash arrives
+    /// through `handleTrashDrop` instead.
     func handleExternalDrop(_ target: StripDropRouting.Target, urls: [URL]) {
         switch target {
-        case .trash:
-            let files = urls.filter { !StripFileDropDelegate.DragPasteboardInspector.isApplication($0) }
-            trashStore.trash(files)
         case .stash:
             shelfStore.stash(paths: urls.map(\.path))
         case .moveInto(let path):
@@ -211,8 +219,44 @@ extension DockStripView {
             // move. An app's gap (mixed drag) is not ours to close — `keepDroppedApplications` does —
             // and neither is the gap of a drag that began hovering before this commit arrived.
             if externalDropGhost?.zone == .folder, !externalDropHoverActive { clearExternalDropGhost() }
-        case .keepApp, .none:
+        case .trash, .keepApp, .none:
             break
+        }
+    }
+
+    /// Everything released over the Trash chip. Volumes are ejected; apps are moved to the Trash
+    /// unless running, and the ones that went leave the bar and the drawer too — a kept icon would
+    /// otherwise stay behind, opening nothing; other items are moved as before.
+    func handleTrashDrop(_ urls: [URL]) {
+        let runningBundleURLs = NSWorkspace.shared.runningApplications.compactMap(\.bundleURL)
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        // Reads the disk (resource values, symlinks, Info.plist): a user action, so `actionQueue`.
+        AppRuntime.actionQueue.async {
+            let runningBundlePaths = Set(runningBundleURLs.map(TrashDropPlan.canonicalPath))
+            let plan = TrashDropPlan.build(
+                urls: urls,
+                applicationURL: { DroppedApplication.bundleURL(for: $0, homeDirectory: home) },
+                isVolumeRoot: TrashDropPlan.isVolumeRoot,
+                runningBundlePaths: runningBundlePaths)
+            // Only a bundle that is itself the dragged item leaves the bar: trashing an alias or a
+            // symlink removes the link, and the app it opens is still installed.
+            var bundleIDs: [String: String] = [:]
+            for url in plan.trashesApplications
+            where DroppedApplication.bundleURL(for: url, homeDirectory: home)?.standardizedFileURL == url.standardizedFileURL {
+                bundleIDs[url.path] = Bundle(url: url)?.bundleIdentifier
+            }
+            DispatchQueue.main.async {
+                trashStore.eject(plan.ejects)
+                trashStore.noteApplicationsInUse(plan.refusesRunningApplications)
+                trashStore.trashApplications(plan.trashesApplications) { moved in
+                    for url in moved {
+                        guard let bundleID = bundleIDs[url.path] else { continue }
+                        appMembershipController.setKept(bundleID, enabled: false)
+                        appMembershipController.moveOutOfDrawer(bundleID)
+                    }
+                }
+                trashStore.trash(plan.trashesFiles)
+            }
         }
     }
 

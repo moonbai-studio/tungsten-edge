@@ -157,6 +157,8 @@ brew install --cask tungsten-edge
 
 **Issues 与 Discussions 的分工** —— [Issues](https://github.com/moonbai-studio/tungsten-edge/issues) 只收 bug 报告和明确的功能请求。用法问题、安装求助和其他交流，请到 [Discussions](https://github.com/moonbai-studio/tungsten-edge/discussions)。
 
+**想贡献代码** —— 先读 [CONTRIBUTING.md](CONTRIBUTING.md)：PR 需要同意其中的贡献者许可协议（CLA）；较大的改动，动手前最好先在 [Discussions](https://github.com/moonbai-studio/tungsten-edge/discussions) 里聊聊思路。
+
 **Discord**（以英文为主，中文也可以问）—— [加入](https://discord.gg/QnKjUMVzdC)
 
 **微信交流群**
@@ -193,7 +195,7 @@ Copyright (C) 2026 Moonbai Studio.
 
 该许可证覆盖源码，但不要求官方签名公证版或相关服务必须免费提供。
 
-「Tungsten Edge」「钨极」两个名称与标志是商标，不在 GPL 授权范围内。分支和自行编译的版本必须换名字、换图标，详见 [TRADEMARK.md](TRADEMARK.md)。
+「Tungsten Edge」「钨极」两个名称与标志是商标，不在 GPL 授权范围内。分发修改过或自行编译的二进制版本，必须换名字、换图标（只是 fork 源码仓库、提 PR 不受影响），详见 [TRADEMARK.md](TRADEMARK.md)。
 
 ---
 
@@ -230,4 +232,4 @@ python3 Scripts/check_debug_switches.py   # 每个 DOCK_* 环境开关都已登�
 
 **签名。** Xcode 工程有意只用本地证书签名；真正的 Developer ID 签名、强化运行时、公证和打包都在 `Scripts/package_release.sh`（fail-closed：任何一项检查不过就不会生成 `dist/`）。`Scripts/install_local_release.sh` 把同样签好的包装进「应用程序」供日常使用。
 
-**参与贡献。** 小修以外的改动请先开 issue——bug 模板会问到让窗口识别问题可复现的细节。界面以英文为源语言、共 12 份本地化，新增面向用户的文案每一份都要有值（否则 `Scripts/check_localization.py` 不通过）。
+**参与贡献。** 小修以外的改动请先开 issue——bug 模板会问到让窗口识别问题可复现的细节。界面以英文为源语言、共 12 份本地化，新增面向用户的文案每一份都要有值（否则 `Scripts/check_localization.py` 不通过）。提 PR 需要同意 [CONTRIBUTING.md](CONTRIBUTING.md) 里的 CLA。

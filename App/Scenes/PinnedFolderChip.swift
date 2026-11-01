@@ -66,6 +66,9 @@ final class FolderPopupPresence: ObservableObject {
 struct PinnedFolderChip: View {
     let path: String
     let cover: FolderCover?
+    /// The folder's own icon, held by `PinnedFolderCoverStore.folderIcon`; a fresh image on every
+    /// redraw makes the chip crossfade during a reorder.
+    let folderIcon: NSImage
     /// 当前排序方式（菜单打勾用;menu builder 每次右键现建,读到的总是最新值）。
     let sortOrder: FolderSortOrder
     /// "Display as": folder = the folder's own icon only; stack = a pile of its first items.
@@ -164,7 +167,7 @@ struct PinnedFolderChip: View {
                 // The folder's own icon fills the slot like an app icon, as on the native Dock;
                 // the stack's front-layer geometry would draw it a size smaller and lower than
                 // its neighbours.
-                Image(nsImage: PinnedFolderCoverStore.icon(forPath: path))
+                Image(nsImage: folderIcon)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)

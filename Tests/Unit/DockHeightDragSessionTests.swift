@@ -128,6 +128,70 @@ final class ResizeCursorTests: XCTestCase {
         XCTAssertEqual(reads, 1)
     }
 
+    func testIdleArrowSetsOnceWithoutOwnershipOrVerification() {
+        var arrows = 0
+        var reads = 0
+        let cursor = SystemResizeCursor(setResize: { true },
+                                        setArrow: { arrows += 1; return true },
+                                        readBackMatches: { reads += 1; return true })
+        cursor.assertArrowIfIdle()
+        XCTAssertEqual(arrows, 1)
+        XCTAssertEqual(reads, 0)
+        XCTAssertFalse(cursor.isActive)
+        cursor.reset()
+        XCTAssertEqual(arrows, 1)
+        XCTAssertTrue(cursor.set(owner: "screen-a"))
+        XCTAssertEqual(reads, 1)
+    }
+
+    func testIdleArrowDoesNotReplaceAnOwnedResizeCursor() {
+        var arrows = 0
+        let cursor = SystemResizeCursor(setResize: { true },
+                                        setArrow: { arrows += 1; return true },
+                                        readBackMatches: { true })
+        XCTAssertTrue(cursor.set(owner: "screen-a"))
+        cursor.assertArrowIfIdle()
+        XCTAssertEqual(arrows, 0)
+        XCTAssertTrue(cursor.isActive)
+        cursor.reset(owner: "screen-b")
+        XCTAssertEqual(arrows, 0)
+        cursor.reset(owner: "screen-a")
+        XCTAssertEqual(arrows, 1)
+    }
+
+    func testIdleArrowDoesNothingWhenNativeChannelIsDisabled() {
+        for (setSucceeds, readBack) in [(false, true), (true, false)] {
+            var arrows = 0
+            let cursor = SystemResizeCursor(setResize: { setSucceeds },
+                                            setArrow: { arrows += 1; return true },
+                                            readBackMatches: { readBack })
+            XCTAssertFalse(cursor.set(owner: "screen-a"))
+            XCTAssertFalse(cursor.isAvailable)
+            let arrowsBefore = arrows
+            cursor.assertArrowIfIdle()
+            XCTAssertEqual(arrows, arrowsBefore)
+            XCTAssertFalse(cursor.isActive)
+        }
+    }
+
+    func testFailedIdleArrowLeavesResizeChannelAvailableAndUnverified() {
+        var arrows = 0
+        var sets = 0
+        var reads = 0
+        let cursor = SystemResizeCursor(setResize: { sets += 1; return true },
+                                        setArrow: { arrows += 1; return false },
+                                        readBackMatches: { reads += 1; return true })
+        cursor.assertArrowIfIdle()
+        XCTAssertEqual(arrows, 1)
+        XCTAssertEqual(reads, 0)
+        XCTAssertTrue(cursor.isAvailable)
+        XCTAssertFalse(cursor.isActive)
+        XCTAssertTrue(cursor.set(owner: "screen-a"))
+        XCTAssertEqual(sets, 1)
+        XCTAssertEqual(reads, 1)
+        XCTAssertTrue(cursor.isActive)
+    }
+
     func testGlyphUsesUnscaledSystemFrameResizeArtworkAndHotspot() throws {
         guard #available(macOS 15.0, *) else { throw XCTSkip("System frame cursor requires macOS 15") }
         _ = NSApplication.shared
@@ -136,5 +200,78 @@ final class ResizeCursorTests: XCTestCase {
         XCTAssertEqual(ResizeCursorGlyph.hotSpot, native.hotSpot)
         XCTAssertEqual(try XCTUnwrap(ResizeCursorGlyph.image.tiffRepresentation),
                        try XCTUnwrap(native.image.tiffRepresentation))
+    }
+}
+
+final class BarArrowCursorDecisionTests: XCTestCase {
+    private func decision(
+        frontmostWindowNumber: Int = 42,
+        dockWindowNumber: Int? = 42,
+        panelVisible: Bool = true,
+        pointInContent: Bool = true,
+        pointInGrip: Bool = false,
+        pressedMouseButtons: Int = 0,
+        hasDraggingPayload: Bool = false,
+        isSuspendedForPermissionLoss: Bool = false,
+        isHeightResizing: Bool = false
+    ) -> BarArrowCursorDecision {
+        BarArrowCursorDecision.evaluate(
+            frontmostWindowNumber: frontmostWindowNumber,
+            dockWindowNumber: dockWindowNumber,
+            panelVisible: panelVisible,
+            pointInContent: pointInContent,
+            pointInGrip: pointInGrip,
+            pressedMouseButtons: pressedMouseButtons,
+            hasDraggingPayload: hasDraggingPayload,
+            isSuspendedForPermissionLoss: isSuspendedForPermissionLoss,
+            isHeightResizing: isHeightResizing
+        )
+    }
+
+    func testAllowsOnlyWhenAllConditionsAreMet() {
+        XCTAssertEqual(decision(), .allow)
+    }
+
+    func testRejectsHiddenPanel() {
+        XCTAssertEqual(decision(panelVisible: false), .panelHidden)
+    }
+
+    func testRejectsPointerOutsideOrCoveredByAnotherWindow() {
+        XCTAssertEqual(decision(frontmostWindowNumber: 0), .differentWindow)
+        XCTAssertEqual(decision(frontmostWindowNumber: 99), .differentWindow)
+        XCTAssertEqual(decision(dockWindowNumber: nil), .differentWindow)
+        XCTAssertEqual(decision(frontmostWindowNumber: 0, dockWindowNumber: 0), .differentWindow)
+    }
+
+    func testRejectsShadowOutsideContent() {
+        XCTAssertEqual(decision(pointInContent: false), .outsideContent)
+    }
+
+    func testRejectsResizeGrip() {
+        XCTAssertEqual(decision(pointInGrip: true), .resizeGrip)
+    }
+
+    func testRejectsAnyPressedMouseButton() {
+        for buttons in [1, 2, 4, 8, 3] {
+            XCTAssertEqual(decision(pressedMouseButtons: buttons), .mouseButtonPressed)
+        }
+    }
+
+    func testRejectsDraggingPayloadEvenWithoutPressedButton() {
+        XCTAssertEqual(decision(hasDraggingPayload: true), .dragging)
+    }
+
+    func testRejectsPermissionSuspension() {
+        XCTAssertEqual(decision(isSuspendedForPermissionLoss: true), .permissionSuspended)
+    }
+
+    func testRejectsHeightResize() {
+        XCTAssertEqual(decision(isHeightResizing: true), .heightResizing)
+    }
+
+    func testBarArrowSwitchDefaultsOnAndCanBeDisabled() {
+        XCTAssertEqual(DebugSwitch.barArrowCursor.kind, .killSwitch)
+        XCTAssertTrue(DebugSwitch.barArrowCursor.isEnabled(in: [:]))
+        XCTAssertFalse(DebugSwitch.barArrowCursor.isEnabled(in: [DebugSwitch.barArrowCursor.rawValue: "0"]))
     }
 }

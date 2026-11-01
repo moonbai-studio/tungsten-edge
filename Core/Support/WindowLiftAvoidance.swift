@@ -430,6 +430,19 @@ enum WindowLiftAvoidance {
         /// The controller sends this only for a live frame that no longer fills visibleFrame.
         case nonMaximizedObserved(generation: UInt64, at: TimeInterval, frame: CGRect)
         case windowUnavailable(generation: UInt64)
+        /// A window whose session an app-era external frame cleared is back on its native frame
+        /// within `appReassertWindow` of that clear (`isDetourReturn`): the app answered our lift
+        /// through a detour frame instead of snapping straight back. `standoffRounds` is what the
+        /// cleared session carried; this return counts one more round, never a fresh session —
+        /// otherwise the detour hands every bounce a fresh standoff budget and the window jitters
+        /// for good.
+        case detourReturnObserved(
+            generation: UInt64,
+            at: TimeInterval,
+            nativeFrame: CGRect,
+            targetFrame: CGRect,
+            standoffRounds: Int
+        )
     }
 
     enum Action: Equatable {
@@ -695,7 +708,42 @@ enum WindowLiftAvoidance {
                 return Transition(state: state, action: .none)
             }
             return Transition(state: .idle, action: .clear)
+
+        case let .detourReturnObserved(generation, at, nativeFrame, targetFrame, standoffRounds):
+            guard case .idle = state,
+                  isValid(frame: nativeFrame),
+                  isValid(frame: targetFrame),
+                  standoffRounds >= 0 else {
+                return Transition(state: state, action: .none)
+            }
+            let rounds = min(standoffRounds + 1, maximumStandoffRounds)
+            guard rounds < maximumStandoffRounds else {
+                let abandoned = AbandonedSession(
+                    generation: generation,
+                    nativeFrame: nativeFrame,
+                    adjustedFrame: targetFrame,
+                    reliftCount: maximumReliftCount,
+                    reason: .reliftLimitReached,
+                    abandonedAt: at,
+                    standoffRounds: rounds
+                )
+                return Transition(state: .abandoned(abandoned), action: .abandon(.reliftLimitReached))
+            }
+            return beginWrite(
+                generation: generation,
+                nativeFrame: nativeFrame,
+                targetFrame: targetFrame,
+                reliftCount: 0,
+                standoffRounds: rounds
+            )
         }
+    }
+
+    /// Whether a suppressed window seen back on its native frame is the app's answer to our lift
+    /// (same time-scale rule as the reducer: within `appReassertWindow` of the app-era clear) rather
+    /// than the user maximizing it again.
+    static func isDetourReturn(clearedAt: TimeInterval, at: TimeInterval) -> Bool {
+        at - clearedAt <= appReassertWindow
     }
 
     /// Whether the external frame that is about to clear `state` counts as the user's own action.

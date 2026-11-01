@@ -102,6 +102,410 @@
         }
       }
     },
+    "Copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拷貝"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copié"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiato"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복사됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировано"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopyalandı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कॉपी हो गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép"
+          }
+        }
+      }
+    },
+    "Collect Again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collect Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新收集"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新收集"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再収集"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut erfassen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecter à nouveau"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilar de nuevo"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilar de nuevo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletar novamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolher novamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccogli di nuovo"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 수집"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрать заново"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeniden Topla"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर से एकत्र करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu thập lại"
+          }
+        }
+      }
+    },
+    "Collecting…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecting…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "収集中…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird erfasst …"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecte en cours…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando…"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletando…"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A recolher…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccolta in corso…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수집 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сбор…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplanıyor…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एकत्र किया जा रहा है…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang thu thập…"
+          }
+        }
+      }
+    },
+    "Collected at %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collected at %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收集于 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收集於 %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に収集"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasst um %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecté à %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilado a las %@"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilado a las %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletado às %@"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recolhido às %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccolto alle %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@에 수집됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собрано в %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ itibarıyla toplandı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर एकत्र किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu thập lúc %@"
+          }
+        }
+      }
+    },
     "Large": {
       "comment": "状态栏菜单 · Dock 栏大小",
       "localizations": {
@@ -6234,6 +6638,107 @@
         }
       }
     },
+    "Copy Report": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Report"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制报告"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷貝報告"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "レポートをコピー"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bericht kopieren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier le rapport"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar informe"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar informe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar relatório"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar relatório"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia rapporto"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보고서 복사"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать отчёт"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raporu Kopyala"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिपोर्ट कॉपी करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép báo cáo"
+          }
+        }
+      }
+    },
     "Couldn’t Activate": {
       "localizations": {
         "zh-Hans": {
@@ -7439,202 +7944,204 @@
         }
       }
     },
-    "Diagnostic Info": {
+    "Diagnostic Report": {
+      "extractionState": "manual",
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "诊断信息"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnostic Info"
+            "value": "Diagnostic Report"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断报告"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "診斷資訊"
+            "value": "診斷報告"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "診断情報"
+            "value": "診断レポート"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnoseinformationen"
+            "value": "Diagnosebericht"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informations de diagnostic"
+            "value": "Rapport de diagnostic"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico"
+            "value": "Informe de diagnóstico"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico"
+            "value": "Informe de diagnóstico"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico"
+            "value": "Relatório de diagnóstico"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico"
+            "value": "Relatório de diagnóstico"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informazioni di diagnostica"
+            "value": "Rapporto diagnostico"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "진단 정보"
+            "value": "진단 보고서"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Диагностическая информация"
+            "value": "Диагностический отчёт"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tanılama Bilgileri"
+            "value": "Tanılama Raporu"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "डायग्नोस्टिक जानकारी"
+            "value": "निदान रिपोर्ट"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thông tin chẩn đoán"
+            "value": "Báo cáo chẩn đoán"
           }
         }
       }
     },
-    "Diagnostic Info Copied": {
+    "Diagnostics": {
+      "extractionState": "manual",
       "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "诊断信息已拷贝"
-          }
-        },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnostic Info Copied"
+            "value": "Diagnostics"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已拷貝診斷資訊"
+            "value": "診斷"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "診断情報をコピーしました"
+            "value": "診断"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnoseinformationen kopiert"
+            "value": "Diagnose"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informations de diagnostic copiées"
+            "value": "Diagnostic"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico copiada"
+            "value": "Diagnóstico"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Información de diagnóstico copiada"
+            "value": "Diagnóstico"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico copiadas"
+            "value": "Diagnóstico"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informações de diagnóstico copiadas"
+            "value": "Diagnóstico"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Informazioni di diagnostica copiate"
+            "value": "Diagnostica"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "진단 정보를 복사했습니다"
+            "value": "진단"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Диагностическая информация скопирована"
+            "value": "Диагностика"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tanılama bilgileri kopyalandı"
+            "value": "Tanılama"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "डायग्नोस्टिक जानकारी कॉपी की गई"
+            "value": "निदान"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã sao chép thông tin chẩn đoán"
+            "value": "Chẩn đoán"
           }
         }
       }
@@ -11156,6 +11663,106 @@
         }
       }
     },
+    "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Device Control and Data Access, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已经打开了开关却还是没生效，可能是旧版本留下的授权记录不再匹配当前这份钨极。可以这样重置一次：\n\n1. 先退出钨极——应用还在运行时，列表里的减号是灰的，删不掉。\n2. 在“隐私与安全性 → 设备控制和数据访问”里把列表中的 Tungsten Edge 用减号删掉，可能不止一条，都删掉。\n3. 从“应用程序”重新打开钨极，按提示重新添加并打开开关。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the switch is already on and nothing happens, a permission record left by an older version may no longer match this copy of Tungsten Edge. You can reset it:\n\n1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the entry cannot be removed.\n2. In Privacy & Security > Device Control and Data Access, select Tungsten Edge in the list and remove it with the minus button. There may be more than one entry; remove them all.\n3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果你已經打開開關卻還是沒有反應，可能是舊版本留下的權限記錄已經不符合目前這份Tungsten Edge。你可以重設一次：\n\n1. 先結束Tungsten Edge——App還在執行時，列表裡的減號是灰的，項目刪不掉。\n2. 在「隱私權與安全性」>「裝置控制和資料取用」裡選取列表中的Tungsten Edge，用減號移除；可能不只一項，全部移除。\n3. 從「應用程式」檔案夾重新打開Tungsten Edge，再依照提示重新加入並打開開關。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スイッチがすでにオンなのに何も起きない場合は、古いバージョンが残した許可の記録が現在のTungsten Edgeと一致していない可能性があります。次の手順でリセットできます。\n\n1. 先にTungsten Edgeを終了してください。実行中はリストの削除（-）ボタンが淡色表示になり、項目を削除できません。\n2. 「プライバシーとセキュリティ」>「デバイスの制御とデータへのアクセス」でリストからTungsten Edgeを選び、削除（-）ボタンで削除します。項目が複数ある場合は、すべて削除してください。\n3. 「アプリケーション」フォルダからTungsten Edgeを開き直し、表示される案内に従って追加し、スイッチをオンにします。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn der Schalter bereits aktiviert ist und trotzdem nichts passiert, passt womöglich ein Berechtigungseintrag aus einer älteren Version nicht mehr zu dieser Kopie von Tungsten Edge. So setzt du ihn zurück:\n\n1. Beende zuerst Tungsten Edge – solange es läuft, ist die Minustaste in der Liste grau und der Eintrag lässt sich nicht entfernen.\n2. Wähle unter „Datenschutz & Sicherheit“ > „Gerätesteuerung und Datenzugriff“ Tungsten Edge in der Liste aus und entferne es mit der Minustaste. Es können mehrere Einträge vorhanden sein; entferne sie alle.\n3. Öffne Tungsten Edge erneut aus dem Ordner „Programme“, füge es dann hinzu und aktiviere den Schalter, wenn du dazu aufgefordert wirst."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si l’interrupteur est déjà activé et que rien ne se passe, il se peut qu’une autorisation laissée par une version antérieure ne corresponde plus à cette copie de Tungsten Edge. Vous pouvez la réinitialiser :\n\n1. Quittez d’abord Tungsten Edge — tant qu’il est en cours d’exécution, le bouton moins de la liste est grisé et l’entrée ne peut pas être supprimée.\n2. Dans Confidentialité et sécurité > Contrôle de l’appareil et accès aux données, sélectionnez Tungsten Edge dans la liste et supprimez-le à l’aide du bouton moins. Il peut y avoir plusieurs entrées ; supprimez-les toutes.\n3. Rouvrez Tungsten Edge depuis votre dossier Applications, puis ajoutez-le et activez l’interrupteur lorsque vous y êtes invité."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si el interruptor ya está activado y no pasa nada, puede que un registro de permiso que dejó una versión anterior ya no coincida con esta copia de Tungsten Edge. Puedes restablecerlo:\n\n1. Sal primero de Tungsten Edge: mientras se está ejecutando, el botón menos de la lista aparece atenuado y no se puede eliminar la entrada.\n2. En Privacidad y seguridad > Control de dispositivos y acceso a datos, selecciona Tungsten Edge en la lista y elimínalo con el botón menos. Puede haber más de una entrada; elimínalas todas.\n3. Vuelve a abrir Tungsten Edge desde la carpeta Aplicaciones, añádelo y activa el interruptor cuando se te pida."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si el interruptor ya está activado y no pasa nada, puede que un registro de permiso que dejó una versión anterior ya no coincida con esta copia de Tungsten Edge. Puedes restablecerlo:\n\n1. Primero sal de Tungsten Edge: mientras se está ejecutando, el botón menos de la lista aparece atenuado y no se puede eliminar la entrada.\n2. En Privacidad y seguridad > Control de dispositivos y acceso a los datos, selecciona Tungsten Edge en la lista y elimínalo con el botón menos. Puede haber más de una entrada; elimínalas todas.\n3. Vuelve a abrir Tungsten Edge desde la carpeta Aplicaciones, agrégalo y activa el interruptor cuando se te solicite."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se o interruptor já estiver ativado e nada acontecer, um registro de permissão deixado por uma versão anterior pode não corresponder mais a esta cópia do Tungsten Edge. Você pode redefini-lo:\n\n1. Primeiro, encerre o Tungsten Edge — enquanto ele estiver em execução, o botão de menos na lista fica acinzentado e a entrada não pode ser removida.\n2. Em Privacidade e Segurança > Controle do Dispositivo e Acesso a Dados, selecione Tungsten Edge na lista e remova-o com o botão de menos. Pode haver mais de uma entrada; remova todas.\n3. Abra o Tungsten Edge novamente a partir da pasta Aplicativos, depois adicione-o e ative o interruptor quando solicitado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se o interruptor já estiver ativado e nada acontecer, é possível que um registo de permissão deixado por uma versão anterior já não corresponda a esta cópia do Tungsten Edge. Pode repô-lo:\n\n1. Comece por sair do Tungsten Edge – enquanto estiver em execução, o botão de menos na lista fica acinzentado e não é possível remover a entrada.\n2. Em Privacidade e segurança > Controlo do dispositivo e acesso a dados, selecione Tungsten Edge na lista e remova-o com o botão de menos. Pode existir mais de uma entrada; remova todas.\n3. Volte a abrir o Tungsten Edge a partir da pasta Aplicações, adicione-o e ative o interruptor quando lhe for pedido."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se l’interruttore è già attivo e non succede nulla, è possibile che un’autorizzazione rimasta da una versione precedente non corrisponda più a questa copia di Tungsten Edge. Puoi reimpostarla:\n\n1. Esci prima da Tungsten Edge: finché è in esecuzione, il pulsante con il segno meno (–) nell’elenco è disattivato (in grigio) e non è possibile rimuovere la voce.\n2. In Privacy e sicurezza > Controllo del dispositivo e accesso ai dati, seleziona Tungsten Edge nell’elenco e rimuovilo con il pulsante con il segno meno (–). Potrebbero esserci più voci: rimuovile tutte.\n3. Riapri Tungsten Edge dalla cartella Applicazioni, poi aggiungilo e attiva l’interruttore quando richiesto."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "스위치가 이미 켜져 있는데도 아무 반응이 없다면, 이전 버전이 남긴 권한 기록이 이 Tungsten Edge 사본과 더 이상 일치하지 않을 수 있습니다. 다음과 같이 재설정할 수 있습니다.\n\n1. 먼저 Tungsten Edge를 종료하십시오. 실행 중에는 목록의 빼기(−) 버튼이 비활성화되어 항목을 제거할 수 없습니다.\n2. 개인정보 보호 및 보안 > 기기 제어 및 데이터 접근에서 목록의 Tungsten Edge를 선택하고 빼기(−) 버튼으로 제거하십시오. 항목이 여러 개일 수 있으니 모두 제거하십시오.\n3. 응용 프로그램 폴더에서 Tungsten Edge를 다시 열고, 안내가 나타나면 추가한 다음 스위치를 켜십시오."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если переключатель уже включен, но ничего не происходит, возможно, запись о разрешении, оставшаяся от старой версии, больше не соответствует этой копии Tungsten Edge. Ее можно сбросить:\n\n1. Сначала завершите Tungsten Edge: пока приложение запущено, кнопка «минус» в списке неактивна, и запись удалить нельзя.\n2. В разделе «Конфиденциальность и безопасность» > «Управление устройством и доступ к данным» выберите Tungsten Edge в списке и удалите запись кнопкой «минус». Записей может быть несколько — удалите все.\n3. Снова откройте Tungsten Edge из папки «Приложения», затем, когда появится запрос, добавьте приложение и включите переключатель."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anahtar zaten açıksa ve hiçbir şey olmuyorsa, eski bir sürümden kalan izin kaydı Tungsten Edge’in bu kopyasıyla artık eşleşmiyor olabilir. Kaydı sıfırlayabilirsiniz:\n\n1. Önce Tungsten Edge’den çıkın — uygulama çalışırken listedeki eksi düğmesi soluk görünür ve kayıt çıkarılamaz.\n2. Gizlilik ve Güvenlik > Aygıt Denetimi ve Veri Erişimi bölümünde listeden Tungsten Edge’i seçin ve eksi düğmesiyle çıkarın. Birden fazla kayıt olabilir; hepsini çıkarın.\n3. Tungsten Edge’i Uygulamalar klasöründen yeniden açın, ardından istendiğinde onu ekleyin ve anahtarı açın."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगर स्विच पहले से चालू है और कुछ नहीं हो रहा, तो हो सकता है कि किसी पुराने संस्करण से बचा अनुमति रिकॉर्ड Tungsten Edge की इस कॉपी से अब मेल न खा रहा हो। आप इसे रीसेट कर सकते हैं:\n\n1. पहले Tungsten Edge बंद करें — जब तक यह चल रहा है, सूची में माइनस बटन ग्रे रहता है और एंट्री हटाई नहीं जा सकती।\n2. गोपनीयता और सुरक्षा > डिवाइस नियंत्रण और डेटा ऐक्सेस में सूची से Tungsten Edge चुनें और माइनस बटन से उसे हटाएँ। एक से ज़्यादा एंट्री हो सकती हैं; सभी हटा दें।\n3. Tungsten Edge को ऐप्लिकेशन फ़ोल्डर से दोबारा खोलें, फिर संकेत मिलने पर इसे जोड़ें और स्विच चालू करें।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu công tắc đã bật mà không có gì xảy ra, bản ghi quyền do phiên bản cũ để lại có thể không còn khớp với bản Tungsten Edge này. Bạn có thể đặt lại như sau:\n\n1. Trước tiên hãy thoát Tungsten Edge — khi ứng dụng đang chạy, nút dấu trừ trong danh sách bị mờ và không thể xóa mục.\n2. Trong Quyền riêng tư & Bảo mật > Điều khiển thiết bị và truy cập dữ liệu, chọn Tungsten Edge trong danh sách rồi xóa bằng nút dấu trừ. Có thể có nhiều hơn một mục; hãy xóa tất cả.\n3. Mở lại Tungsten Edge từ thư mục Ứng dụng, sau đó thêm ứng dụng và bật công tắc khi được nhắc."
+          }
+        }
+      }
+    },
     "Image Is Too Large": {
       "comment": "反馈附件被拒 · 单张图片超 10MB",
       "localizations": {
@@ -11253,6 +11860,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ảnh quá lớn"
+          }
+        }
+      }
+    },
+    "Include Window Titles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Include Window Titles"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包括窗口标题"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含視窗標題"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウのタイトルを含める"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fenstertitel einschließen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclure les titres des fenêtres"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos de ventanas"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos de ventanas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos das janelas"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluir títulos das janelas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includi titoli delle finestre"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우 제목 포함"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включить заголовки окон"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pencere Başlıklarını Dahil Et"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विंडो शीर्षक शामिल करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bao gồm tiêu đề cửa sổ"
           }
         }
       }
@@ -12058,6 +12766,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giữ các cửa sổ được phóng to tối đa phía trên thanh tác vụ"
+          }
+        }
+      }
+    },
+    "Keyboard Shortcuts": {
+      "comment": "设置窗口 · 显隐快捷键",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard Shortcuts"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードショートカット"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastaturkurzbefehle"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccourcis clavier"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de teclado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajos de teclado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalhos de Teclado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalhos de teclado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbreviazioni da tastiera"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "키보드 단축키"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сочетания клавиш"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klavye Kestirmeleri"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कीबोर्ड शॉर्टकट"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phím tắt bàn phím"
           }
         }
       }
@@ -13766,6 +14575,407 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chuyển vào Thùng rác"
+          }
+        }
+      }
+    },
+    "The operation can’t be completed because the item “%@” is in use.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成此操作，因为项目“%@”正在使用中。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The operation can’t be completed because the item “%@” is in use."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法完成此項操作，因為項目「%@」正在使用中。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "項目“%@”が使用中のため、操作を完了できません。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Vorgang konnte nicht abgeschlossen werden, da das Objekt „%@“ in Verwendung ist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’effectuer l’opération car l’élément « %@ » est utilisé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede completar la operación porque el ítem “%@” está en uso."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede completar la operación porque el elemento “%@” está en uso."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A operação não pode ser concluída porque o item “%@” está sendo usado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível concluir a operação, porque o elemento “%@” está a ser utilizado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non posso completare l’operazione perché l’elemento “%@” è in uso."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "‘%@’ 항목이 사용 중이기 때문에 작업을 완료할 수 없습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удается завершить операцию, так как объект «%@» используется."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” adlı öğe kullanımda olduğu için işlem tamamlanamıyor."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑपरेशन पूरा नहीं किया जा सकता है क्योंकि आइटम “%@” उपयोग में है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể hoàn thành thao tác vì mục “%@” đang được sử dụng."
+          }
+        }
+      }
+    },
+    "Quit the app, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先退出这个 App，然后再试一次。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit the app, then try again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先結束此App，然後再試一次。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリを終了してから、もう一度お試しください。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beende die App und versuch es dann erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quittez l’app, puis réessayez."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sal de la app e inténtalo de nuevo."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sal de la app e intenta de nuevo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encerre o app e tente novamente."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saia da aplicação e volte a tentar."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci dall’app, quindi riprova."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱을 종료한 다음 다시 시도하십시오."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершите приложение и повторите попытку."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uygulamadan çıkın ve yeniden deneyin."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप बंद करें, फिर कोशिश करें।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy thoát ứng dụng rồi thử lại."
+          }
+        }
+      }
+    },
+    "The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极现在看到的窗口、权限和设置。主目录显示为 ~。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge目前看到的視窗、權限與設定。個人專屬目錄顯示為 ~。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edgeが現在認識しているウインドウ、アクセス権、設定です。ホームディレクトリは ~ と表示されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die von Tungsten Edge erkannten Fenster, Berechtigungen und Einstellungen. Dein Benutzerordner wird als ~ angezeigt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les fenêtres, autorisations et réglages actuellement vus par Tungsten Edge. Le dossier de départ est remplacé par ~."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las ventanas, permisos y ajustes que ve Tungsten Edge. Tu carpeta de inicio se muestra como ~."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las ventanas, permisos y ajustes que ve Tungsten Edge. Tu carpeta de inicio se muestra como ~."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As janelas, permissões e ajustes que o Tungsten Edge vê no momento. Sua pasta pessoal aparece como ~."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As janelas, permissões e definições que o Tungsten Edge vê atualmente. A pasta pessoal aparece como ~."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le finestre, le autorizzazioni e le impostazioni attualmente rilevate da Tungsten Edge. La cartella Inizio appare come ~."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge가 현재 인식하는 윈도우, 권한 및 설정입니다. 홈 디렉토리는 ~로 표시됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Окна, разрешения и настройки, которые сейчас видит Tungsten Edge. Домашняя папка отображается как ~."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge’in şu anda gördüğü pencereler, izinler ve ayarlar. Ana klasörünüz ~ olarak gösterilir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge को अभी दिखाई देने वाली विंडो, अनुमतियाँ और सेटिंग्ज़। आपका होम फ़ोल्डर ~ के रूप में दिखता है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các cửa sổ, quyền và cài đặt Tungsten Edge hiện nhận biết. Thư mục chính được hiển thị bằng ~."
+          }
+        }
+      }
+    },
+    "You can’t eject “%@” because it’s in use.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你不能推出“%@”，因为它正在使用中。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can’t eject “%@” because it’s in use."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你無法退出「%@」，因為它正在使用中。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”は使用中のため、取り出せません。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Wechselmedium „%@“ wird gerade verwendet und kann nicht ausgeworfen werden."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’éjecter « %@ » car il est utilisé."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El disco “%@” está en uso y no se puede expulsar."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El disco “%@” está en uso y no se puede expulsar."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você não pode ejetar “%@” porque ele está sendo usado."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O disco “%@” está a ser utilizado e não pode ser ejetado."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non puoi espellere “%@” perché è in uso."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용 중이기 때문에 ‘%@’을(를) 추출할 수 없습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Диск «%@» используется и не может быть извлечен."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” kullanımda olduğu için onu çıkaramazsınız."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप “%@” बाहर नहीं निकाल सकते हैं क्योंकि वह उपयोग में है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn không thể tháo “%@” vì đang được sử dụng."
           }
         }
       }
@@ -16774,106 +17984,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã mua"
-          }
-        }
-      }
-    },
-    "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information.": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以粘贴到反馈里，或直接发给我们。内容就是下面这些：只有应用、系统和显示器的信息，不含个人信息。"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paste it into a feedback message or send it to us. It contains only the app, system and display details shown below — no personal information."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可以貼到意見回饋裡，或直接傳給我們。內容就是下方這些：只有 App、系統和顯示器的資訊，不含個人資訊。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィードバックにペーストするか、そのままお送りください。内容は以下のとおりで、アプリ、システム、ディスプレイの情報のみです。個人情報は含まれません。"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Füge sie in eine Feedback-Nachricht ein oder sende sie uns. Sie enthalten nur die unten gezeigten Angaben zu App, System und Displays – keine persönlichen Daten."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collez-les dans un message de commentaires ou envoyez-les-nous. Elles ne contiennent que les détails ci-dessous sur l’app, le système et les écrans — aucune information personnelle."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pégala en un mensaje de comentarios o envíanosla. Solo contiene los datos de la app, el sistema y las pantallas que se muestran abajo; ninguna información personal."
-          }
-        },
-        "es-419": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pégala en un mensaje de comentarios o envíanosla. Solo contiene los datos de la app, el sistema y las pantallas que se muestran abajo; ninguna información personal."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cole em uma mensagem de feedback ou envie para nós. Contém apenas os detalhes do app, do sistema e das telas mostrados abaixo — nenhuma informação pessoal."
-          }
-        },
-        "pt-PT": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cole numa mensagem de comentários ou envie-nos. Contém apenas os detalhes da app, do sistema e dos ecrãs mostrados abaixo — nenhuma informação pessoal."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Incollale in un messaggio di feedback o inviacele. Contengono solo i dettagli su app, sistema e schermi mostrati qui sotto: nessuna informazione personale."
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "피드백 메시지에 붙여넣거나 저희에게 보내 주세요. 아래에 보이는 앱, 시스템, 디스플레이 정보만 들어 있으며 개인 정보는 포함되지 않습니다."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вставьте эту информацию в сообщение с отзывом или отправьте нам. Она содержит только сведения о приложении, системе и дисплеях, показанные ниже, — никаких персональных данных."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bunu bir geri bildirim mesajına yapıştırın veya bize gönderin. Yalnızca aşağıda gösterilen uygulama, sistem ve ekran bilgilerini içerir — kişisel bilgi içermez."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इसे फ़ीडबैक संदेश में पेस्ट करें या हमें भेजें। इसमें सिर्फ़ नीचे दिखाई गई ऐप, सिस्टम और डिस्प्ले की जानकारी है — कोई निजी जानकारी नहीं।"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hãy dán thông tin này vào tin nhắn phản hồi hoặc gửi cho chúng tôi. Thông tin chỉ gồm chi tiết về ứng dụng, hệ thống và màn hình hiển thị bên dưới — không có thông tin cá nhân."
           }
         }
       }
@@ -21495,103 +22605,103 @@
         }
       }
     },
-    "Show/hide taskbar shortcut": {
+    "Show/hide taskbar": {
       "comment": "设置窗口 · 显隐快捷键",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显隐 Dock 栏快捷键"
+            "value": "显隐 Dock 栏"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show/hide taskbar shortcut"
+            "value": "Show/hide taskbar"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "工作列顯示／隱藏快速鍵"
+            "value": "顯示／隱藏工作列"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "タスクバーの表示/非表示ショートカット"
+            "value": "タスクバーの表示/非表示"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kurzbefehl zum Ein- und Ausblenden der Taskleiste"
+            "value": "Taskleiste ein-/ausblenden"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Raccourci afficher/masquer la barre des tâches"
+            "value": "Afficher/masquer la barre des tâches"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atajo para mostrar u ocultar la barra de tareas"
+            "value": "Mostrar u ocultar la barra de tareas"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atajo para mostrar u ocultar la barra de tareas"
+            "value": "Mostrar u ocultar la barra de tareas"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalho para mostrar/ocultar a barra de tarefas"
+            "value": "Mostrar/ocultar a barra de tarefas"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalho para mostrar/ocultar a barra de tarefas"
+            "value": "Mostrar/ocultar a barra de tarefas"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scorciatoia mostra/nascondi barra"
+            "value": "Mostra/nascondi barra"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "작업 표시줄 보기/가리기 단축키"
+            "value": "작업 표시줄 보기/가리기"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сочетание клавиш для показа/скрытия панели задач"
+            "value": "Показать/скрыть панель задач"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Görev çubuğunu gösterme/gizleme kestirmesi"
+            "value": "Görev çubuğunu göster/gizle"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "टास्कबार दिखाने/छिपाने का शॉर्टकट"
+            "value": "टास्कबार दिखाएँ/छिपाएँ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Phím tắt hiển thị/ẩn thanh tác vụ"
+            "value": "Hiển thị/ẩn thanh tác vụ"
           }
         }
       }
@@ -22797,6 +23907,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Trợ năng"
+          }
+        }
+      }
+    },
+    "System Settings > Privacy & Security > Device Control and Data Access": {
+      "comment": "macOS 27+ 的权限路径，必须与英文系统界面的原词一致",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置的“隐私与安全性 > 设备控制和数据访问”"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings > Privacy & Security > Device Control and Data Access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定的「隱私權與安全性」>「裝置控制和資料取用」"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定 > プライバシーとセキュリティ > デバイスの制御とデータへのアクセス"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systemeinstellungen > Datenschutz & Sicherheit > Gerätesteuerung und Datenzugriff"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages Système > Confidentialité et sécurité > Contrôle de l’appareil et accès aux données"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes del Sistema > Privacidad y seguridad > Control de dispositivos y acceso a datos"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuración del Sistema > Privacidad y seguridad > Control de dispositivos y acceso a los datos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes do Sistema > Privacidade e Segurança > Controle do Dispositivo e Acesso a Dados"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definições do Sistema > Privacidade e segurança > Controlo do dispositivo e acesso a dados"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni di Sistema > Privacy e sicurezza > Controllo del dispositivo e accesso ai dati"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정 > 개인정보 보호 및 보안 > 기기 제어 및 데이터 접근"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«Системные настройки» > «Конфиденциальность и безопасность» > «Управление устройством и доступ к данным»"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistem Ayarları > Gizlilik ve Güvenlik > Aygıt Denetimi ve Veri Erişimi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिस्टम सेटिंग > गोपनीयता और सुरक्षा > डिवाइस नियंत्रण और डेटा ऐक्सेस"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Điều khiển thiết bị và truy cập dữ liệu"
           }
         }
       }

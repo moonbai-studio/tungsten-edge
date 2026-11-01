@@ -54,6 +54,10 @@ enum FinderWindowRules {
         return trimmed.lowercased()
     }
 
+    static func matchesGenericTitle(_ title: String?) -> Bool {
+        normalizedTitle(title).map(genericTitles.contains) ?? false
+    }
+
     private static let genericTitles: Set<String> = [
         "finder",
         "访达"

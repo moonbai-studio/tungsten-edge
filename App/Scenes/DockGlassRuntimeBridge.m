@@ -71,6 +71,27 @@ BOOL TEDockGlassSetSystemVariant(id glassView, NSInteger variant) {
     }
 }
 
+static SEL TEDockGlassWindowStateSelector(void) {
+    return NSSelectorFromString(@"_windowChangedKeyState");
+}
+
+BOOL TEDockGlassSupportsWindowStateRefresh(void) {
+    Class glassClass = NSClassFromString(@"NSGlassEffectView");
+    return glassClass != Nil && [glassClass instancesRespondToSelector:TEDockGlassWindowStateSelector()];
+}
+
+BOOL TEDockGlassRefreshWindowState(id glassView) {
+    SEL selector = TEDockGlassWindowStateSelector();
+    if (glassView == nil || ![glassView respondsToSelector:selector]) return NO;
+    @try {
+        IMP implementation = [glassView methodForSelector:selector];
+        ((void (*)(id, SEL))implementation)(glassView, selector);
+        return YES;
+    } @catch (__unused NSException *exception) {
+        return NO;
+    }
+}
+
 BOOL TEDockGlassSetPath(id glassView, CGPathRef path) {
     SEL selector = NSSelectorFromString(@"_setPath:");
     if (glassView == nil || ![glassView respondsToSelector:selector]) return NO;
@@ -93,6 +114,7 @@ static void TEDockGlassCollectReadings(CALayer *layer, NSMutableOrderedSet<NSStr
         NSArray<NSArray<NSString *> *> *fields = @[
             @[@"L", @"inputBlurFillLightenOpacity"], @[@"N", @"inputBlurFillNormalOpacity"],
             @[@"R", @"inputInnerRefractionAmount"], @[@"B", @"inputBlurRadius"],
+            @[@"S", @"inputFaceColorMatrixSaturation"], @[@"O", @"inputBlurOpacity1"],
         ];
         for (NSArray<NSString *> *field in fields) {
             id value = [keys containsObject:field[1]] ? [filter valueForKey:field[1]] : nil;

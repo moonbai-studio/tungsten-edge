@@ -20,6 +20,10 @@ final class TrashStateStoreTests: XCTestCase {
         func empty(interactive: Bool, completion: @escaping @MainActor (FinderTrashOutcome) -> Void) {
             empties.append((interactive, completion))
         }
+        var deletes: [([URL], Bool, @MainActor (FinderTrashOutcome) -> Void)] = []
+        func delete(_ urls: [URL], interactive: Bool, completion: @escaping @MainActor (FinderTrashOutcome) -> Void) {
+            deletes.append((urls, interactive, completion))
+        }
         func activateFinder(completion: @escaping @MainActor () -> Void) { activations.append(completion) }
         func openTrash() { opens += 1 }
         func listItemURLs(completion: @escaping @MainActor ([String]?) -> Void) { lists.append(completion) }
@@ -41,14 +45,44 @@ final class TrashStateStoreTests: XCTestCase {
         func stop() { stops += 1; onChange = nil }
     }
 
+    /// Stands in for the disk, the speakers and the alerts of a drop on the Trash.
+    private final class EffectsBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _gone = Set<String>()
+        private var _recycled: [[URL]] = []
+        var sounds = 0
+        var notices: [TrashNotice] = []
+        var beeps = 0
+        /// Paths the disk reports as gone; `recycle` empties every path it is given.
+        var gone: Set<String> {
+            get { lock.lock(); defer { lock.unlock() }; return _gone }
+            set { lock.lock(); _gone = newValue; lock.unlock() }
+        }
+        var recycled: [[URL]] { lock.lock(); defer { lock.unlock() }; return _recycled }
+
+        var effects: TrashDropEffects {
+            TrashDropEffects(
+                recycle: { [self] urls, done in
+                    lock.lock(); _recycled.append(urls); _gone.formUnion(urls.map(\.path)); lock.unlock()
+                    done()
+                },
+                eject: { url in if url.path.hasSuffix("Busy") { throw CocoaError(.fileWriteNoPermission) } },
+                itemExists: { [self] url in !gone.contains(url.path) },
+                displayName: { $0.deletingPathExtension().lastPathComponent },
+                playTrashSound: { [self] in sounds += 1 },
+                notify: { [self] in notices.append($0) })
+        }
+    }
+
     private func make(_ client: FakeClient, confirm: @escaping () -> Bool = { true },
                       trasher: @escaping @Sendable (URL) throws -> Void = { _ in },
                       stamps: StampBox = StampBox(), observer: FakeObserver = FakeObserver(),
+                      effects: EffectsBox = EffectsBox(),
                       workQueue: DispatchQueue = DispatchQueue(label: "trash-tests", attributes: .concurrent)) -> TrashStateStore {
         let store = TrashStateStore(client: client, fileTrasher: trasher,
             workQueue: workQueue, changeStamp: { stamps.value }, directoryObserver: observer,
             confirmEmpty: { completion in completion(confirm()) },
-            beep: {}, notificationCenter: NotificationCenter())
+            beep: { effects.beeps += 1 }, effects: effects.effects, notificationCenter: NotificationCenter())
         store.setEnabled(true)
         store.start(revealOpenedWindow: { client.reveals += 1 })
         addTeardownBlock { @MainActor in store.stop() }
@@ -83,7 +117,7 @@ final class TrashStateStoreTests: XCTestCase {
             workQueue: DispatchQueue(label: "trash-tests"), changeStamp: { StampBox().value },
             directoryObserver: FakeObserver(),
             confirmEmpty: { answer = $0 },
-            beep: {}, notificationCenter: NotificationCenter())
+            beep: {}, effects: EffectsBox().effects, notificationCenter: NotificationCenter())
         store.setEnabled(true)
         store.start(revealOpenedWindow: { client.reveals += 1 })
         addTeardownBlock { @MainActor in store.stop() }
@@ -388,5 +422,151 @@ final class TrashStateStoreTests: XCTestCase {
         XCTAssertFalse(TrashStateStore.canTrash(URL(fileURLWithPath: "/")))
         XCTAssertFalse(TrashStateStore.canTrash(URL(string: "https://example.com/file")!))
         XCTAssertTrue(TrashStateStore.canTrash(URL(fileURLWithPath: "/tmp/missing-document.txt")))
+    }
+
+    /// The store's work queue in these tests: serial, so `drain` can wait behind whatever it holds.
+    private let serialQueue = DispatchQueue(label: "trash-tests-serial")
+
+    /// Waits until every block queued on the store's work queue has run and posted back to main —
+    /// twice, because a completion may queue one more round (interactive resend, then finish).
+    private func drain() async {
+        for _ in 0..<3 {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                serialQueue.async { DispatchQueue.main.async { done.resume() } }
+            }
+        }
+    }
+
+    /// Finder moves the app (its Put Back record and admin prompt come with it); the items reported
+    /// moved are the ones gone from the disk, and Finder's own sound is not doubled.
+    func testAppDropGoesThroughFinderAndReportsWhatLeft() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        let a = URL(fileURLWithPath: "/Applications/A.app"), b = URL(fileURLWithPath: "/Applications/B.app")
+        var moved: [URL]?
+        store.trashApplications([a, b]) { moved = $0 }
+        client.permissions.removeFirst().1(.granted)
+        XCTAssertEqual(client.deletes.count, 1)
+        XCTAssertEqual(client.deletes[0].0, [a, b])
+        XCTAssertFalse(client.deletes[0].1)
+        box.gone = [a.path]
+        client.deletes.removeFirst().2(.succeeded)
+        await drain()
+        XCTAssertEqual(moved, [a])
+        XCTAssertEqual(box.sounds, 0)
+        XCTAssertEqual(box.beeps, 1, "B stayed where it was")
+        XCTAssertTrue(box.recycled.isEmpty)
+    }
+
+    func testAppDropNeedingAPromptRetriesInteractively() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        let a = URL(fileURLWithPath: "/Applications/A.app")
+        var moved: [URL]?
+        store.trashApplications([a]) { moved = $0 }
+        client.permissions.removeFirst().1(.granted)
+        client.deletes.removeFirst().2(.needsInteraction)
+        client.activations.removeFirst()()
+        await drain()
+        XCTAssertTrue(client.deletes[0].1)
+        client.deletes.removeFirst().2(.cancelled)
+        await drain()
+        XCTAssertNil(moved)
+        XCTAssertEqual(box.beeps, 0, "a cancelled password prompt is the user's answer, not a failure")
+        XCTAssertEqual(client.permissions.count, 1, "the mutation ended, so a fresh read was queued")
+    }
+
+    /// Finder moved A, then stopped at B's administrator prompt: only B is sent again, and A still
+    /// counts as moved.
+    func testInteractiveResendSkipsWhatFinderAlreadyMoved() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        let a = URL(fileURLWithPath: "/Applications/A.app"), b = URL(fileURLWithPath: "/Applications/B.app")
+        var moved: [URL]?
+        store.trashApplications([a, b]) { moved = $0 }
+        client.permissions.removeFirst().1(.granted)
+        box.gone = [a.path]
+        client.deletes.removeFirst().2(.needsInteraction)
+        client.activations.removeFirst()()
+        await drain()
+        XCTAssertEqual(client.deletes.count, 1)
+        XCTAssertEqual(client.deletes[0].0, [b])
+        XCTAssertTrue(client.deletes[0].1)
+        box.gone = [a.path, b.path]
+        client.deletes.removeFirst().2(.succeeded)
+        await drain()
+        XCTAssertEqual(moved, [a, b])
+        XCTAssertEqual(box.beeps, 0)
+    }
+
+    /// Without Automation the move still happens, through the system's own recycle, with our sound.
+    func testAppDropWithoutAutomationFallsBackToRecycle() async {
+        for refusal in [FinderAutomationStatus.denied, .notDetermined] {
+            let client = FakeClient()
+            let box = EffectsBox()
+            let store = make(client, effects: box, workQueue: serialQueue)
+            initialize(client)
+            let a = URL(fileURLWithPath: "/Applications/A.app")
+            var moved: [URL]?
+            store.trashApplications([a]) { moved = $0 }
+            client.permissions.removeFirst().1(refusal)
+            if refusal == .notDetermined {
+                XCTAssertTrue(client.permissions[0].0, "an app drop is a deliberate act on the Trash: it may ask")
+                client.permissions.removeFirst().1(.denied)
+            }
+            await drain()
+            XCTAssertTrue(client.deletes.isEmpty)
+            XCTAssertEqual(box.recycled, [[a]])
+            XCTAssertEqual(moved, [a])
+            XCTAssertEqual(box.sounds, 1)
+        }
+    }
+
+    func testFinderRefusingAutomationMidwayFallsBackToRecycle() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        let a = URL(fileURLWithPath: "/Applications/A.app")
+        var moved: [URL]?
+        store.trashApplications([a]) { moved = $0 }
+        client.permissions.removeFirst().1(.granted)
+        client.deletes.removeFirst().2(.denied)
+        await drain()
+        XCTAssertEqual(box.recycled, [[a]])
+        XCTAssertEqual(moved, [a])
+        XCTAssertEqual(store.status, .denied)
+    }
+
+    func testEjectFailureAndRunningAppsAreReported() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        store.eject([URL(fileURLWithPath: "/Volumes/Free"), URL(fileURLWithPath: "/Volumes/Busy")])
+        await drain()
+        XCTAssertEqual(box.notices, [.ejectFailed("Busy")])
+        store.noteApplicationsInUse([URL(fileURLWithPath: "/Applications/Notes Probe.app")])
+        await drain()
+        XCTAssertEqual(box.notices.last, .applicationsInUse(["Notes Probe"]))
+        store.noteApplicationsInUse([])
+        await drain()
+        XCTAssertEqual(box.notices.count, 2)
+    }
+
+    func testSuccessfulFileDropPlaysTheTrashSound() async {
+        let client = FakeClient()
+        let box = EffectsBox()
+        let store = make(client, effects: box, workQueue: serialQueue)
+        initialize(client)
+        store.trash([URL(fileURLWithPath: "/tmp/tungsten-trash-test-file")])
+        await drain()
+        XCTAssertEqual(box.sounds, 1)
     }
 }

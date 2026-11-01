@@ -11,6 +11,7 @@ extension PanelCoordinator {
     func openDrawer() {
         guard let mainPanel = dockPanel, capsulePanel != nil else { return }
         onAccessoryWillOpen?(self, .drawer)
+        closeFolderPopup()   // the other units close through `onAccessoryWillOpen`; this one is ours
         drawerActionCloseToken += 1  // 旧点击排队的 delayed close 捕获旧 token，不匹配则丢弃
         drawerWantsOpen = true
         setAutoHideInhibitor(.drawerOpen, active: true)
@@ -62,12 +63,15 @@ extension PanelCoordinator {
             }
         }
 
-        drawerLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            self?.dismissDrawerIfOutside()
+        // The bar is our own window: its presses, drags and releases all arrive locally.
+        drawerLocalMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .leftMouseDragged, .leftMouseUp]
+        ) { [weak self] event in
+            self?.handleDrawerClickAway(event, isLocal: true)
             return event
         }
-        drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
-            self?.dismissDrawerIfOutside()
+        drawerGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            self?.handleDrawerClickAway(event, isLocal: false)
         }
     }
 
@@ -244,6 +248,7 @@ extension PanelCoordinator {
         drawerSpringOpened = false
         if let m = drawerLocalMonitor  { NSEvent.removeMonitor(m); drawerLocalMonitor  = nil }
         if let m = drawerGlobalMonitor { NSEvent.removeMonitor(m); drawerGlobalMonitor = nil }
+        drawerBarPress.cancel()
         stopDrawerArrowFollow()
         guard let panel = drawerPanel else { return }
         NSAnimationContext.runAnimationGroup({ ctx in
@@ -275,6 +280,7 @@ extension PanelCoordinator {
             NSEvent.removeMonitor(monitor)
             drawerGlobalMonitor = nil
         }
+        drawerBarPress.cancel()
         stopDrawerArrowFollow()
         drawerPanel?.alphaValue = 0
         drawerPanel?.orderOut(nil)
@@ -283,16 +289,55 @@ extension PanelCoordinator {
         drawerShowing.end()
     }
 
-    private func dismissDrawerIfOutside() {
-        guard dragController.draggingPayload == nil else { return }   // 拖动中不误关
-        guard let drawer = drawerPanel, drawer.isVisible,
-              let dock   = dockPanel else { return }
-        let mouse = NSEvent.mouseLocation
-        // The plate, not the window: its 40pt transparent border dismisses like any outside click.
-        guard !Self.drawerPlateFrame(drawer.frame).contains(mouse),
-              !dock.frame.contains(mouse),
-              !(capsulePanel?.frame.contains(mouse) ?? false) else { return }
-        closeDrawer()
+    /// Click-away. Rules in `DrawerClickAway`: off the drawer, the bar and the capsule closes on
+    /// the press; a secondary click closes anywhere off the plate; a plain left press on the bar
+    /// closes on release unless it turned into a drag.
+    private func handleDrawerClickAway(_ event: NSEvent, isLocal: Bool) {
+        let point = Self.screenPoint(of: event)
+        switch event.type {
+        case .leftMouseDragged:
+            // A chip drag crosses `tapSlop` before it starts, and this sees that very event: the
+            // press is void before any spring can open the drawer under it.
+            drawerBarPress.moved(to: point)
+        case .leftMouseUp:
+            guard drawerBarPress.released(at: point),
+                  dragController.draggingPayload == nil,
+                  drawerWantsOpen else { return }
+            closeDrawer()
+        default:
+            drawerBarPress.cancel()
+            guard dragController.draggingPayload == nil else { return }   // 拖动中不误关
+            guard let drawer = drawerPanel, drawer.isVisible,
+                  let dock   = dockPanel else { return }
+            // The plate, not the window: its 40pt transparent border dismisses like any outside click.
+            let verdict = DrawerClickAway.verdict(
+                at: point, isSecondary: Self.isSecondaryClick(event),
+                plate: Self.drawerPlateFrame(drawer.frame),
+                barVisible: dock.frame.insetBy(dx: Self.shadowPadding, dy: Self.shadowPadding),
+                capsule: capsulePanel?.frame ?? .null)
+            switch verdict {
+            case .ignore:
+                break
+            case .closeNow:
+                closeDrawer()
+            case .armBarPress:
+                // A global press there went through the bar's clear pixels to another app: no
+                // release will reach us, so it keeps the drawer as before.
+                if isLocal { drawerBarPress.begin(at: point) }
+            }
+        }
+    }
+
+    /// Right button, or left button with Control — the bar's menu click (`AppMenuFragments`).
+    static func isSecondaryClick(_ event: NSEvent) -> Bool {
+        event.type == .rightMouseDown
+            || (event.type == .leftMouseDown && event.modifierFlags.contains(.control))
+    }
+
+    /// The event's own location in screen coordinates; global events carry it unconverted.
+    static func screenPoint(of event: NSEvent) -> CGPoint {
+        guard let window = event.window else { return event.locationInWindow }
+        return window.convertPoint(toScreen: event.locationInWindow)
     }
 
     func dragDropZones(for source: DragSource) -> [CGRect] {

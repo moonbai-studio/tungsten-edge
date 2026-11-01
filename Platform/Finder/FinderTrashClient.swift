@@ -71,6 +71,29 @@ final class FinderTrashClient: FinderTrashClienting {
         }
     }
 
+    /// Finder's `delete` of the dropped items (Move to Trash). Same queue and interaction ladder as
+    /// `empty`: a prompt Finder needs (an administrator password for an app installed by another
+    /// user) answers -1713 without interaction and is resent with it. The non-interactive timeout is
+    /// generous because a large bundle on a slow disk is still a single reply.
+    func delete(_ urls: [URL], interactive: Bool, completion: @escaping @MainActor (FinderTrashOutcome) -> Void) {
+        let gen = currentGeneration()
+        commandQueue.async { [self] in
+            guard currentGeneration() == gen else {
+                DispatchQueue.main.async { completion(.cancelled) }
+                return
+            }
+            let items = NSAppleEventDescriptor.list()
+            for (index, url) in urls.enumerated() {
+                items.insert(NSAppleEventDescriptor(fileURL: url), at: index + 1)
+            }
+            let event = Self.event(eventClass: FinderTrashEvent.core, id: FinderTrashEvent.delete)
+            event.setParam(items, forKeyword: keyDirectObject)
+            let options = interactive ? FinderTrashEvent.emptyInteractiveOptions : FinderTrashEvent.emptyOptions
+            let outcome = Self.send(event, options: options, timeout: interactive ? 600 : 120, isCount: false)
+            DispatchQueue.main.async { completion(outcome) }
+        }
+    }
+
     func activateFinder(completion: @escaping @MainActor () -> Void) {
         let gen = currentGeneration()
         commandQueue.async { [self] in

@@ -18,6 +18,7 @@ enum LauncherChipLayout {
 }
 
 struct LauncherChip: View {
+    @ObservedObject private var iconRevision = AppIconRevision.shared
     let bundleID: String
     let isRunning: Bool   // supplied by the displayed zone's runtime/process projection
     let isHidden: Bool    // supplied by the displayed zone's runtime/process projection

@@ -56,6 +56,7 @@ extension PanelCoordinator {
             },
             onInteractiveResize: { [weak self] event in
                 switch event {
+                case let .pointerEnteredBar(hitTest): self?.assertBarArrowCursor(hitTest: hitTest)
                 case let .hover(pointer): self?.gripHoverChanged(pointer)
                 case let .began(pointer): self?.beginInteractiveResize(pointer: pointer)
                 case let .changed(pointer): self?.updateInteractiveResize(pointer: pointer)

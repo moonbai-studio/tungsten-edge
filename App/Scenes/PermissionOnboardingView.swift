@@ -133,16 +133,7 @@ struct PermissionOnboardingView: View {
     /// 既证明不了用户有没有打开开关，也证明不了旧记录已经失配。文案必须保持不确定语气，
     /// 也不能预设签名方式——固定证书签的包授权是跨版本有效的。
     private var troubleshooting: String? {
-        let steps = String(localized: """
-        If the switch is already on and nothing happens, a permission record left by an older version may no \
-        longer match this copy of Tungsten Edge. You can reset it:
-
-        1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the \
-        entry cannot be removed.
-        2. In Privacy & Security > Accessibility, select Tungsten Edge in the list and remove it with the minus \
-        button. There may be more than one entry; remove them all.
-        3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.
-        """)
+        let steps = resetSteps
         switch presentation {
         case .stalled:
             return steps
@@ -160,7 +151,37 @@ struct PermissionOnboardingView: View {
         }
     }
 
+    /// macOS 27 把「辅助功能」栏改名为 Device Control and Data Access；13–26 仍叫 Accessibility。
+    /// 两份文案的 key 只差栏目名，改动其中一份时必须同步另一份。
+    private var resetSteps: String {
+        if #available(macOS 27, *) {
+            return String(localized: """
+            If the switch is already on and nothing happens, a permission record left by an older version may no \
+            longer match this copy of Tungsten Edge. You can reset it:
+
+            1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the \
+            entry cannot be removed.
+            2. In Privacy & Security > Device Control and Data Access, select Tungsten Edge in the list and remove it with the minus \
+            button. There may be more than one entry; remove them all.
+            3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.
+            """)
+        }
+        return String(localized: """
+        If the switch is already on and nothing happens, a permission record left by an older version may no \
+        longer match this copy of Tungsten Edge. You can reset it:
+
+        1. Quit Tungsten Edge first — while it is running, the minus button in the list is greyed out and the \
+        entry cannot be removed.
+        2. In Privacy & Security > Accessibility, select Tungsten Edge in the list and remove it with the minus \
+        button. There may be more than one entry; remove them all.
+        3. Open Tungsten Edge again from your Applications folder, then add it and turn the switch on when prompted.
+        """)
+    }
+
     private var settingsPath: String {
+        if #available(macOS 27, *) {
+            return String(localized: "System Settings > Privacy & Security > Device Control and Data Access")
+        }
         if #available(macOS 13, *) {
             return String(localized: "System Settings > Privacy & Security > Accessibility")
         }

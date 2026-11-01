@@ -296,7 +296,7 @@ extension PanelCoordinator {
         guard !isSuspendedForPermissionLoss else { return }
         let shouldShow = visibilityState.isVisible
         guard shouldShow != panelsAreVisible else { return }
-        panelsAreVisible = shouldShow
+        noteVisibilityChange(visible: shouldShow, source: diagnosticFullscreenSource)
         // 角标轮询的零感知门控跟着任务条逻辑显隐走（编排层按「任一单元可见」合并）；恢复时 BadgeStore 会立即读一次。
         onLogicalVisibilityChanged?(shouldShow)
         if Self.edgeHoverTraceEnabled { logEdgeHoverTrace(shouldShow: shouldShow) }
@@ -334,6 +334,16 @@ extension PanelCoordinator {
             // 淡入若被中途打断，alpha 可能停在半路；藏着的时候归 1，下次显示不带残值。
             for panel in [dockGlassBackgroundPanel, dockPanel, capsulePanel] { panel?.alphaValue = 1 }
         }
+    }
+
+    func noteVisibilityChange(visible: Bool, source: String) {
+        DiagnosticVisibilityRecorder.shared.history.noteVisibilityChange(
+            unit: stripSurfaceID,
+            screen: currentScreen.flatMap { DisplayIdentity.uuidString(for: $0) } ?? fixedUnitDisplayUUID ?? "?",
+            previousVisible: panelsAreVisible, visible: visible,
+            reasons: visibilityState.hideReasons, source: source
+        )
+        panelsAreVisible = visible
     }
 
     /// `DOCK_EDGEHOVER_TRACE=1` 时每次实际 SHOW/HIDE 切换打一行：单调时钟（`CACurrentMediaTime`，

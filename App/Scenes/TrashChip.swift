@@ -4,6 +4,7 @@ import SwiftUI
 struct TrashChip: View {
     let isFull: Bool
     let isDropTargeted: Bool
+    let showsEject: Bool
     let scale: CGFloat
     let hoverStyle: HoverStyle
     let isHovered: Bool
@@ -17,7 +18,8 @@ struct TrashChip: View {
     @Environment(\.isPanelHeightResizing) private var isPanelHeightResizing
 
     var body: some View {
-        Image(nsImage: TrashIconArt.image(isFull: isFull, points: ChipPillMetrics.bareIconSlot * scale,
+        Image(nsImage: TrashIconArt.image(isFull: isFull, ejects: showsEject,
+                                          points: ChipPillMetrics.bareIconSlot * scale,
                                           displayScale: displayScale, allowsRendering: !isPanelHeightResizing))
             .resizable()
             .aspectRatio(contentMode: .fit)
@@ -64,11 +66,21 @@ enum TrashIconArt {
     @MainActor private static let bitmaps = IconBitmapCache()
 
     @MainActor
-    static func image(isFull: Bool, points: CGFloat, displayScale: CGFloat, allowsRendering: Bool) -> NSImage {
+    static func image(isFull: Bool, ejects: Bool, points: CGFloat, displayScale: CGFloat,
+                      allowsRendering: Bool) -> NSImage {
+        if ejects {
+            return bitmaps.image(name: "eject", points: points, displayScale: displayScale,
+                                 appearance: NSAppearance(named: .aqua), allowsRendering: allowsRendering) {
+                NSImage(contentsOfFile: ejectIconPath) ?? NSImage(named: NSImage.trashEmptyName) ?? NSImage()
+            }
+        }
         let name = isFull ? NSImage.trashFullName : NSImage.trashEmptyName
         return bitmaps.image(name: name, points: points, displayScale: displayScale,
                              appearance: NSAppearance(named: .aqua), allowsRendering: allowsRendering) {
             NSImage(named: name) ?? NSImage()
         }
     }
+
+    /// The system's eject artwork — the icon the native Dock's Trash turns into under a dragged volume.
+    private static let ejectIconPath = "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/EjectMediaIcon.icns"
 }

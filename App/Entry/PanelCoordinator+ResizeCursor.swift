@@ -11,6 +11,33 @@ import SwiftUI
 
 extension PanelCoordinator {
     static let resizeCursorEnabled = DebugSwitch.resizeCursor.isEnabled(in: ProcessInfo.processInfo.environment)
+    private static let barArrowCursorEnabled = DebugSwitch.barArrowCursor.isEnabled(in: ProcessInfo.processInfo.environment)
+
+    func assertBarArrowCursor(hitTest: (CGPoint) -> (isInContent: Bool, isInGrip: Bool)) {
+        guard Self.resizeCursorEnabled, Self.barArrowCursorEnabled else {
+            HoverTrace.barArrowCursor(surface: stripSurfaceID,
+                                      decision: Self.resizeCursorEnabled ? "barArrowDisabled" : "resizeCursorDisabled")
+            return
+        }
+        // An enter callback can arrive after the pointer has left; test the current point synchronously.
+        let pointer = NSEvent.mouseLocation
+        let frontmostWindow = NSWindow.windowNumber(at: pointer, belowWindowWithWindowNumber: 0)
+        let hit = hitTest(pointer)
+        let decision = BarArrowCursorDecision.evaluate(
+            frontmostWindowNumber: frontmostWindow,
+            dockWindowNumber: dockPanel?.windowNumber,
+            panelVisible: dockPanel?.isVisible == true,
+            pointInContent: hit.isInContent,
+            pointInGrip: hit.isInGrip,
+            pressedMouseButtons: NSEvent.pressedMouseButtons,
+            hasDraggingPayload: dragController.draggingPayload != nil,
+            isSuspendedForPermissionLoss: isSuspendedForPermissionLoss,
+            isHeightResizing: interactiveHeightResizeActive
+        )
+        HoverTrace.barArrowCursor(surface: stripSurfaceID, decision: decision.rawValue)
+        guard decision == .allow else { return }
+        SystemResizeCursor.shared.assertArrowIfIdle()
+    }
 
     /// How long after a menu opens or closes the ▲▼ keeps being re-asserted: menu tracking
     /// resets a background app's cursor to the arrow at both ends, the closing one anywhere

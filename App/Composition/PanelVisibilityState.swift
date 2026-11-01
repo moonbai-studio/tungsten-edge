@@ -1,10 +1,58 @@
 import ApplicationServices
 import CoreGraphics
+import Foundation
 
 enum PanelVisibilityReason: Hashable {
     case fullscreen
     case fullscreenTransitionPending
     case edgeAutoHide
+}
+
+struct DiagnosticVisibilityChange: Equatable {
+    let at: Date
+    let unit: String
+    let screen: String
+    let visible: Bool
+    let reasons: [String]
+    let source: String
+}
+
+struct DiagnosticVisibilityHistory {
+    private(set) var changes: [DiagnosticVisibilityChange] = []
+    private var visibilityByUnit: [String: Bool] = [:]
+
+    @discardableResult
+    mutating func noteVisibilityChange(
+        unit: String, screen: String, previousVisible: Bool, visible: Bool,
+        reasons: Set<PanelVisibilityReason>, source: String, at: Date = Date()
+    ) -> DiagnosticVisibilityChange? {
+        let previous = visibilityByUnit[unit] ?? previousVisible
+        visibilityByUnit[unit] = visible
+        guard previous != visible else { return nil }
+        let change = DiagnosticVisibilityChange(at: at, unit: unit, screen: screen, visible: visible,
+                                               reasons: Self.reasonNames(reasons), source: source)
+        changes.append(change)
+        if changes.count > 40 { changes.removeFirst(changes.count - 40) }
+        return change
+    }
+
+    mutating func remove(unit: String) { visibilityByUnit.removeValue(forKey: unit) }
+
+    static func reasonNames(_ reasons: Set<PanelVisibilityReason>) -> [String] {
+        reasons.map { reason in
+            switch reason {
+            case .fullscreen: return "fullscreen"
+            case .fullscreenTransitionPending: return "fullscreenTransitionPending"
+            case .edgeAutoHide: return "edgeAutoHide"
+            }
+        }.sorted()
+    }
+}
+
+@MainActor
+final class DiagnosticVisibilityRecorder {
+    static let shared = DiagnosticVisibilityRecorder()
+    var history = DiagnosticVisibilityHistory()
 }
 
 enum FullscreenSpaceHoldDisposition: Equatable {

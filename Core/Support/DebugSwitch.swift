@@ -81,6 +81,8 @@ enum DebugSwitch: String, CaseIterable, Sendable {
     case stripHoverPoll = "DOCK_STRIP_HOVER_POLL"
     /// 拖动调高时藏掉系统光标、自绘 ▲▼ 面板；=0 不藏也不画
     case resizeCursor = "DOCK_RESIZE_CURSOR"
+    /// Reset a cursor left by another window to the arrow when the pointer enters the bar
+    case barArrowCursor = "DOCK_BAR_ARROW_CURSOR"
     /// 按下 chip 的即时按压反馈
     case chipPressDown = "DOCK_CHIP_PRESS_DOWN"
     /// 卡片标签对反复横跳的窗口标题的跟随抑制（WindowTitleSettle）
@@ -184,7 +186,7 @@ enum DebugSwitch: String, CaseIterable, Sendable {
              .liquidGlassDiagonalHighlight, .liquidGlassHighlightBoost, .stripBalancedInsets,
              .spaceIntent, .fullscreenIntent, .fullscreenSlsVerdict, .overlayWindowWatch, .spaceMembershipRepair,
              .overlaySpace, .scrollReverser, .windowLift, .windowLiftAnim, .windowLiftTiles,
-             .menuHoverSuspend, .hoverMonitorLean, .stripHoverPoll, .resizeCursor, .chipPressDown, .titleSettle,
+             .menuHoverSuspend, .hoverMonitorLean, .stripHoverPoll, .resizeCursor, .barArrowCursor, .chipPressDown, .titleSettle,
              .finderReopenEvent:
             return .killSwitch
         case .displayTrace, .launchTrace, .chipProbe, .clickTrace,

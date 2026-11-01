@@ -85,6 +85,10 @@ enum FolderIconResolver {
         cache.object(forKey: path as NSString)
     }
 
+    static func discard(paths: [String]) {
+        for path in paths { cache.removeObject(forKey: path as NSString) }
+    }
+
     static func resolve(_ path: String, size: CGFloat = StackPopupMetrics.iconSize) -> NSImage {
         if let hit = cache.object(forKey: path as NSString) { return hit }
         let img = makeIcon(path, size: size)

@@ -110,8 +110,11 @@ struct DrawerCapsuleButton: View {
                       lineWidth: theme.panelRimLineWidth,
                       usesLiquidGlass: usesLiquidGlass)
         // 拖卡悬到胶囊上：**微微发光 + 极轻微放大**（去掉原来生硬的白圈描边,owner 2026-06-21）。
+        // The glow is a sibling beside the glass, never a `.shadow` around it: even a clear,
+        // zero-radius shadow lands as a CALayer shadow on the glass's host layer, the suspected
+        // cause of the milky capsule on macOS 26. Inside the scale, so the halo grows with the plate.
+        .overlay(dropGlow(cornerRadius: DockShape.panelCornerRadius * dockScale))
         .scaleEffect(showsDropFeedback ? 1.04 : 1.0)
-        .dockGlow(theme.capsuleStashGlow, radius: 5, active: showsDropFeedback)
         .animation(.easeInOut(duration: DrawerAnimation.duration), value: showsDropFeedback)
         .dockShadow(theme.stripShadow,
                     visible: DockLiquidGlassConfiguration.stripShadowVisible(
@@ -177,6 +180,22 @@ struct DrawerCapsuleButton: View {
         // cells above, so a right click anywhere on the capsule is the Tungsten menu — the
         // settings fallback entry keeps the whole capsule.
         .overlay(NativeMenuHost(popUpHandler: onRequestTaskbarMenu))
+    }
+
+    /// The stash drop glow: a blurred plate-shaped fill masked to the outside of the plate, so
+    /// nothing is drawn over the glass. Always in the tree and faded by opacity — toggling it in
+    /// and out would rebuild the glass beside it.
+    private func dropGlow(cornerRadius: CGFloat) -> some View {
+        let blurRadius: CGFloat = 5
+        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(theme.capsuleStashGlow.color)
+            .blur(radius: blurRadius)
+            .mask {
+                DrawerCapsuleGlowMask(cornerRadius: cornerRadius, outset: blurRadius * 3)
+                    .fill(style: FillStyle(eoFill: true))
+            }
+            .opacity(showsDropFeedback ? 1 : 0)
+            .allowsHitTesting(false)
     }
 
     // MARK: Preview
@@ -280,6 +299,20 @@ private extension View {
         scaleEffect(hovered ? DrawerCapsulePreviewMetrics.hoverScale : 1.0)
             .animation(.easeOut(duration: 0.12), value: hovered)
             .chipPressScale(pressed)
+    }
+}
+
+/// The band around the capsule plate: an outset rectangle with the plate cut out (even-odd fill).
+private struct DrawerCapsuleGlowMask: Shape {
+    let cornerRadius: CGFloat
+    let outset: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(rect.insetBy(dx: -outset, dy: -outset))
+        path.addRoundedRect(in: rect,
+                            cornerSize: CGSize(width: cornerRadius, height: cornerRadius),
+                            style: .continuous)
+        return path
     }
 }
 
@@ -533,6 +566,7 @@ final class DrawerCapsuleScrollView: NSView {
 /// One directly clickable app in the capsule. Owns only the launch bounce; hover and press
 /// are applied by the capsule, which owns the hit cells.
 private struct DrawerCapsuleAppIcon: View {
+    @ObservedObject private var iconRevision = AppIconRevision.shared
     let bundleID: String
     let size: CGFloat
     let bounceHeight: CGFloat

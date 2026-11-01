@@ -28,6 +28,9 @@ enum FinderTrashEvent {
     static let count: UInt32 = 0x636e7465
     static let finder: UInt32 = 0x666e6472
     static let empty: UInt32 = 0x656d7074
+    /// `core` / `delo`: Finder's `delete`, i.e. Move to Trash — with Finder's put-back record and
+    /// its own administrator prompt.
+    static let delete: UInt32 = 0x64656c6f
     static let trashProperty: UInt32 = 0x74727368
     static let itemClass: UInt32 = 0x636f626a
     static let getData: UInt32 = 0x67657464

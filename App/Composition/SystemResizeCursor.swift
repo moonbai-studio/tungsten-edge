@@ -117,6 +117,12 @@ final class SystemResizeCursor {
         return true
     }
 
+    func assertArrowIfIdle() {
+        guard !disabled, owner == nil else { return }
+        // An arrow failure must not disable or verify the resize cursor's native channel.
+        _ = setArrow()
+    }
+
     func reset(owner: String) {
         guard self.owner == owner else { return }
         reset()

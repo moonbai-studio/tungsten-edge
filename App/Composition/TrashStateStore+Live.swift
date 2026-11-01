@@ -26,6 +26,7 @@ extension TrashStateStore {
             }
         },
         beep: { NSSound.beep() },
+        effects: .live,
         notificationCenter: NSWorkspace.shared.notificationCenter
     )
 
@@ -39,6 +40,61 @@ extension TrashStateStore {
             }
         }
     }
+}
+
+extension TrashDropEffects {
+    static let live = TrashDropEffects(
+        recycle: { urls, done in
+            NSWorkspace.shared.recycle(urls) { _, _ in done() }
+        },
+        eject: { try NSWorkspace.shared.unmountAndEjectDevice(at: $0) },
+        itemExists: { url in
+            do {
+                _ = try FileManager.default.attributesOfItem(atPath: url.path)
+                return true
+            } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+                return false
+            } catch {
+                return true
+            }
+        },
+        displayName: { FileManager.default.displayName(atPath: $0.path) },
+        playTrashSound: {
+            // The global "Play user interface sound effects" switch; absent means on.
+            let enabled = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?[
+                "com.apple.sound.uiaudio.enabled"] as? Int ?? 1
+            guard enabled != 0 else { return }
+            TrashDropEffects.dragToTrashSound?.play()
+        },
+        notify: { notice in
+            // Same run-loop hop as the empty confirmation: a modal loop inside a main-queue block
+            // stalls every taskbar update until the alert is answered.
+            RunLoop.main.perform {
+                MainActor.assumeIsolated {
+                    NSApp.activate(ignoringOtherApps: true)
+                    let alert = NSAlert()
+                    alert.alertStyle = .warning
+                    switch notice {
+                    case let .applicationsInUse(names):
+                        alert.messageText = String(
+                            format: String(localized: "The operation can’t be completed because the item “%@” is in use."),
+                            ListFormatter.localizedString(byJoining: names))
+                        alert.informativeText = String(localized: "Quit the app, then try again.")
+                    case let .ejectFailed(name):
+                        alert.messageText = String(
+                            format: String(localized: "You can’t eject “%@” because it’s in use."), name)
+                    }
+                    alert.addButton(withTitle: String(localized: "OK"))
+                    alert.runModal()
+                }
+            }
+        }
+    )
+
+    /// The native Dock's own sound for a drop on its Trash.
+    @MainActor private static let dragToTrashSound = NSSound(
+        contentsOfFile: "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif",
+        byReference: true)
 }
 
 extension TrashStateStore {

@@ -7,8 +7,8 @@ import UniformTypeIdentifiers
 /// 本 delegate 只负责:悬停期间把目标发布给视图做高亮、松手后异步取齐 URL 再回主线程提交。
 /// 挂载点必须与 "strip" coordinateSpace 同层（坐标同源,评审拍板）。
 ///
-/// **应用 bundle 与普通文件在这里就分开**：`.app` 只走 `onCommitApplications`，
-/// `onCommit`（`handleExternalDrop`）从此不可能拿到应用——那是本文件存在的第二个理由，
+/// **应用 bundle 与普通文件在这里就分开**：`.app` 只走 `onCommitApplications`（或松在废纸篓上时的
+/// `onCommitTrash`），`onCommit`（`handleExternalDrop`）从此不可能拿到应用——那是本文件存在的第二个理由，
 /// 也是「拖应用到文件夹格子上会把它从『应用程序』搬走」这个 bug 的两道闸之一。
 struct StripFileDropDelegate: DropDelegate {
     /// Geometry is **read when a drop callback runs, never copied at construction**: the strip's
@@ -30,6 +30,8 @@ struct StripFileDropDelegate: DropDelegate {
     /// 参数 = 「这一支是落定吗」。只有 `performDrop` 传 `true`（空档留给落定交接）。
     let onHoverEnded: (Bool) -> Void
     let onCommit: (StripDropRouting.Target, [URL]) -> Void
+    /// Everything released over the Trash chip, apps and volumes included (`TrashDropPlan` sorts them).
+    let onCommitTrash: ([URL]) -> Void
     /// 拖进来的应用 bundle + 落点 x（"strip" 空间）。见 `handleExternalApplicationDrop`。
     let onCommitApplications: ([URL], CGPoint) -> Void
     /// 悬停期的让位空档：(悬停目标, 拖的应用的 bundleID 或 nil, 这次拖放是不是只有文件夹, 落点)。
@@ -165,13 +167,17 @@ struct StripFileDropDelegate: DropDelegate {
             guard !urls.isEmpty else { return }
             // 落定这一刻按**真实 URL** 再判一次应用身份（悬停期读的是拖放剪贴板，只用来
             // 决定高亮和光标）。分流是硬的：`onCommit` 收到的绝不含应用。
-            let applications = urls.filter(DragPasteboardInspector.isApplication)
-            let files = urls.filter { !DragPasteboardInspector.isApplication($0) }
+            let split = StripDropRouting.commitSplit(target: target, fileTarget: fileTarget, urls: urls,
+                                                     isApplication: DragPasteboardInspector.isApplication)
+            if !split.trash.isEmpty {
+                onCommitTrash(split.trash)
+            }
+            let applications = split.keepApplications.compactMap(DragPasteboardInspector.applicationURL)
             if !applications.isEmpty {
                 onCommitApplications(applications, location)
             }
-            if !files.isEmpty, fileTarget != .none {
-                onCommit(fileTarget, files)
+            if let files = split.files {
+                onCommit(files.target, files.urls)
             }
         }
         return true
@@ -201,6 +207,8 @@ struct StripFileDropDelegate: DropDelegate {
             let draggedURLs: [URL]
             /// `StripDropRouting.dragPinsFolders` over the non-app items. Read from disk once per session.
             let pinsFolders: Bool
+            /// Every item is a volume root, so the Trash chip shows the eject icon, as on the native Dock.
+            let ejectsVolumes: Bool
         }
         private static var session: Session?
 
@@ -231,6 +239,11 @@ struct StripFileDropDelegate: DropDelegate {
             currentSession().pinsFolders
         }
 
+        /// Whether the drag is volume roots only (`TrashDropPlan.isVolumeRoot`).
+        static func ejectsVolumes() -> Bool {
+            currentSession().ejectsVolumes
+        }
+
         /// The dragged file URLs, read synchronously. Readable only while the session is alive.
         static func draggedURLs() -> [URL] {
             currentSession().draggedURLs
@@ -248,7 +261,7 @@ struct StripFileDropDelegate: DropDelegate {
             let dragged = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] ?? []
             // Trash items are filtered before the app check: a mixed drag keeps only the rest.
             let urls = dragged.filter { !isInsideTrash($0) }
-            let apps = urls.filter(isApplication)
+            let apps = urls.compactMap(applicationURL)
             let appIDs = apps.map { Bundle(url: $0)?.bundleIdentifier }
             var seen = Set<String>()
             let next = Session(
@@ -261,19 +274,21 @@ struct StripFileDropDelegate: DropDelegate {
                 pinsFolders: StripDropRouting.dragPinsFolders(
                     nonApplicationItemsAreDirectories: urls.filter { !isApplication($0) }.map { url in
                         url.isFileURL && ((try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false)
-                    })
+                    }),
+                ejectsVolumes: !urls.isEmpty && urls.allSatisfy(TrashDropPlan.isVolumeRoot)
             )
             session = next
             return next
         }
 
-        /// 是不是应用 bundle。先问 UTType（认得改过大小写 / 没有扩展名的 bundle），
-        /// 读不到再退到扩展名。`.app` 本身就是目录，所以**不能**用 `isDirectoryKey` 判。
+        /// 是不是应用 bundle（替身、访达别名按它指向的那个算）。判法见 `DroppedApplication`。
         static func isApplication(_ url: URL) -> Bool {
-            if let type = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType {
-                return type.conforms(to: .application)
-            }
-            return url.pathExtension.lowercased() == "app"
+            applicationURL(url) != nil
+        }
+
+        /// The bundle to read for a dragged item — its symlink / alias target when it is one.
+        static func applicationURL(_ url: URL) -> URL? {
+            DroppedApplication.bundleURL(for: url, homeDirectory: FileManager.default.homeDirectoryForCurrentUser)
         }
     }
 

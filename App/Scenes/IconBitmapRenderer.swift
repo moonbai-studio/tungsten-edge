@@ -66,6 +66,14 @@ final class IconBitmapCache {
     /// Rendered pixel sizes per icon, for the stand-in lookup while rendering is paused.
     private var renderedSizes: [String: [Int]] = [:]
 
+    func removeAll(name: String) {
+        let keys = bitmaps.keys.filter { $0.name == name }
+        for key in keys {
+            bitmaps.removeValue(forKey: key)
+            renderedSizes.removeValue(forKey: key.name + "|" + key.appearance)
+        }
+    }
+
     /// `allowsRendering == false` (a height drag in progress, where every tick is a new size)
     /// returns the nearest size already rendered and lets the layer scale it; the first request
     /// for an icon still renders, so nothing is ever drawn from the unrendered source.
