@@ -1408,14 +1408,17 @@ final class WindowLiftAvoidanceController {
                 )
             }
             if Task.isCancelled {
+                var acknowledgedFrame = nativeFrame
                 if case let .success(actualFrame) = result {
-                    rollbackCancelledWrite(
-                        reader: reader,
-                        element: element,
-                        nativeFrame: nativeFrame,
-                        attemptedFrame: actualFrame
-                    )
+                    acknowledgedFrame = actualFrame
                 }
+                // A cancelled pre-write read may leave the previous animation frame on screen.
+                rollbackCancelledWrite(
+                    reader: reader,
+                    element: element,
+                    nativeFrame: nativeFrame,
+                    attemptedFrame: acknowledgedFrame
+                )
                 return .cancelled
             }
             switch result {
@@ -1521,14 +1524,17 @@ final class WindowLiftAvoidanceController {
                     )
                 }
                 if Task.isCancelled {
+                    var acknowledgedFrame = expectedFrame
                     if case let .success(actualFrame) = result {
-                        rollbackCancelledWrite(
-                            reader: reader,
-                            element: element,
-                            nativeFrame: nativeFrame,
-                            attemptedFrame: actualFrame
-                        )
+                        acknowledgedFrame = actualFrame
                     }
+                    // A cancelled pre-write read may leave the previous animation frame on screen.
+                    rollbackCancelledWrite(
+                        reader: reader,
+                        element: element,
+                        nativeFrame: nativeFrame,
+                        attemptedFrame: acknowledgedFrame
+                    )
                     return .cancelled
                 }
                 switch result {
@@ -1704,14 +1710,17 @@ final class WindowLiftAvoidanceController {
                 )
             }
             if Task.isCancelled {
+                var acknowledgedFrame = expectedFrame
                 if case let .success(actualFrame) = result {
-                    rollbackCancelledWrite(
-                        reader: reader,
-                        element: element,
-                        nativeFrame: nativeFrame,
-                        attemptedFrame: actualFrame
-                    )
+                    acknowledgedFrame = actualFrame
                 }
+                // A cancelled pre-write read may leave the previous animation frame on screen.
+                rollbackCancelledWrite(
+                    reader: reader,
+                    element: element,
+                    nativeFrame: nativeFrame,
+                    attemptedFrame: acknowledgedFrame
+                )
                 return .cancelled
             }
             switch result {
