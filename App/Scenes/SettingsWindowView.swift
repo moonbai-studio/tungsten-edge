@@ -114,6 +114,8 @@ struct SettingsWindowContent: View {
                         Spacer(minLength: 12)
                         appearanceCards
                     }
+                    minimizeOnDockClickToggle
+                        .toggleStyle(.switch)
                     if Self.showsFrontWindowBarToggle {
                         frontWindowBarToggle
                             .toggleStyle(.switch)
@@ -150,6 +152,15 @@ struct SettingsWindowContent: View {
                         Text("Appearance")
                     } control: {
                         appearanceCards
+                    }
+                    Divider().opacity(0.5)
+                    groupRow {
+                        Text("Minimize windows by clicking Dock icons")
+                    } control: {
+                        minimizeOnDockClickToggle
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
                     }
                     if Self.showsFrontWindowBarToggle {
                         Divider().opacity(0.5)
@@ -526,6 +537,13 @@ struct SettingsWindowContent: View {
     /// The front-window bar is held back from release: the row stays built (its strings stay referenced
     /// for check_localization) but is not shown, so `frontWindowBar` keeps its default off.
     private static let showsFrontWindowBarToggle = false
+
+    private var minimizeOnDockClickToggle: some View {
+        Toggle(
+            "Minimize windows by clicking Dock icons",
+            isOn: binding(get: { store.minimizeOnDockClick }, set: store.setMinimizeOnDockClick)
+        )
+    }
 
     private var frontWindowBarToggle: some View {
         Toggle(

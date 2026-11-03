@@ -36,7 +36,7 @@ The drawer, unread badges for messaging apps, pinned folders, a taskbar on every
 
 ## Features
 
-- **Window-level taskbar** — one card per window; multi-window apps split into multiple cards; click to switch / minimize.
+- **Window-level taskbar** — one card per window; multi-window apps split into multiple cards; click to switch. Optional click-to-minimize is available in Settings → General.
 - **Card states you can read at a glance** — a greyed-out title means that window is not on the desktop right now (minimized, or its whole app is hidden); click the card and it comes back. Windows on other desktops (Spaces) are **not** greyed: they stay listed on the taskbar, and clicking one switches you to that desktop.
 - **Smart native-tab merging** — apps where "tabs are windows" (Ghostty, Finder) keep a stable card while you switch tabs: it won't jump around or split.
 - **App drawer** — stash rarely-used apps into a drawer on the right to keep the strip clean; pin favorites in the drawer to use it as a launcher.
@@ -129,6 +129,7 @@ Open it from **Settings…** in the status menu, or by **right-clicking the draw
 - **General**
   - **Language** — any of the ten interface languages (Spanish and Portuguese each offer two regional variants). **Until you pick one, Tungsten Edge follows the system language** (English when the system language is not one of them); the picker shows whichever is currently in effect. Picking one fixes it, and it no longer follows the system afterwards (to go back to automatic on macOS 13 and later, set Tungsten Edge back to Automatic in System Settings → General → Language & Region → Applications). Uses the same per-app language mechanism as macOS 13+'s Language & Region, and brings it to macOS 12; takes effect after a restart (the prompt offers one-click relaunch).
   - **Appearance** — three cards: **System** (follows macOS light / dark), **Light**, **Dark**. Applies to the taskbar, drawer, popups and the settings window at once.
+  - **Minimize windows by clicking Dock icons** — off by default. When enabled, clicking the already-frontmost window minimizes it; clicking again restores it. Background windows are activated first. When off, clicks only activate or restore windows.
   - **Show/hide taskbar shortcut** — click the recorder, press a new combination, done (default `⌥⇧⌘D`; *Reset to Default* brings it back). Combinations that would clash with macOS — `⌥⌘D`, Option-only, Control-Option without Command — are rejected with an explanation, and if another app already owns the combination the previous shortcut stays active.
   - **Reverse mouse scroll direction** — off by default. Flips mouse-wheel scrolling system-wide, like Scroll Reverser, so the wheel can scroll Windows-style while the trackpad keeps macOS natural scrolling. Trackpads and Magic Mouse are not affected. If Scroll Reverser or Mos is also running, the two cancel out — keep only one. See [Global input observation](#global-input-observation) for what this touches.
   - **Show Setup Guide Again** — reopens the first-run guide with its three recommended Dock settings (hide the Dock, use the scale minimize effect, minimize windows into the app icon). The guide only appears by itself once, so this button is the way back to it.

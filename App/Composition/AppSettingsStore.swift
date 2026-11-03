@@ -107,6 +107,8 @@ final class AppSettingsStore: ObservableObject {
     /// short bar (`FrontWindowIndicatorDecision`). Off by default for everyone (owner 2026-10-16),
     /// so it sits in `register(defaults:)` like the other plain toggles — no fresh-install seed.
     @Published private(set) var frontWindowBar: Bool
+    /// Click an already-frontmost Dock window to minimize it. Opt-in for all installs.
+    @Published private(set) var minimizeOnDockClick: Bool
     /// 任务条尺寸档位。面板几何与条内所有 chip 尺寸都由它派生。
     @Published private(set) var dockPanelHeight: DockPanelHeight
     /// 悬停效果档位。只影响条内 chip 的悬停视觉，静息布局逐像素不变（因此无需 relayout）。
@@ -175,6 +177,7 @@ final class AppSettingsStore: ObservableObject {
             Keys.showShelf: true,
             Keys.showTrash: true,
             Keys.frontWindowBar: false,
+            Keys.minimizeOnDockClick: false,
             Keys.fullscreenIntentEnabled: true,
             Keys.nativeDockAutoHideDelay: Self.defaultNativeDockAutoHideDelay,
             // 首次安装 = 常驻；remembered 的种子仍是有限档，见常量注释。
@@ -185,6 +188,7 @@ final class AppSettingsStore: ObservableObject {
         showShelf = defaults.bool(forKey: Keys.showShelf)
         showTrash = defaults.bool(forKey: Keys.showTrash)
         frontWindowBar = defaults.bool(forKey: Keys.frontWindowBar)
+        minimizeOnDockClick = defaults.bool(forKey: Keys.minimizeOnDockClick)
         // 有意**不**进上面的 register：缺键即 false = 老用户维持关。
         // 全新安装那一次由 `seedWindowLiftEnabledForFreshInstall()` 显式写成 true——
         // register 一个 true 会把**所有**从没碰过这个开关的老用户一并打开，而这个功能
@@ -376,6 +380,12 @@ final class AppSettingsStore: ObservableObject {
         defaults.set(value, forKey: Keys.showTrash)
     }
 
+    func setMinimizeOnDockClick(_ value: Bool) {
+        guard minimizeOnDockClick != value else { return }
+        minimizeOnDockClick = value
+        defaults.set(value, forKey: Keys.minimizeOnDockClick)
+    }
+
     func setFrontWindowBar(_ value: Bool) {
         guard frontWindowBar != value else { return }
         frontWindowBar = value
@@ -552,6 +562,7 @@ private enum Keys {
     // Never read the retired com.tungsten.edge.trash.visible key.
     static let showTrash = "com.tungsten.edge.showTrash"
     static let frontWindowBar = "com.tungsten.edge.frontWindowBar"
+    static let minimizeOnDockClick = "com.tungsten.edge.minimizeOnDockClick"
     /// Continuous bar height in points (since the drag-to-resize release).
     static let dockPanelHeight = "com.tungsten.edge.dockPanelHeight"
     /// Legacy four-tier raw string. **Read once for migration, never written or removed.**

@@ -86,7 +86,7 @@ final class AppRuntime: ObservableObject {
     func diagnosticApps() -> [AppEntry] { tracker.diagnosticApps() }
     var diagnosticAdmissions: [pid_t: DiagnosticAdmissionRecord] { tracker.lastAdmissionVerdictByPID }
     private let displayTableProvider: @MainActor () -> WindowDisplayAttribution.Table
-    private let intentPipeline = IntentPipeline(actionPlanning: LifecycleActionPlanner())
+    private let intentPipeline: IntentPipeline
     private let actionExecutor = PlatformActionExecutor()
     private let isAccessibilityTrusted: () -> Bool
     private var snapshotSubscription: AnyCancellable?
@@ -108,6 +108,7 @@ final class AppRuntime: ObservableObject {
     private static let launchPolicyRecheckDeadlines: [TimeInterval] = [1.5, 3.0, 5.0]
 
     init(
+        minimizeOnDockClick: @escaping () -> Bool,
         inventoryLog: WindowInventoryAnomalyLog = WindowInventoryAnomalyLog(),
         debugState: DebugRuntimeState? = nil,
         displayTableProvider: @escaping @MainActor () -> WindowDisplayAttribution.Table = {
@@ -115,6 +116,9 @@ final class AppRuntime: ObservableObject {
         },
         isAccessibilityTrusted: @escaping () -> Bool = { PermissionService().hasRequiredPermissions() }
     ) {
+        intentPipeline = IntentPipeline(
+            actionPlanning: LifecycleActionPlanner(minimizeOnDockClick: minimizeOnDockClick)
+        )
         tracker = AppTracker(inventoryLog: inventoryLog, displayTableProvider: displayTableProvider)
         self.displayTableProvider = displayTableProvider
         self.debugState = debugState ?? DebugRuntimeState()
