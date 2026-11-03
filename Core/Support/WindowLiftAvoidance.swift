@@ -27,6 +27,8 @@ enum WindowLiftAvoidance {
     static let userRestoreAnimationDuration: TimeInterval = 0.25
     static let animationFramesPerSecond: Double = 30
     static let globalDetectionInterval: TimeInterval = 0.2
+    /// AX geometry notifications can precede the final WindowServer frame during native zoom/tiling.
+    static let geometryConfirmationInterval: TimeInterval = 0.6
     static let trackedSessionProbeInterval: TimeInterval = 0.05
     static let maximumReliftCount = 1
     /// 抢顶型应用在 ~450ms 内抢回铺满（Docs/05）；超过这个窗口的铺满重现按用户操作处理。
@@ -69,25 +71,34 @@ enum WindowLiftAvoidance {
 
         private(set) var pending = false
         private(set) var lastStartedAt: TimeInterval?
+        private(set) var settlingUntil: TimeInterval?
 
-        mutating func request(at now: TimeInterval, scanInFlight: Bool) -> Action {
+        mutating func request(
+            at now: TimeInterval,
+            scanInFlight: Bool,
+            settleFor duration: TimeInterval = 0
+        ) -> Action {
             pending = true
+            if duration.isFinite, duration > 0 {
+                settlingUntil = max(settlingUntil ?? now, now + duration)
+            }
             return drain(at: now, scanInFlight: scanInFlight)
         }
 
         mutating func scanCompleted(at now: TimeInterval) -> Action {
-            guard pending else { return .none }
+            guard pending || settlingUntil != nil else { return .none }
             return drain(at: now, scanInFlight: false)
         }
 
         mutating func cooldownFired(at now: TimeInterval, scanInFlight: Bool) -> Action {
-            guard pending else { return .none }
+            guard pending || settlingUntil != nil else { return .none }
             return drain(at: now, scanInFlight: scanInFlight)
         }
 
         mutating func reset() {
             pending = false
             lastStartedAt = nil
+            settlingUntil = nil
         }
 
         private mutating func drain(at now: TimeInterval, scanInFlight: Bool) -> Action {
@@ -98,6 +109,9 @@ enum WindowLiftAvoidance {
             }
             pending = false
             lastStartedAt = now
+            if let settlingUntil, now + 0.000_001 >= settlingUntil {
+                self.settlingUntil = nil
+            }
             return .start
         }
     }

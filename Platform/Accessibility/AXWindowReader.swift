@@ -452,6 +452,27 @@ struct AXWindowReader: AppTrackerWindowReading, Sendable {
         )
     }
 
+    /// A native zoom/tile animation can briefly stop answering AX frame reads. Retry only
+    /// this pre-write failure; mismatches and failures after a write keep their existing handling.
+    static func retryingInitialFrameRead(
+        wait: (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) },
+        operation: () -> AXWindowFrameWriteResult
+    ) async -> AXWindowFrameWriteResult {
+        var result = AXWindowFrameWriteResult.failure(reason: .initialFrameUnavailable, rollback: .notRequested)
+        for delay: UInt64 in [0, 50_000_000, 100_000_000] {
+            guard !Task.isCancelled else { return result }
+            if delay > 0 {
+                do { try await wait(delay) } catch { return result }
+            }
+            guard !Task.isCancelled else { return result }
+            result = operation()
+            guard case .failure(reason: .initialFrameUnavailable, rollback: .notRequested) = result else {
+                return result
+            }
+        }
+        return result
+    }
+
     func setSize(
         _ size: CGSize,
         for element: AXUIElement,
