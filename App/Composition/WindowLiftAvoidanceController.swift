@@ -515,8 +515,13 @@ final class WindowLiftAvoidanceController {
         subscribeWorkspaceNotifications()
 
         let geometryObserver = FrontmostWindowGeometryObserver()
-        geometryObserver.onEvent = { [weak self] _ in
-            self?.requestEventPoll()
+        geometryObserver.onEvent = { [weak self] event in
+            switch event {
+            case .geometryChanged, .focusedWindowChanged, .windowCreated:
+                self?.requestEventPoll(settlesGeometry: true)
+            case .windowDestroyed:
+                self?.requestEventPoll()
+            }
         }
         self.geometryObserver = geometryObserver
         let initialPID = NSWorkspace.shared.runningApplications.first(where: { $0.isActive })?
@@ -673,7 +678,7 @@ final class WindowLiftAvoidanceController {
         // transient validation/session clear. Preserve that behavior when dropping to idle.
         if previousInterval == WindowLiftAvoidance.globalDetectionInterval,
            interval == WindowLiftAvoidance.PollCadence.idleInterval {
-            Task { @MainActor [weak self] in self?.requestEventPoll() }
+            Task { @MainActor [weak self] in self?.requestEventPoll(settlesGeometry: true) }
         }
     }
 
@@ -681,11 +686,12 @@ final class WindowLiftAvoidanceController {
         pollTimerInterval == WindowLiftAvoidance.globalDetectionInterval
     }
 
-    private func requestEventPoll() {
+    private func requestEventPoll(settlesGeometry: Bool = false) {
         guard isEnabled, !usesFastPollCadence else { return }
         let action = eventPollCoalescer.request(
             at: ProcessInfo.processInfo.systemUptime,
-            scanInFlight: scanInFlight
+            scanInFlight: scanInFlight,
+            settleFor: settlesGeometry ? WindowLiftAvoidance.geometryConfirmationInterval : 0
         )
         performEventPollAction(action, trailing: false)
     }
@@ -1391,23 +1397,28 @@ final class WindowLiftAvoidanceController {
         primaryScreenHeight: CGFloat
     ) async -> OperationOutcome {
         if !animated {
-            let result = reader.setSize(
-                targetFrame.size,
-                for: element,
-                messagingTimeout: windowLiftAXMessagingTimeout,
-                verificationTolerance: WindowLiftAvoidance.verificationTolerance,
-                onlyIfCurrentMatches: nativeFrame,
-                restoreOnFailureTo: nil
-            )
+            let result = await AXWindowReader.retryingInitialFrameRead {
+                reader.setSize(
+                    targetFrame.size,
+                    for: element,
+                    messagingTimeout: windowLiftAXMessagingTimeout,
+                    verificationTolerance: WindowLiftAvoidance.verificationTolerance,
+                    onlyIfCurrentMatches: nativeFrame,
+                    restoreOnFailureTo: nil
+                )
+            }
             if Task.isCancelled {
+                var acknowledgedFrame = nativeFrame
                 if case let .success(actualFrame) = result {
-                    rollbackCancelledWrite(
-                        reader: reader,
-                        element: element,
-                        nativeFrame: nativeFrame,
-                        attemptedFrame: actualFrame
-                    )
+                    acknowledgedFrame = actualFrame
                 }
+                // A cancelled pre-write read may leave the previous animation frame on screen.
+                rollbackCancelledWrite(
+                    reader: reader,
+                    element: element,
+                    nativeFrame: nativeFrame,
+                    attemptedFrame: acknowledgedFrame
+                )
                 return .cancelled
             }
             switch result {
@@ -1502,23 +1513,28 @@ final class WindowLiftAvoidanceController {
             let now = ProcessInfo.processInfo.systemUptime
             let animationElapsed = now - animationStartedAt
             if animationElapsed >= WindowLiftAvoidance.animationDuration {
-                let result = reader.setSize(
-                    targetFrame.size,
-                    for: element,
-                    messagingTimeout: windowLiftAXMessagingTimeout,
-                    verificationTolerance: WindowLiftAvoidance.verificationTolerance,
-                    onlyIfCurrentMatches: expectedFrame,
-                    restoreOnFailureTo: nil
-                )
+                let result = await AXWindowReader.retryingInitialFrameRead {
+                    reader.setSize(
+                        targetFrame.size,
+                        for: element,
+                        messagingTimeout: windowLiftAXMessagingTimeout,
+                        verificationTolerance: WindowLiftAvoidance.verificationTolerance,
+                        onlyIfCurrentMatches: expectedFrame,
+                        restoreOnFailureTo: nil
+                    )
+                }
                 if Task.isCancelled {
+                    var acknowledgedFrame = expectedFrame
                     if case let .success(actualFrame) = result {
-                        rollbackCancelledWrite(
-                            reader: reader,
-                            element: element,
-                            nativeFrame: nativeFrame,
-                            attemptedFrame: actualFrame
-                        )
+                        acknowledgedFrame = actualFrame
                     }
+                    // A cancelled pre-write read may leave the previous animation frame on screen.
+                    rollbackCancelledWrite(
+                        reader: reader,
+                        element: element,
+                        nativeFrame: nativeFrame,
+                        attemptedFrame: acknowledgedFrame
+                    )
                     return .cancelled
                 }
                 switch result {
@@ -1683,23 +1699,28 @@ final class WindowLiftAvoidanceController {
                 width: attemptedFrame.width.rounded(),
                 height: attemptedFrame.height.rounded()
             )
-            let result = reader.setSize(
-                attemptedSize,
-                for: element,
-                messagingTimeout: windowLiftAXMessagingTimeout,
-                verificationTolerance: WindowLiftAvoidance.verificationTolerance,
-                onlyIfCurrentMatches: expectedFrame,
-                restoreOnFailureTo: nil
-            )
+            let result = await AXWindowReader.retryingInitialFrameRead {
+                reader.setSize(
+                    attemptedSize,
+                    for: element,
+                    messagingTimeout: windowLiftAXMessagingTimeout,
+                    verificationTolerance: WindowLiftAvoidance.verificationTolerance,
+                    onlyIfCurrentMatches: expectedFrame,
+                    restoreOnFailureTo: nil
+                )
+            }
             if Task.isCancelled {
+                var acknowledgedFrame = expectedFrame
                 if case let .success(actualFrame) = result {
-                    rollbackCancelledWrite(
-                        reader: reader,
-                        element: element,
-                        nativeFrame: nativeFrame,
-                        attemptedFrame: actualFrame
-                    )
+                    acknowledgedFrame = actualFrame
                 }
+                // A cancelled pre-write read may leave the previous animation frame on screen.
+                rollbackCancelledWrite(
+                    reader: reader,
+                    element: element,
+                    nativeFrame: nativeFrame,
+                    attemptedFrame: acknowledgedFrame
+                )
                 return .cancelled
             }
             switch result {

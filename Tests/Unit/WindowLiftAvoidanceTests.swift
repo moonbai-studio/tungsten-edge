@@ -1700,6 +1700,48 @@ final class WindowLiftAvoidanceTests: XCTestCase {
         }
     }
 
+    func testSingleGeometryEventConfirmsFinalFrameWithoutAnotherClick() {
+        var coalescer = WindowLiftAvoidance.EventPollCoalescer()
+        XCTAssertEqual(coalescer.request(at: 10, scanInFlight: false,
+                                        settleFor: WindowLiftAvoidance.geometryConfirmationInterval), .start)
+        // The leading CG sample can still contain the pre-maximize/pre-tile frame.
+        for startedAt in [10.0, 10.2, 10.4] {
+            guard case let .schedule(delay) = coalescer.scanCompleted(at: startedAt + 0.01) else {
+                return XCTFail("a single geometry event must keep checking through the native animation")
+            }
+            XCTAssertEqual(delay, 0.19, accuracy: 0.0001)
+            XCTAssertEqual(coalescer.cooldownFired(at: startedAt + 0.2, scanInFlight: false), .start)
+        }
+        XCTAssertEqual(coalescer.scanCompleted(at: 10.61), .none)
+        XCTAssertNil(coalescer.settlingUntil, "the burst must stop instead of becoming permanent fast polling")
+    }
+
+    func testGeometryEventDuringPeriodicScanStillGetsFinalConfirmation() {
+        var coalescer = WindowLiftAvoidance.EventPollCoalescer()
+        XCTAssertEqual(coalescer.request(at: 20, scanInFlight: true, settleFor: 0.6), .none)
+        XCTAssertEqual(coalescer.scanCompleted(at: 20.05), .start)
+        guard case let .schedule(delay) = coalescer.scanCompleted(at: 20.06) else {
+            return XCTFail("the old periodic snapshot must not consume the geometry confirmation")
+        }
+        XCTAssertEqual(delay, 0.19, accuracy: 0.0001)
+        XCTAssertEqual(coalescer.cooldownFired(at: 20.65, scanInFlight: false), .start)
+        XCTAssertEqual(coalescer.scanCompleted(at: 20.66), .none)
+    }
+
+    func testResizeBurstExtendsConfirmationAndStopClearsIt() {
+        var coalescer = WindowLiftAvoidance.EventPollCoalescer()
+        XCTAssertEqual(coalescer.request(at: 30, scanInFlight: false, settleFor: 0.6), .start)
+        _ = coalescer.request(at: 30.15, scanInFlight: true, settleFor: 0.6)
+        XCTAssertEqual(coalescer.settlingUntil ?? 0, 30.75, accuracy: 0.0001)
+        XCTAssertEqual(coalescer.cooldownFired(at: 30.6, scanInFlight: false), .start)
+        guard case .schedule = coalescer.scanCompleted(at: 30.61) else {
+            return XCTFail("the last resize needs its own settled-frame confirmation")
+        }
+        coalescer.reset()
+        XCTAssertNil(coalescer.settlingUntil)
+        XCTAssertEqual(coalescer.cooldownFired(at: 31, scanInFlight: false), .none)
+    }
+
     func testEventPollCoalescerStartsLeadingAndOneTrailingPoll() {
         var coalescer = WindowLiftAvoidance.EventPollCoalescer()
 

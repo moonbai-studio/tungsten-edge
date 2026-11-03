@@ -23,11 +23,67 @@ final class FinderP0Tests: XCTestCase {
         XCTAssertEqual(merged, .minimized)
     }
 
+    func testDockClickDefaultsToActivateForEveryWindowState() {
+        let id = WindowID(rawValue: "cg-default-click")
+        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+
+        for status in [WindowStatus.active, .inactive, .minimized, .hidden] {
+            XCTAssertEqual(
+                planner.plan(intent: .toggle(id), snapshot: snapshot(windowID: id, status: status)).kind,
+                .activateWindow
+            )
+        }
+        let optimisticActive = [id.rawValue: OptimisticWindowState(status: .active, createdAt: Date())]
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: snapshot(windowID: id, status: .inactive),
+                         optimisticStates: optimisticActive).kind,
+            .activateWindow
+        )
+        let fallbackID = WindowID(rawValue: "app-com.example.running")
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(fallbackID), snapshot: snapshot(windowID: fallbackID, status: .active)).kind,
+            .activateWindow
+        )
+    }
+
+    @MainActor
+    func testDockClickReadsSettingChangesWithoutRecreatingPlanner() {
+        let suite = "com.tungsten.edge.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = AppSettingsStore(defaults: defaults)
+        let planner = LifecycleActionPlanner(
+            minimizeOnDockClick: { store.minimizeOnDockClick },
+            isAppFrontmost: { _ in true }
+        )
+        let id = WindowID(rawValue: "cg-live-click-setting")
+        let active = snapshot(windowID: id, status: .active)
+
+        XCTAssertEqual(planner.plan(intent: .toggle(id), snapshot: active).kind, .activateWindow)
+        store.setMinimizeOnDockClick(true)
+        XCTAssertEqual(planner.plan(intent: .toggle(id), snapshot: active).kind, .minimizeWindow)
+        XCTAssertEqual(
+            planner.plan(intent: .toggle(id), snapshot: snapshot(windowID: id, status: .minimized)).kind,
+            .activateWindow
+        )
+        store.setMinimizeOnDockClick(false)
+        XCTAssertEqual(planner.plan(intent: .toggle(id), snapshot: active).kind, .activateWindow)
+    }
+
+    func testExplicitMinimizeAndHideRemainAvailableWhenClickMinimizeIsOff() {
+        let id = WindowID(rawValue: "cg-explicit-action")
+        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+        let active = snapshot(windowID: id, status: .active)
+
+        XCTAssertEqual(planner.plan(intent: .minimize(id), snapshot: active).kind, .minimizeWindow)
+        XCTAssertEqual(planner.plan(intent: .hide(id), snapshot: active).kind, .hideApp)
+    }
+
     func testToggleUsesSnapshotStatus() {
         let id = WindowID(rawValue: "cg-1")
         // 前台轴走注入桩（真实读数对测试假 pid 永远 false，无法覆盖 minimize 分支）。
-        let frontmostPlanner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
-        let backgroundPlanner = LifecycleActionPlanner(isAppFrontmost: { _ in false })
+        let frontmostPlanner = LifecycleActionPlanner(minimizeOnDockClick: { true }, isAppFrontmost: { _ in true })
+        let backgroundPlanner = LifecycleActionPlanner(minimizeOnDockClick: { true }, isAppFrontmost: { _ in false })
         let activeSnapshot = snapshot(windowID: id, status: .active)
         let inactiveSnapshot = snapshot(windowID: id, status: .inactive)
         let minimizedSnapshot = snapshot(windowID: id, status: .minimized)
@@ -56,7 +112,7 @@ final class FinderP0Tests: XCTestCase {
     /// 严格交替的根。
     func testToggleAlternatesViaOptimisticStateWhileSnapshotIsStale() {
         let id = WindowID(rawValue: "cg-optimistic")
-        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+        let planner = LifecycleActionPlanner(minimizeOnDockClick: { true }, isAppFrontmost: { _ in true })
         let staleActiveSnapshot = snapshot(windowID: id, status: .active)
 
         let afterMinimize = [
@@ -81,7 +137,7 @@ final class FinderP0Tests: XCTestCase {
     /// 绝不能被残留乐观态带成 minimize（曾把该激活的点击直接最小化）。
     func testToggleWithStaleOptimisticActiveButAppNotFrontmostPlansActivate() {
         let id = WindowID(rawValue: "cg-stale-optimistic")
-        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in false })
+        let planner = LifecycleActionPlanner(minimizeOnDockClick: { true }, isAppFrontmost: { _ in false })
         let lingering = [
             id.rawValue: OptimisticWindowState(status: .active, createdAt: Date())
         ]
@@ -1985,7 +2041,7 @@ final class FinderP0Tests: XCTestCase {
                 orderedWindowIDs: records.map(\.id)
             )
         }
-        let planner = LifecycleActionPlanner(isAppFrontmost: { _ in true })
+        let planner = LifecycleActionPlanner(minimizeOnDockClick: { true }, isAppFrontmost: { _ in true })
         let optimisticW2Active = ["cg-inflight-2": OptimisticWindowState(status: .active, createdAt: Date())]
 
         // 纯函数：兄弟乐观 .active 未兑现 → 在飞

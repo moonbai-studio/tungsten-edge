@@ -3,6 +3,66 @@ import Combine
 import XCTest
 
 final class AXWindowReaderResultTests: XCTestCase {
+    func testSizeWriteWaitsForTransientInitialReadThenSucceeds() async {
+        var attempts = 0
+        var delays: [UInt64] = []
+        let target = CGRect(x: 0, y: 0, width: 900, height: 600)
+        let result = await AXWindowReader.retryingInitialFrameRead(wait: { delays.append($0) }) {
+            attempts += 1
+            return attempts < 3
+                ? .failure(reason: .initialFrameUnavailable, rollback: .notRequested)
+                : .success(actualFrame: target)
+        }
+        XCTAssertEqual(result, .success(actualFrame: target))
+        XCTAssertEqual(attempts, 3)
+        XCTAssertEqual(delays, [50_000_000, 100_000_000])
+    }
+
+    func testSizeWriteReadRetriesAreBoundedForAnUnreachableWindow() async {
+        var attempts = 0
+        let unread = AXWindowFrameWriteResult.failure(reason: .initialFrameUnavailable, rollback: .notRequested)
+        let result = await AXWindowReader.retryingInitialFrameRead(wait: { _ in }) {
+            attempts += 1
+            return unread
+        }
+        XCTAssertEqual(result, unread)
+        XCTAssertEqual(attempts, 3)
+    }
+
+    func testSizeWriteDoesNotRetryAUserFrameMismatchOrPostWriteFailure() async {
+        let original = CGRect(x: 0, y: 0, width: 900, height: 600)
+        let moved = original.offsetBy(dx: 50, dy: 20)
+        for reason in [AXWindowFrameWriteFailure.initialFrameMismatch(expected: original, actual: moved),
+                       .verificationUnavailable, .writeFailed(attribute: .size, error: .cannotComplete)] {
+            var attempts = 0
+            let failure = AXWindowFrameWriteResult.failure(reason: reason, rollback: .notRequested)
+            let result = await AXWindowReader.retryingInitialFrameRead(wait: { _ in
+                XCTFail("a user move or a potentially mutating failure must not be retried")
+            }) {
+                attempts += 1
+                return failure
+            }
+            XCTAssertEqual(result, failure)
+            XCTAssertEqual(attempts, 1)
+        }
+    }
+
+    func testSizeWriteCancellationDuringReadWaitPreventsAnotherWrite() async {
+        let task = Task {
+            var attempts = 0
+            let result = await AXWindowReader.retryingInitialFrameRead(wait: { _ in
+                withUnsafeCurrentTask { $0?.cancel() }
+            }) {
+                attempts += 1
+                return .failure(reason: .initialFrameUnavailable, rollback: .notRequested)
+            }
+            return (attempts, result)
+        }
+        let (attempts, result) = await task.value
+        XCTAssertEqual(attempts, 1)
+        XCTAssertEqual(result, .failure(reason: .initialFrameUnavailable, rollback: .notRequested))
+    }
+
     func testSuccessPreservesOriginalWindowArray() {
         let snapshot = AXWindowSnapshot(
             pid: 42,

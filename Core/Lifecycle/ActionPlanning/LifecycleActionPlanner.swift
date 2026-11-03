@@ -51,13 +51,19 @@ final class LifecycleActionPlanner {
     /// 前台轴检查，默认 = 新建 NSRunningApplication 实例的即时 isActive 读
     ///（SkyLight 切换后立即翻面，Docs/22 §11 POSTACTIVATE 实证；测试注入桩）。
     private let isAppFrontmost: (pid_t) -> Bool
+    /// Read on each click so a settings change takes effect without rebuilding the runtime.
+    private let minimizeOnDockClick: () -> Bool
     /// 陈旧 active 护栏杀开关（默认开）。关掉即回「快照/乐观 active + 前台 = 收起」旧判定。
     private static let staleActiveGuardEnabled =
         DebugSwitch.staleActiveGuard.isEnabled(in: ProcessInfo.processInfo.environment)
 
-    init(isAppFrontmost: @escaping (pid_t) -> Bool = {
-        NSRunningApplication(processIdentifier: $0)?.isActive == true
-    }) {
+    init(
+        minimizeOnDockClick: @escaping () -> Bool = { false },
+        isAppFrontmost: @escaping (pid_t) -> Bool = {
+            NSRunningApplication(processIdentifier: $0)?.isActive == true
+        }
+    ) {
+        self.minimizeOnDockClick = minimizeOnDockClick
         self.isAppFrontmost = isAppFrontmost
     }
 
@@ -68,7 +74,8 @@ final class LifecycleActionPlanner {
     ) -> PlatformActionRequest {
         switch intent {
         case let .toggle(id):
-            guard let record = snapshot.windows[id] else {
+            // The opt-in only gates primary clicks; explicit menu actions stay available.
+            guard minimizeOnDockClick(), let record = snapshot.windows[id] else {
                 return PlatformActionRequest(kind: .activateWindow, windowID: id)
             }
             // 乐观态优先（仅 status 轴）：上一个动作刚发出、快照还没翻面时，按预测态规划，

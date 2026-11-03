@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 在场屏幕表的唯一来源：窗口清单（归属键）与任务条投影（多屏 ④ 按屏过滤）都读它。
     let displayTopologyStore = DisplayTopologyStore(initialSnapshot: DisplayIdentity.topologySnapshot())
     private(set) lazy var runtime = AppRuntime(
+        minimizeOnDockClick: { [settingsStore] in settingsStore.minimizeOnDockClick },
         inventoryLog: inventoryLog,
         displayTableProvider: { [displayTopologyStore] in displayTopologyStore.table },
         isAccessibilityTrusted: { [weak self] in self?.cachedAccessibilityTrusted ?? false }

@@ -118,6 +118,28 @@ final class AppSettingsStoreTests: XCTestCase {
         XCTAssertTrue(AppSettingsStore(defaults: defaults).frontWindowBar)
     }
 
+    func testMinimizeOnDockClickDefaultsToOffAndPersistsBothValues() {
+        let defaults = makeDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertFalse(store.minimizeOnDockClick)
+        store.setMinimizeOnDockClick(true)
+        XCTAssertTrue(store.minimizeOnDockClick)
+        let reloaded = AppSettingsStore(defaults: defaults)
+        XCTAssertTrue(reloaded.minimizeOnDockClick)
+
+        reloaded.setMinimizeOnDockClick(false)
+        XCTAssertFalse(reloaded.minimizeOnDockClick)
+        XCTAssertFalse(AppSettingsStore(defaults: defaults).minimizeOnDockClick)
+    }
+
+    func testExistingPreferencesDoNotEnableMinimizeOnDockClick() {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "com.tungsten.edge.showShelf")
+
+        XCTAssertFalse(AppSettingsStore(defaults: defaults).minimizeOnDockClick)
+    }
+
     func testShowShelfDefaultsToOnAndPersists() {
         let defaults = makeDefaults()
         XCTAssertTrue(AppSettingsStore(defaults: defaults).showShelf, "默认显示中转格，升级不改变现有观感")
