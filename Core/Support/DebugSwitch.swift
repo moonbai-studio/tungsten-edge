@@ -11,6 +11,8 @@ enum DebugSwitch: String, CaseIterable, Sendable {
     enum Kind: Sendable { case killSwitch, trace, value }
 
     // MARK: 默认开的机制开关（=0 关）
+    /// Local privacy-safe issue history, independent of InventoryLog.
+    case issueLog = "DOCK_ISSUE_LOG"
     /// AX 事件读走限时后台批读；=0 退回主线程不限时同步读
     case eventAxAsync = "DOCK_EVENT_AX_ASYNC"
     /// 5s 周期对账的 per-pid 跳过门（PeriodicReconcileSkipDecision）
@@ -179,7 +181,7 @@ enum DebugSwitch: String, CaseIterable, Sendable {
 
     var kind: Kind {
         switch self {
-        case .eventAxAsync, .reconcileSkip, .scanGate, .frontmostCache,
+        case .issueLog, .eventAxAsync, .reconcileSkip, .scanGate, .frontmostCache,
              .cgSnapshotReuse, .axElementCache, .absentSeatRelease, .skylightFocus, .fastWindowHandle,
              .badgeTargeted, .badgePause, .minimizeSettleGate, .handoffActiveGrace,
              .handoffActivePrediction, .staleActiveGuard, .dragLanding, .liquidGlass, .liquidGlassDockRefraction,

@@ -42,6 +42,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let window = window ?? makeWindow()
         let diagnostics = diagnosticsSession ?? DiagnosticsSession()
         diagnosticsSession = diagnostics
+        if tabState.selected == .diagnostics { diagnostics.loadIssues() }
         if let closedFrame {
             window.setFrame(closedFrame, display: false)
             self.closedFrame = nil
@@ -127,6 +128,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private func select(tab: SettingsTab) {
         // 点已选中的标签早退，不空放一遍高度动画。
         guard tabState.selected != tab else { return }
+        if tab == .diagnostics { diagnosticsSession?.loadIssues() }
         // **先改再量**：量高探针共享这份 tabState，改完它量到的才是新页。
         tabState.selected = tab
         window?.toolbar?.selectedItemIdentifier = NSToolbarItem.Identifier(tab.rawValue)

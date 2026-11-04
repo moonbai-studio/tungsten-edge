@@ -163,6 +163,7 @@ final class AppTracker: ObservableObject {
     private var lastReconcileAtByPID: [pid_t: Date] = [:]
     private var shadowPoolDiagnosticsByPID: [pid_t: ShadowPoolDiagnosticState] = [:]
     private var heldLogDeduplicator = InventoryPhantomHeldDeduplicator()
+    private var issueUnreadStreaks: [pid_t: IssueUnreadStreak] = [:]
 
     private struct PendingEventRead {
         let token: UInt64
@@ -256,6 +257,7 @@ final class AppTracker: ObservableObject {
     private let windowEligibility = AppTrackerWindowEligibility()
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "app-tracker")
     private let inventoryLog: WindowInventoryAnomalyLog
+    private let issueLog: IssueLog
     #if DEBUG
     private var admissionAppsForTesting: [NSRunningApplication]?
     #endif
@@ -269,6 +271,7 @@ final class AppTracker: ObservableObject {
 
     init(
         inventoryLog: WindowInventoryAnomalyLog = WindowInventoryAnomalyLog(),
+        issueLog: IssueLog = .shared,
         reader: any AppTrackerWindowReading = AXWindowReader(),
         processProvider: any AppTrackerProcessProviding = LiveAppTrackerProcessProvider(),
         cgSnapshotProvider: @escaping @Sendable () -> AppTrackerCGWindowSnapshot = {
@@ -289,6 +292,7 @@ final class AppTracker: ObservableObject {
         displayTableProvider: @escaping @MainActor () -> WindowDisplayAttribution.Table = { .empty }
     ) {
         self.inventoryLog = inventoryLog
+        self.issueLog = issueLog
         self.displayTableProvider = displayTableProvider
         self.displayTable = displayTableProvider()
         self.reader = reader
@@ -356,6 +360,7 @@ final class AppTracker: ObservableObject {
         observers.removeAll()
         apps.removeAll()
         lastAdmissionVerdictByPID.removeAll()
+        issueUnreadStreaks.removeAll()
         appOrder.removeAll()
         destroyedCGIDs.removeAll()
         reconcileOrdinalsByPID.removeAll()
@@ -458,6 +463,9 @@ final class AppTracker: ObservableObject {
                 eligible = []
             }
         }
+        let unreadIssue = issueUnreadStreaks[pid, default: IssueUnreadStreak()].read(
+            source: source, timed: preloadedReadMode == .timed, unread: axReadOutcome.kind == .unread)
+        issueLog.record(unreadIssue, bundleID: app.bundleIdentifier, at: now)
         if axReadOutcome.kind == .unread {
             // An unread AX round is unknown, never evidence of absence. In particular it must not
             // start grace periods, update the shadow-tab pool, or advance phantom healing.
@@ -782,9 +790,13 @@ final class AppTracker: ObservableObject {
                         return "(cg=\(p.activeCgID) min=\(p.isMinimized) b=[\(b)] hist=\(p.formerCgIDs.sorted()))"
                     }.joined(separator: " ")
                     print("[tabfold] 分裂点 pid=\(pid) 为 min 窗口新建座位 cg=\(c) b=[\(cand)] onScreen=\(onScreenCGIDs.contains(c)) shadow=\(shadowPool.contains(c)) pool=\(shadowPool.count) placed=\(placedDesc)")
+                    issueLog.record(IssueEvent.tabFoldSplit(isMinimized: s.isMinimized,
+                        hasPlacedSeat: hadPlacedSeat, createdNewSeat: true), bundleID: app.bundleIdentifier, at: now)
                 }
                 nextSeatSerial += 1
                 let entry = make(token: "tabgrp-\(pid)-s\(nextSeatSerial)", s)
+                issueLog.record(IssueEvent.seatCreatedBySweep(alreadyTracked: true,
+                    source: source, isNewSeat: true), bundleID: app.bundleIdentifier, at: now)
                 if let reconcileContext {
                     let isOnScreen = onScreenCGIDs.contains(c)
                     let creationReason = InventorySeatCreationReason.classify(
@@ -884,10 +896,14 @@ final class AppTracker: ObservableObject {
                 }
                 let ownerDescription = owner.map { String($0.activeCgID) } ?? "无(歧义)"
                 print("[tabheal] 自愈 pid=\(pid) 释放幽灵座位 cg=\(healed.cgID) 归入=\(ownerDescription)")
+                issueLog.record(IssueEvent.phantomHealed(didHeal: true), bundleID: app.bundleIdentifier, at: now)
             }
         }
 
         for released in releasedSeats {
+            issueLog.record(IssueEvent.seatReleasedEarly(released.seat, reason: released.reason,
+                hasDestroyEvidence: isTombstoned(released.seat.cgWindowID), at: now),
+                bundleID: app.bundleIdentifier, at: now)
             let snapshot = inventorySeatReleaseSnapshot(app: app, seats: [released.seat])
             for payload in InventorySeatReleasePlan.payloads(
                 for: snapshot,
@@ -1216,6 +1232,7 @@ final class AppTracker: ObservableObject {
     }
 
     private func clearInventoryDiagnostics(pid: pid_t) {
+        issueUnreadStreaks.removeValue(forKey: pid)
         lastAdmissionVerdictByPID.removeValue(forKey: pid)
         reconcileOrdinalsByPID.removeValue(forKey: pid)
         lastReconcileAtByPID.removeValue(forKey: pid)

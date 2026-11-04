@@ -453,6 +453,9 @@
 		A00000000000000000009731 /* DragControllerConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009730 /* DragControllerConversionTests.swift */; };
 		A00000000000000000009612 /* TabFoldDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009601 /* TabFoldDecisionTests.swift */; };
 		A00000000000000000009E10 /* WindowInventoryAnomalyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009E00 /* WindowInventoryAnomalyLog.swift */; };
+		E10A00000000000000000001 /* IssueLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10A00000000000000000000 /* IssueLog.swift */; };
+		E10A00000000000000000002 /* IssueLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10A00000000000000000000 /* IssueLog.swift */; };
+		E10A00000000000000000004 /* IssueLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10A00000000000000000003 /* IssueLogTests.swift */; };
 		A00000000000000000009E11 /* WindowInventoryAnomalyLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009E00 /* WindowInventoryAnomalyLog.swift */; };
 		A00000000000000000009E12 /* WindowInventoryAnomalyLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009E01 /* WindowInventoryAnomalyLogTests.swift */; };
 		A00000000000000000009E13 /* AXWindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AXWindowReader.swift */; };
@@ -664,6 +667,8 @@
 		A00000000000000000009600 /* TabFoldDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabFoldDecision.swift; sourceTree = "<group>"; };
 		A00000000000000000009601 /* TabFoldDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabFoldDecisionTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009E00 /* WindowInventoryAnomalyLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInventoryAnomalyLog.swift; sourceTree = "<group>"; };
+		E10A00000000000000000000 /* IssueLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueLog.swift; sourceTree = "<group>"; };
+		E10A00000000000000000003 /* IssueLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueLogTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009E01 /* WindowInventoryAnomalyLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInventoryAnomalyLogTests.swift; sourceTree = "<group>"; };
 		A00000000000000000009E02 /* AXWindowReaderResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXWindowReaderResultTests.swift; sourceTree = "<group>"; };
 		C90000000000000000000009 /* AXElementCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXElementCacheTests.swift; sourceTree = "<group>"; };
@@ -1329,6 +1334,7 @@
 				A00000000000000000009800 /* CGWindowSnapshot.swift */,
 				A00000000000000000009600 /* TabFoldDecision.swift */,
 				A00000000000000000009E00 /* WindowInventoryAnomalyLog.swift */,
+				E10A00000000000000000000 /* IssueLog.swift */,
 				A00000000000000000009E03 /* ProcessLiveness.swift */,
 				A00000000000000000009E05 /* ScanAdmissionDecision.swift */,
 				B10000000000000000000103 /* PeriodicReconcileSkipDecision.swift */,
@@ -1531,6 +1537,7 @@
 				A00000000000000000009550 /* AppMembershipControllerTests.swift */,
 				A00000000000000000009601 /* TabFoldDecisionTests.swift */,
 				A00000000000000000009E01 /* WindowInventoryAnomalyLogTests.swift */,
+				E10A00000000000000000003 /* IssueLogTests.swift */,
 				A00000000000000000009E02 /* AXWindowReaderResultTests.swift */,
 				C90000000000000000000009 /* AXElementCacheTests.swift */,
 				C90000000000000000000007 /* ChipPressFeedbackTests.swift */,
@@ -1975,6 +1982,7 @@
 				A00000000000000000009810 /* CGWindowSnapshot.swift in Sources */,
 				A00000000000000000009610 /* TabFoldDecision.swift in Sources */,
 				A00000000000000000009E10 /* WindowInventoryAnomalyLog.swift in Sources */,
+				E10A00000000000000000001 /* IssueLog.swift in Sources */,
 				A00000000000000000009E16 /* ProcessLiveness.swift in Sources */,
 				A00000000000000000009E19 /* ScanAdmissionDecision.swift in Sources */,
 				B10000000000000000000003 /* PeriodicReconcileSkipDecision.swift in Sources */,
@@ -2216,6 +2224,8 @@
 					A00000000000000000009611 /* TabFoldDecision.swift in Sources */,
 					A00000000000000000009612 /* TabFoldDecisionTests.swift in Sources */,
 					A00000000000000000009E11 /* WindowInventoryAnomalyLog.swift in Sources */,
+					E10A00000000000000000002 /* IssueLog.swift in Sources */,
+					E10A00000000000000000004 /* IssueLogTests.swift in Sources */,
 					A00000000000000000009E12 /* WindowInventoryAnomalyLogTests.swift in Sources */,
 					A00000000000000000009E13 /* AXWindowReader.swift in Sources */,
 					B73000000000000000000003 /* AccessibilitySource.swift in Sources */,

@@ -548,6 +548,59 @@ final class AppTrackerPeriodicBatchTests: XCTestCase {
         XCTAssertNotNil(tracker.fixtureAppForTesting(pid: pidA)?.windowsByID[minimized])
     }
 
+    func testIssueLogCountsOnlyLandedTimedPeriodicUnreadRoundsAndCleansUpPID() async throws {
+        let directory = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("build/issue-log-tests/\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let log = IssueLog(directory: directory, enabled: true, schedulesTimer: false)
+        let reader = PeriodicBatchReader(resultsByPID: [pidA: .unread(.cannotComplete)])
+        let tracker = AppTracker(issueLog: log, reader: reader, processProvider: BatchFixedProcessProvider(),
+                                 eventAXAsyncEnabled: true)
+        tracker.installFixtureForTesting(makeApp(pid: pidA, cgWindowID: cgWindowA))
+        for round in 1...6 {
+            tracker.runPeriodicBatchForTesting(cgSnapshot: cgSnapshot())
+            await waitUntil { !tracker.hasPendingEventReadForTesting(pid: self.pidA) }
+            XCTAssertEqual(log.entries().count, round < 3 ? 0 : 1)
+        }
+        XCTAssertEqual(log.entries().first?.kind, .appUnreadable)
+        XCTAssertEqual(log.entries().first?.count, 1)
+        XCTAssertEqual(log.entries().first?.bundleID, "com.example.fixture\(pidA)")
+        tracker.stop()
+        tracker.installFixtureForTesting(makeApp(pid: pidA, cgWindowID: cgWindowA))
+        for round in 1...3 {
+            tracker.runPeriodicBatchForTesting(cgSnapshot: cgSnapshot())
+            await waitUntil { !tracker.hasPendingEventReadForTesting(pid: self.pidA) }
+            XCTAssertEqual(log.entries().first?.count, round < 3 ? 1 : 2)
+        }
+        tracker.stop()
+    }
+
+    func testIssueLogFindsNewSeatInAlreadyTrackedProcessWithoutInventoryLog() async throws {
+        let directory = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("build/issue-log-tests/\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let log = IssueLog(directory: directory, enabled: true, schedulesTimer: false)
+        let inventory = WindowInventoryAnomalyLog(configuration: .init(enabled: false, directoryURL: directory,
+                                                                      maxFileSize: 1024, archiveCount: 1))
+        let reader = PeriodicBatchReader(resultsByPID: [
+            pidA: .success([makeSnapshot(pid: pidA, cgWindowID: cgWindowA, title: "Private new window")])
+        ])
+        let tracker = AppTracker(inventoryLog: inventory, issueLog: log, reader: reader,
+                                 processProvider: BatchFixedProcessProvider(), eventAXAsyncEnabled: true)
+        var app = makeApp(pid: pidA, cgWindowID: cgWindowA)
+        app.windowsByID = [:]
+        app.windowOrder = []
+        tracker.installFixtureForTesting(app)
+        tracker.runPeriodicBatchForTesting(cgSnapshot: cgSnapshot())
+        await waitUntil { !tracker.hasPendingEventReadForTesting(pid: self.pidA) }
+        XCTAssertEqual(tracker.fixtureAppForTesting(pid: pidA)?.windowOrder, [cgWindowA])
+        XCTAssertEqual(log.entries().map(\.kind), [.seatCreatedBySweep])
+        XCTAssertTrue(IssueList.rows(log.entries()).isEmpty)
+        XCTAssertTrue(log.reportLines().first?.hasPrefix("observation ") == true)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: inventory.currentFileURL.path))
+        tracker.stop()
+    }
+
     private func cgSnapshot() -> AppTrackerCGWindowSnapshot {
         AppTrackerCGWindowSnapshot(
             allWindowIDs: [cgWindowA, cgWindowB],

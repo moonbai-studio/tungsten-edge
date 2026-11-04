@@ -59,6 +59,11 @@ final class DiagnosticsSession: ObservableObject {
     private var generation: UInt64 = 0
     private var copiedToken: UInt64 = 0
     private var isOpen = true
+    private(set) var issueRows: [IssueLogEntry] = []
+
+    func loadIssues(from log: IssueLog = .shared) {
+        issueRows = IssueList.rows(log.entries())
+    }
 
     func setIncludesTitles(_ value: Bool) {
         guard value != includesTitles else { return }

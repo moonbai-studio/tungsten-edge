@@ -369,6 +369,37 @@ struct SettingsWindowContent: View {
         .onAppear {
             if diagnostics.report == nil { refreshDiagnostics() }
         }
+        recentIssuesSection
+    }
+
+    private var recentIssuesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Recent Issues")
+            if diagnostics.issueRows.isEmpty {
+                Text("No issues found in the last two weeks.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(diagnostics.issueRows.prefix(20).enumerated()), id: \.offset) { _, entry in
+                    Text(issueRowText(entry))
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if diagnostics.issueRows.count > 20 {
+                    Text(String(format: String(localized: "%d more — Copy Report includes all of them."), diagnostics.issueRows.count - 20))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Text("Problems Tungsten Edge doesn't notice itself, such as an extra cell, won't appear here. If you see one, click Copy Report while it's still on screen.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func issueRowText(_ entry: IssueLogEntry) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        return [formatter.string(from: entry.ts), AppDisplayNameResolver.displayName(for: entry.bundleID),
+                entry.kind.sentence, String(format: String(localized: "%d times"), entry.count)].joined(separator: " · ")
     }
 
     /// The report box keeps one height whether empty, collecting or full: content that grows

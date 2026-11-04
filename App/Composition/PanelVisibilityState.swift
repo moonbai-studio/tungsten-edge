@@ -53,6 +53,24 @@ struct DiagnosticVisibilityHistory {
 final class DiagnosticVisibilityRecorder {
     static let shared = DiagnosticVisibilityRecorder()
     var history = DiagnosticVisibilityHistory()
+    private var bursts: [String: IssueFullscreenBurst] = [:]
+    private let issueLog: IssueLog
+
+    init(issueLog: IssueLog = .shared) { self.issueLog = issueLog }
+
+    func remove(unit: String) {
+        history.remove(unit: unit)
+        bursts.removeValue(forKey: unit)
+    }
+
+    func noteVisibilityChange(unit: String, screen: String, previousVisible: Bool, visible: Bool,
+                              reasons: Set<PanelVisibilityReason>, source: String, at: Date = Date()) {
+        guard history.noteVisibilityChange(unit: unit, screen: screen, previousVisible: previousVisible,
+            visible: visible, reasons: reasons, source: source, at: at) != nil else { return }
+        let event = bursts[unit, default: IssueFullscreenBurst()].change(visible: visible,
+            fullscreenReason: reasons.contains(.fullscreen) || reasons.contains(.fullscreenTransitionPending), at: at)
+        issueLog.record(event, bundleID: "com.caye.macosdockcc.v2", at: at)
+    }
 }
 
 enum FullscreenSpaceHoldDisposition: Equatable {

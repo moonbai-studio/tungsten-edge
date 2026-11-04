@@ -337,7 +337,7 @@ extension PanelCoordinator {
     }
 
     func noteVisibilityChange(visible: Bool, source: String) {
-        DiagnosticVisibilityRecorder.shared.history.noteVisibilityChange(
+        DiagnosticVisibilityRecorder.shared.noteVisibilityChange(
             unit: stripSurfaceID,
             screen: currentScreen.flatMap { DisplayIdentity.uuidString(for: $0) } ?? fixedUnitDisplayUUID ?? "?",
             previousVisible: panelsAreVisible, visible: visible,

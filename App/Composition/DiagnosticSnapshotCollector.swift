@@ -54,6 +54,7 @@ enum DiagnosticSnapshotCollector {
         let capturedApps = apps
         let capturedPanels = panelLines
         AppRuntime.actionQueue.async {
+            let recentIssues = IssueLog.shared.reportLines()
             let permissionLines = ["accessibility=\(AXIsProcessTrusted())",
                                    "finderAutomation=\(FinderAutomationPermission.status(askUserIfNeeded: false)) (read-only)"]
             let reader = AXWindowReader()
@@ -144,7 +145,7 @@ enum DiagnosticSnapshotCollector {
                         .block(includeTitles: includeTitles))
                 }
                 let report = DiagnosticSnapshotReport(basic: basic, permissions: permissionLines, settings: settingLines,
-                    panels: capturedPanels, applications: blocks, stripExtras: extras)
+                    panels: capturedPanels, applications: blocks, stripExtras: extras, recentIssues: recentIssues)
                 AppRuntime.actionQueue.async {
                     let text = report.text
                     DispatchQueue.main.async { completion(text) }

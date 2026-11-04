@@ -143,6 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 行缓冲 stdout：从命令行/后台启动时，print() 输出到文件默认是块缓冲，
         // 日志要攒满缓冲区才落盘。改成行缓冲后每条 print 立即写出，便于实时读日志。
         setvbuf(stdout, nil, _IOLBF, 0)
+        _ = IssueLog.shared
 
         startMainLoopStallProbeIfTracing()
         StackPopupSnapshotProbe.runIfRequested()
@@ -306,6 +307,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        IssueLog.shared.flush()
         SystemResizeCursor.shared.reset()   // never leave the ▲▼ or a hidden pointer behind us
         SystemCursorHider.shared.show()
         trashSettingSubscription = nil
