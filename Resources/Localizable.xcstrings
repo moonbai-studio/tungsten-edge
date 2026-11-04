@@ -15583,103 +15583,103 @@
         }
       }
     },
-    "No issues found in the last two weeks.": {
+    "Tungsten Edge hasn't noticed anything unusual in the last two weeks.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No issues found in the last two weeks."
+            "value": "Tungsten Edge hasn't noticed anything unusual in the last two weeks."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近两周没有发现问题。"
+            "value": "钨极最近两周没有察觉到异常。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近兩週未發現問題。"
+            "value": "Tungsten Edge最近兩週未察覺到異常。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "過去2週間に問題は見つかりませんでした。"
+            "value": "Tungsten Edgeは過去2週間、異常を検知していません。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In den letzten zwei Wochen wurden keine Probleme gefunden."
+            "value": "Tungsten Edge hat in den letzten zwei Wochen nichts Ungewöhnliches bemerkt."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun problème détecté au cours des deux dernières semaines."
+            "value": "Tungsten Edge n’a rien remarqué d’inhabituel au cours des deux dernières semaines."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se han encontrado problemas en las últimas dos semanas."
+            "value": "Tungsten Edge no ha detectado nada fuera de lo normal en las últimas dos semanas."
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se encontraron problemas en las últimas dos semanas."
+            "value": "Tungsten Edge no detectó nada fuera de lo normal en las últimas dos semanas."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nenhum problema encontrado nas últimas duas semanas."
+            "value": "O Tungsten Edge não notou nada fora do comum nas últimas duas semanas."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não foram encontrados problemas nas últimas duas semanas."
+            "value": "O Tungsten Edge não detetou nada de invulgar nas últimas duas semanas."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nessun problema rilevato nelle ultime due settimane."
+            "value": "Tungsten Edge non ha notato nulla di insolito nelle ultime due settimane."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "지난 2주 동안 발견된 문제가 없습니다."
+            "value": "Tungsten Edge가 지난 2주 동안 이상을 감지하지 않았습니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "За последние две недели проблем не обнаружено."
+            "value": "За последние две недели Tungsten Edge не заметил ничего необычного."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Son iki haftada sorun bulunamadı."
+            "value": "Tungsten Edge son iki haftada olağandışı bir şey fark etmedi."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "पिछले दो हफ़्तों में कोई समस्या नहीं मिली।"
+            "value": "पिछले दो हफ़्तों में Tungsten Edge ने कुछ भी असामान्य नहीं देखा।"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không tìm thấy sự cố nào trong hai tuần qua."
+            "value": "Tungsten Edge không nhận thấy điều gì bất thường trong hai tuần qua."
           }
         }
       }
@@ -19896,103 +19896,406 @@
         }
       }
     },
-    "Recent Issues": {
+    "Event Log": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recent Issues"
+            "value": "Event Log"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近的问题"
+            "value": "运行记录"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近的問題"
+            "value": "執行記錄"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近の問題"
+            "value": "動作記録"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Letzte Probleme"
+            "value": "Ereignisprotokoll"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problèmes récents"
+            "value": "Journal des événements"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problemas recientes"
+            "value": "Registro de eventos"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problemas recientes"
+            "value": "Registro de eventos"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problemas recentes"
+            "value": "Registro de eventos"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problemas recentes"
+            "value": "Registo de eventos"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Problemi recenti"
+            "value": "Registro eventi"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "최근 문제"
+            "value": "동작 기록"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Недавние проблемы"
+            "value": "Журнал событий"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Son Sorunlar"
+            "value": "Olay Günlüğü"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हाल की समस्याएँ"
+            "value": "इवेंट लॉग"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sự cố gần đây"
+            "value": "Nhật ký sự kiện"
+          }
+        }
+      }
+    },
+    "%d in the last two weeks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d in the last two weeks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近两周 %d 条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近兩週%d筆"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "過去2週間で%d件"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d in den letzten zwei Wochen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d au cours des deux dernières semaines"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d en las últimas dos semanas"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d en las últimas dos semanas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nas últimas duas semanas"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nas últimas duas semanas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nelle ultime due settimane"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지난 2주간 %d건"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d за последние две недели"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son iki haftada %d"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछले दो हफ़्तों में %d"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d mục trong hai tuần qua"
+          }
+        }
+      }
+    },
+    "Fixed automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已自动处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已自動處理"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動で修正済み"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch behoben"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigé automatiquement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregido automáticamente"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregido automáticamente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigido automaticamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigido automaticamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risolto automaticamente"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동으로 처리됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исправлено автоматически"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otomatik düzeltildi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने-आप ठीक किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tự động xử lý"
+          }
+        }
+      }
+    },
+    "Recorded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已記錄"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録済み"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokolliert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrato"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기록됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записано"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydedildi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्ज किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã ghi lại"
           }
         }
       }
@@ -24921,103 +25224,103 @@
         }
       }
     },
-    "The app stopped responding for a while; its cells may have fallen behind": {
+    "Its windows couldn't be read for a while; its cells may have lagged": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The app stopped responding for a while; its cells may have fallen behind"
+            "value": "Its windows couldn't be read for a while; its cells may have lagged"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这个应用一时没有回应，它的格子可能没及时更新"
+            "value": "曾暂时读不到它的窗口，格子可能没及时更新"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此App曾暫時沒有回應，其格子可能未及時更新"
+            "value": "曾暫時無法讀取其視窗，格子可能未及時更新"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アプリがしばらく応答しなかったため、セルの更新が遅れた可能性があります"
+            "value": "一時的にウインドウを読み取れなかったため、セルの更新が遅れた可能性があります"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die App hat eine Weile nicht reagiert; ihre Zellen wurden möglicherweise verspätet aktualisiert"
+            "value": "Die Fenster konnten eine Weile nicht gelesen werden; die Zellen wurden möglicherweise verspätet aktualisiert"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’app n’a pas répondu pendant un moment ; ses cases n’ont peut-être pas été actualisées à temps"
+            "value": "Ses fenêtres n’ont pas pu être lues pendant un moment ; ses cases n’ont peut-être pas été actualisées à temps"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La app dejó de responder durante un tiempo; puede que sus casillas no se hayan actualizado a tiempo"
+            "value": "No se pudieron leer sus ventanas durante un tiempo; puede que sus casillas no se hayan actualizado a tiempo"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "La app dejó de responder por un momento; puede que sus casillas no se hayan actualizado a tiempo"
+            "value": "No se pudieron leer sus ventanas por un momento; puede que sus casillas no se hayan actualizado a tiempo"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O app parou de responder por um tempo; suas células podem não ter sido atualizadas a tempo"
+            "value": "Não foi possível ler as janelas por um tempo; as células podem não ter sido atualizadas a tempo"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "A aplicação deixou de responder durante algum tempo; as suas células podem não ter sido atualizadas a tempo"
+            "value": "Não foi possível ler as janelas durante algum tempo; as células podem não ter sido atualizadas a tempo"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’app non ha risposto per un po’; le sue caselle potrebbero non essersi aggiornate in tempo"
+            "value": "Per un po’ non è stato possibile leggere le sue finestre; le caselle potrebbero non essersi aggiornate in tempo"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "앱이 잠시 응답하지 않아 해당 칸이 제때 업데이트되지 않았을 수 있습니다"
+            "value": "잠시 윈도우를 읽을 수 없어 해당 칸이 제때 업데이트되지 않았을 수 있습니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Приложение некоторое время не отвечало; его ячейки могли обновиться с задержкой"
+            "value": "Некоторое время не удавалось прочитать окна приложения; его ячейки могли обновиться с задержкой"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uygulama bir süre yanıt vermedi; hücreleri zamanında güncellenmemiş olabilir"
+            "value": "Pencereleri bir süre okunamadı; hücreleri zamanında güncellenmemiş olabilir"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "ऐप ने कुछ समय तक जवाब नहीं दिया; उसकी सेल समय पर अपडेट नहीं हुई होंगी"
+            "value": "कुछ समय तक इसकी विंडो पढ़ी नहीं जा सकीं; इसकी सेल समय पर अपडेट नहीं हुई होंगी"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ứng dụng đã ngừng phản hồi một lúc; các ô của ứng dụng có thể chưa được cập nhật kịp thời"
+            "value": "Không đọc được cửa sổ của ứng dụng trong một lúc; các ô có thể chưa được cập nhật kịp thời"
           }
         }
       }
@@ -27637,103 +27940,103 @@
         }
       }
     },
-    "Tungsten Edge removed an extra cell it had shown": {
+    "An extra cell appeared": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge removed an extra cell it had shown"
+            "value": "An extra cell appeared"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "钨极自己收掉了一个多出来的格子"
+            "value": "出现过一个多余的格子"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge移除了先前顯示的一個多餘格子"
+            "value": "曾出現一個多餘的格子"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edgeが余分に表示していたセルを削除しました"
+            "value": "余分なセルが表示されました"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge hat eine überzählige angezeigte Zelle entfernt"
+            "value": "Eine überzählige Zelle wurde angezeigt"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge a supprimé une case affichée en trop"
+            "value": "Une case en trop est apparue"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge eliminó una casilla que había mostrado de más"
+            "value": "Apareció una casilla de más"
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge eliminó una casilla que había mostrado de más"
+            "value": "Apareció una casilla de más"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Tungsten Edge removeu uma célula extra que havia exibido"
+            "value": "Apareceu uma célula extra"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Tungsten Edge removeu uma célula a mais que tinha apresentado"
+            "value": "Apareceu uma célula a mais"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge ha rimosso una casella che aveva mostrato in più"
+            "value": "È comparsa una casella in più"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge가 추가로 표시했던 칸을 제거했습니다"
+            "value": "불필요한 칸이 나타났습니다"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge убрал лишнюю ячейку, которую показывал"
+            "value": "Появилась лишняя ячейка"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge gösterdiği fazladan bir hücreyi kaldırdı"
+            "value": "Fazladan bir hücre göründü"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge ने दिखाई गई एक अतिरिक्त सेल हटा दी"
+            "value": "एक अतिरिक्त सेल दिखाई दी"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge đã xóa một ô thừa từng hiển thị"
+            "value": "Đã xuất hiện một ô thừa"
           }
         }
       }

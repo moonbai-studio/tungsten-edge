@@ -60,6 +60,8 @@ final class DiagnosticsSession: ObservableObject {
     private var copiedToken: UInt64 = 0
     private var isOpen = true
     private(set) var issueRows: [IssueLogEntry] = []
+    /// Collapsed on every open, like the titles switch: the session dies with the window.
+    @Published var issuesExpanded = false
 
     func loadIssues(from log: IssueLog = .shared) {
         issueRows = IssueList.rows(log.entries())

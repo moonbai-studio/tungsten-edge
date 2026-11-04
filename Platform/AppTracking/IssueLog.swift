@@ -15,10 +15,19 @@ enum IssueKind: String, Codable, CaseIterable {
 
     var sentence: String {
         switch self {
-        case .phantomHealed: return String(localized: "Tungsten Edge removed an extra cell it had shown")
-        case .appUnreadable: return String(localized: "The app stopped responding for a while; its cells may have fallen behind")
+        case .phantomHealed: return String(localized: "An extra cell appeared")
+        case .appUnreadable: return String(localized: "Its windows couldn't be read for a while; its cells may have lagged")
         case .fullscreenFlapping: return String(localized: "The taskbar kept showing and hiding around full screen")
         case .tabFoldSplit, .seatReleasedEarly, .seatCreatedBySweep: return rawValue
+        }
+    }
+
+    /// Shown beside each listed row so a self-healed event does not read as an open fault.
+    var statusLabel: String {
+        switch self {
+        case .phantomHealed: return String(localized: "Fixed automatically")
+        case .appUnreadable, .fullscreenFlapping: return String(localized: "Recorded")
+        case .tabFoldSplit, .seatReleasedEarly, .seatCreatedBySweep: return ""
         }
     }
 }

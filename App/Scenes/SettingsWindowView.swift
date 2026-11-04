@@ -374,24 +374,46 @@ struct SettingsWindowContent: View {
 
     private var recentIssuesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Issues")
             if diagnostics.issueRows.isEmpty {
-                Text("No issues found in the last two weeks.")
+                Text("Event Log")
+                Text("Tungsten Edge hasn't noticed anything unusual in the last two weeks.")
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                ForEach(Array(diagnostics.issueRows.prefix(20).enumerated()), id: \.offset) { _, entry in
-                    Text(issueRowText(entry))
-                        .font(.callout)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if diagnostics.issueRows.count > 20 {
-                    Text(String(format: String(localized: "%d more — Copy Report includes all of them."), diagnostics.issueRows.count - 20))
-                        .font(.caption).foregroundStyle(.secondary)
+                DisclosureGroup(isExpanded: $diagnostics.issuesExpanded) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(diagnostics.issueRows.prefix(20).enumerated()), id: \.offset) { _, entry in
+                            issueRow(entry)
+                        }
+                        if diagnostics.issueRows.count > 20 {
+                            Text(String(format: String(localized: "%d more — Copy Report includes all of them."), diagnostics.issueRows.count - 20))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+                } label: {
+                    HStack {
+                        Text("Event Log")
+                        Spacer()
+                        Text(String(format: String(localized: "%d in the last two weeks"), diagnostics.issueRows.count))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Text("Problems Tungsten Edge doesn't notice itself, such as an extra cell, won't appear here. If you see one, click Copy Report while it's still on screen.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func issueRow(_ entry: IssueLogEntry) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(issueRowText(entry))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Text(entry.kind.statusLabel)
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 

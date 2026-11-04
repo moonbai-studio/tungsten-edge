@@ -84,6 +84,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             }
             .store(in: &sessionSubscriptions)
 
+        // Expanding the event log on the diagnostics pane grows it in place.
+        diagnostics.$issuesExpanded
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.resizeToFitKeepingTopEdge() }
+            }
+            .store(in: &sessionSubscriptions)
+
         resizeToFitKeepingTopEdge()
         repairPlacement(isFirstPresentation: !hasPresented)
         hasPresented = true
