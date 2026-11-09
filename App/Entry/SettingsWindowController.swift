@@ -42,6 +42,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let window = window ?? makeWindow()
         let diagnostics = diagnosticsSession ?? DiagnosticsSession()
         diagnosticsSession = diagnostics
+        if feedbackDraft.includesDiagnostics, diagnostics.report == nil, !diagnostics.collectionFailed {
+            diagnostics.collect(using: collectDiagnostics)
+        }
         if tabState.selected == .diagnostics { diagnostics.loadIssues() }
         if let closedFrame {
             window.setFrame(closedFrame, display: false)
@@ -90,6 +93,17 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             .removeDuplicates()
             .sink { [weak self] _ in
                 DispatchQueue.main.async { self?.resizeToFitKeepingTopEdge() }
+            }
+            .store(in: &sessionSubscriptions)
+
+        feedbackDraft.$includesDiagnostics
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    guard self?.tabState.selected == .feedback else { return }
+                    self?.resizeToFitKeepingTopEdge()
+                }
             }
             .store(in: &sessionSubscriptions)
 

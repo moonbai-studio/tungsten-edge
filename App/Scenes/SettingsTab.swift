@@ -53,6 +53,7 @@ final class DiagnosticsSession: ObservableObject {
 
     @Published private(set) var includesTitles = false
     @Published private(set) var isCollecting = false
+    @Published private(set) var collectionFailed = false
     @Published private(set) var report: String?
     @Published private(set) var collectedAt: Date?
     @Published private(set) var showsCopied = false
@@ -80,6 +81,7 @@ final class DiagnosticsSession: ObservableObject {
         report = nil
         collectedAt = nil
         showsCopied = false
+        collectionFailed = false
         isCollecting = true
         return Request(generation: generation, includesTitles: includesTitles)
     }
@@ -88,9 +90,28 @@ final class DiagnosticsSession: ObservableObject {
     func complete(_ request: Request, text: String) -> Bool {
         guard isOpen, isCollecting, request.generation == generation, request.includesTitles == includesTitles else { return false }
         isCollecting = false
+        guard !text.isEmpty else {
+            collectionFailed = true
+            return true
+        }
         report = text
         collectedAt = Date()
         return true
+    }
+
+    func collect(using collector: (Bool, @escaping (String) -> Void) -> Void) {
+        guard let request = begin() else { return }
+        collector(request.includesTitles) { [weak self] text in
+            self?.complete(request, text: text)
+        }
+    }
+
+    func canSendFeedback(includingDiagnostics: Bool) -> Bool {
+        !includingDiagnostics || (isOpen && !isCollecting && !collectionFailed && report != nil)
+    }
+
+    func discardReport() {
+        invalidate()
     }
 
     /// Flips the copy button to its confirmation for two seconds; a later copy restarts the clock.
@@ -115,13 +136,14 @@ final class DiagnosticsSession: ObservableObject {
         generation &+= 1
         copiedToken &+= 1
         isCollecting = false
+        collectionFailed = false
         report = nil
         collectedAt = nil
         showsCopied = false
     }
 }
 
-/// The feedback pane's four drafts. Owned by the controller, like `SettingsTabState`, because
+/// Owned by the controller, like `SettingsTabState`, because
 /// closing the window drops the whole SwiftUI tree — `@State` on the root dies with it and the
 /// user reopens to an empty form. Lives until the process exits; never written to UserDefaults.
 /// The height probe shares this instance too.
@@ -131,6 +153,8 @@ final class FeedbackDraftState: ObservableObject {
     @Published var contact = ""
     @Published var category: FeedbackCategory = .bug
     @Published var attachments: [FeedbackAttachment] = []
+    // Report text belongs to DiagnosticsSession so closing the window cannot retain private titles.
+    @Published var includesDiagnostics = false
 
     /// After a successful send only: a failed one keeps everything, attachments included.
     func clear() {
@@ -138,5 +162,6 @@ final class FeedbackDraftState: ObservableObject {
         contact = ""
         category = .bug
         attachments = []
+        includesDiagnostics = false
     }
 }

@@ -63,16 +63,16 @@ enum FeedbackComposition {
     }
 }
 
-/// 一次反馈提交的全部内容。**恰好**是设置界面披露的六项，一个不多——
-/// 「只发送你写的内容、联系方式、App 版本、macOS 版本、界面语言和你添加的附件」
-/// 是写在界面上的承诺。前五项是 JSON body 的五个字段（2026-08-24 之前是全部），
-/// 附件是 multipart 的独立文件段，**不进那份 JSON**。
+/// Exactly what the Feedback pane's disclosure line promises — a new field here means updating that line,
+/// the README privacy sections and the website privacy page. Diagnostics stay in the JSON payload; sent as
+/// a file they would count against the attachment quota.
 struct FeedbackDraft: Equatable {
     let message: String
     let contact: String?
     let appVersion: String?
     let macosVersion: String?
     let lang: String
+    let diagnostics: String?
     let attachments: [FeedbackAttachment]
 
     init(
@@ -81,6 +81,7 @@ struct FeedbackDraft: Equatable {
         appVersion: String?,
         macosVersion: String?,
         lang: String,
+        diagnostics: String? = nil,
         attachments: [FeedbackAttachment] = []
     ) {
         self.message = message
@@ -88,6 +89,7 @@ struct FeedbackDraft: Equatable {
         self.appVersion = appVersion
         self.macosVersion = macosVersion
         self.lang = lang
+        self.diagnostics = diagnostics
         self.attachments = attachments
     }
 }
@@ -98,14 +100,10 @@ protocol FeedbackSubmitting {
 
 typealias FeedbackRequestLoader = (URLRequest) async throws -> (Data, URLResponse)
 
-/// 提交到官网的 `/api/feedback`（Cloudflare Pages Function → D1，owner 在本机控制台看）。
-///
-/// 三条承重规则与订阅完全一致（权威注释在 `WebsiteSubscriptionSubmitter`）：
-/// **只有 2xx 算成功**；`X-Tungsten-Client: app` **不是安全校验**（只是让无 Origin 的
-/// 原生请求走得通）；JSON payload 恰好是披露的五个字段（附件是第六项，走独立文件段）。
-///
-/// 两条请求形状：无附件走 JSON（**逐字节不许变**，已发布版本一直在用），
-/// 有附件走 multipart（`payload` + `file0..file2`，超时 300s）。
+/// Only 2xx is success; `X-Tungsten-Client: app` is a source marker, not an authentication boundary.
+/// No attachments → the JSON body; with attachments → multipart whose `payload` part is the same JSON.
+/// A draft without diagnostics must encode byte-for-byte as before: released servers and the
+/// backend's validator only know one payload shape.
 final class WebsiteFeedbackSubmitter: FeedbackSubmitting {
     static let endpointURL = URL(string: "https://tungstenedge.app/api/feedback")!
     static let requestTimeout: TimeInterval = 15
@@ -155,12 +153,12 @@ final class WebsiteFeedbackSubmitter: FeedbackSubmitting {
         return code
     }
 
-    /// 五个字段的 JSON。无附件时它就是整个 body；有附件时它是 multipart 的 `payload` 段——
-    /// **两条路上逐字节相同**，服务端因此只有一套 `validateFeedbackPayload`。
+    /// Nil diagnostics must be omitted so existing requests remain byte-identical.
     private static func encodedPayload(for draft: FeedbackDraft) throws -> Data {
         let body = RequestBody(
             appVersion: draft.appVersion,
             contact: draft.contact,
+            diagnostics: draft.diagnostics,
             lang: draft.lang,
             macosVersion: draft.macosVersion,
             message: draft.message
@@ -219,6 +217,7 @@ final class WebsiteFeedbackSubmitter: FeedbackSubmitting {
     private struct RequestBody: Encodable {
         let appVersion: String?
         let contact: String?
+        let diagnostics: String?
         let lang: String
         let macosVersion: String?
         let message: String
