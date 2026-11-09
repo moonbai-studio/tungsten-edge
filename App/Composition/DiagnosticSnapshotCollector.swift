@@ -39,7 +39,12 @@ enum DiagnosticSnapshotCollector {
             "language=\(DiagnosticText.clean(Bundle.main.preferredLocalizations.first ?? "en")) selection=\(DiagnosticText.clean((CFPreferencesCopyAppValue("AppleLanguages" as CFString, kCFPreferencesCurrentApplication) as? [String])?.joined(separator: ",") ?? "system"))",
             "kept=\(kept.bundleIDs.count) drawer=\(drawer.bundleIDs.count) pinnedFolders=\(folders.folderPaths.count)"
         ]
-        var panelLines = (orchestrator?.units ?? []).map { unit in
+        var panelLines = NSScreen.screens.enumerated().map { index, screen in
+            let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+            let builtIn = number.map { CGDisplayIsBuiltin(CGDirectDisplayID($0.uint32Value)) != 0 }
+            return "display=\(DisplayIdentity.uuidString(for: screen) ?? "?") \(Int(screen.frame.width))x\(Int(screen.frame.height)) scale=\(screen.backingScaleFactor) builtIn=\(DiagnosticText.flag(builtIn)) main=\(index == 0) visibleInsetBottom=\(Int(screen.visibleFrame.minY - screen.frame.minY))"
+        }
+        panelLines += (orchestrator?.units ?? []).map { unit in
             let panel = unit.coordinator
             let screen = panel.currentScreen
             let size = screen.map { "\(Int($0.frame.width))x\(Int($0.frame.height)) main=\($0 == NSScreen.screens.first)" } ?? "?"

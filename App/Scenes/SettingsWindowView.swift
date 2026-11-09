@@ -379,6 +379,9 @@ struct SettingsWindowContent: View {
                 Text("Tungsten Edge hasn't noticed anything unusual in the last two weeks.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                Text("Only problems Tungsten Edge can notice by itself are listed here.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 DisclosureGroup(isExpanded: $diagnostics.issuesExpanded) {
                     VStack(alignment: .leading, spacing: 8) {

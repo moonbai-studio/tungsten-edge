@@ -28,7 +28,8 @@ final class IssueLogTests: XCTestCase {
     }
 
     func testSixClassificationsAndNormalOperationCounterexamples() throws {
-        XCTAssertEqual(IssueKind.allCases.filter(\.isIssue), [.phantomHealed, .appUnreadable, .fullscreenFlapping])
+        XCTAssertEqual(IssueKind.allCases.filter(\.isIssue),
+                       [.phantomHealed, .appUnreadable, .fullscreenFlapping, .windowLiftStopped])
         XCTAssertEqual(IssueEvent.phantomHealed(didHeal: true)?.kind, .phantomHealed)
         XCTAssertNil(IssueEvent.phantomHealed(didHeal: false))
         XCTAssertEqual(IssueEvent.appUnreadable(consecutiveReads: 3)?.kind, .appUnreadable)
@@ -66,6 +67,31 @@ final class IssueLogTests: XCTestCase {
         XCTAssertNil(IssueEvent.tabFoldSplit(isMinimized: false, hasPlacedSeat: true, createdNewSeat: true))
         XCTAssertNil(IssueEvent.tabFoldSplit(isMinimized: true, hasPlacedSeat: false, createdNewSeat: true))
         XCTAssertNil(IssueEvent.tabFoldSplit(isMinimized: true, hasPlacedSeat: true, createdNewSeat: false))
+    }
+
+    func testLiftStopsSplitByReasonAndDisplayAndKeepEachDisplaysDetail() throws {
+        let external = IssueScreen(width: 2560, height: 1440, scale: 1, builtIn: false)
+        let builtIn = IssueScreen(width: 1512, height: 982, scale: 2, builtIn: true)
+        let log = log()
+        log.record(IssueEvent.windowLiftStopped(reason: .reverted, screen: external), bundleID: "com.example.a", at: at)
+        log.record(IssueEvent.windowLiftStopped(reason: .reverted, screen: external), bundleID: "com.example.a", at: at)
+        log.record(IssueEvent.windowLiftStopped(reason: .didNotApply, screen: external), bundleID: "com.example.a", at: at)
+        log.record(IssueEvent.windowLiftStopped(reason: .reverted, screen: builtIn), bundleID: "com.example.a", at: at)
+        log.record(IssueEvent.windowLiftStopped(reason: .reverted, screen: nil), bundleID: "com.example.a", at: at)
+        log.flush()
+        let entries = log.entries()
+        XCTAssertEqual(entries.count, 4)
+        let externalReverted = try XCTUnwrap(entries.first {
+            $0.detail.liftStopReason == .reverted && $0.detail.builtInScreen == false
+        })
+        XCTAssertEqual(externalReverted.count, 2)
+        XCTAssertEqual(externalReverted.detail.screenScale, 1)
+        XCTAssertEqual(externalReverted.detail.screenWidth, 2560)
+        XCTAssertEqual(entries.first { $0.detail.builtInScreen == true }?.detail.screenScale, 2)
+        XCTAssertTrue(entries.contains { $0.detail.liftStopReason == .reverted && $0.detail.screenWidth == nil })
+        XCTAssertTrue(entries.allSatisfy { $0.kind.isIssue && !$0.kind.statusLabel.isEmpty })
+        // One user-facing row per app per day, whatever the display.
+        XCTAssertEqual(IssueList.rows(entries).count, 1)
     }
 
     func testUnreadStreakIgnoresOtherUnreadReadsAndReportsOnceUntilSuccess() {

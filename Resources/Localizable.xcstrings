@@ -1,6 +1,107 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "A maximized window couldn't be kept clear of the taskbar, so adjusting it was paused": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A maximized window couldn't be kept clear of the taskbar, so adjusting it was paused"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化窗口没能避开任务条，已暂停调整它"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化的視窗無法避開工作列，已暫停調整"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化したウインドウをタスクバーから避けられなかったため、調整を一時停止しました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein maximiertes Fenster konnte nicht von der Taskleiste freigehalten werden, daher wurde die Anpassung pausiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fenêtre agrandie n’a pas pu être maintenue hors de la barre des tâches ; son ajustement a été suspendu"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo mantener una ventana maximizada fuera de la barra de tareas, así que se pausó su ajuste"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo mantener una ventana maximizada fuera de la barra de tareas, así que se pausó su ajuste"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível manter uma janela maximizada longe da barra de tarefas, então o ajuste foi pausado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível manter uma janela maximizada afastada da barra de tarefas, pelo que o ajuste foi pausado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile tenere una finestra ingrandita lontana dalla barra delle applicazioni, quindi la regolazione è stata sospesa"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "최대화된 윈도우가 작업 표시줄을 피하도록 유지하지 못해 조정을 일시 중지했습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось удержать развёрнутое окно над панелью задач, поэтому его подстройка приостановлена"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Büyütülmüş bir pencere görev çubuğundan uzak tutulamadı, bu yüzden ayarlanması duraklatıldı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक बड़ी की गई विंडो को टास्कबार से दूर नहीं रखा जा सका, इसलिए उसे समायोजित करना रोक दिया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể giữ cửa sổ phóng to tránh khỏi thanh tác vụ nên đã tạm dừng điều chỉnh"
+          }
+        }
+      }
+    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -603,6 +704,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lớn"
+          }
+        }
+      }
+    },
+    "Only problems Tungsten Edge can notice by itself are listed here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only problems Tungsten Edge can notice by itself are listed here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里只列钨极自己能察觉的那部分问题。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這裡只會列出Tungsten Edge自己能察覺的問題。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここには、Tungsten Edgeが自分で検知できる問題だけが表示されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier erscheinen nur Probleme, die Tungsten Edge selbst bemerken kann."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuls les problèmes que Tungsten Edge peut remarquer de lui-même apparaissent ici."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aquí solo aparecen los problemas que Tungsten Edge puede detectar por sí mismo."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aquí solo aparecen los problemas que Tungsten Edge puede detectar por sí mismo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aqui aparecem apenas os problemas que o Tungsten Edge consegue notar sozinho."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aqui aparecem apenas os problemas que o Tungsten Edge consegue detetar sozinho."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui compaiono solo i problemi che Tungsten Edge riesce a notare da solo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에는 Tungsten Edge가 스스로 감지할 수 있는 문제만 표시됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Здесь показываются только проблемы, которые Tungsten Edge может заметить сам."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada yalnızca Tungsten Edge'in kendi başına fark edebildiği sorunlar listelenir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ केवल वे समस्याएँ दिखती हैं जिन्हें Tungsten Edge खुद पहचान सकता है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ở đây chỉ liệt kê những sự cố mà Tungsten Edge tự phát hiện được."
           }
         }
       }

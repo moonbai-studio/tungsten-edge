@@ -3,12 +3,12 @@ import Foundation
 import os
 
 enum IssueKind: String, Codable, CaseIterable {
-    case phantomHealed, appUnreadable, fullscreenFlapping
+    case phantomHealed, appUnreadable, fullscreenFlapping, windowLiftStopped
     case tabFoldSplit, seatReleasedEarly, seatCreatedBySweep
 
     var isIssue: Bool {
         switch self {
-        case .phantomHealed, .appUnreadable, .fullscreenFlapping: return true
+        case .phantomHealed, .appUnreadable, .fullscreenFlapping, .windowLiftStopped: return true
         case .tabFoldSplit, .seatReleasedEarly, .seatCreatedBySweep: return false
         }
     }
@@ -18,6 +18,7 @@ enum IssueKind: String, Codable, CaseIterable {
         case .phantomHealed: return String(localized: "An extra cell appeared")
         case .appUnreadable: return String(localized: "Its windows couldn't be read for a while; its cells may have lagged")
         case .fullscreenFlapping: return String(localized: "The taskbar kept showing and hiding around full screen")
+        case .windowLiftStopped: return String(localized: "A maximized window couldn't be kept clear of the taskbar, so adjusting it was paused")
         case .tabFoldSplit, .seatReleasedEarly, .seatCreatedBySweep: return rawValue
         }
     }
@@ -26,10 +27,24 @@ enum IssueKind: String, Codable, CaseIterable {
     var statusLabel: String {
         switch self {
         case .phantomHealed: return String(localized: "Fixed automatically")
-        case .appUnreadable, .fullscreenFlapping: return String(localized: "Recorded")
+        case .appUnreadable, .fullscreenFlapping, .windowLiftStopped: return String(localized: "Recorded")
         case .tabFoldSplit, .seatReleasedEarly, .seatCreatedBySweep: return ""
         }
     }
+}
+
+/// What the lift saw, not who caused it: a reverted frame may be the app, a tiling tool or the user.
+enum IssueLiftStopReason: String, Codable {
+    case didNotApply, reverted
+}
+
+/// The display a lift stop happened on, sampled at that moment: by the time the user copies
+/// the report the external display may be unplugged or rescaled.
+struct IssueScreen: Equatable {
+    let width: Int
+    let height: Int
+    let scale: Double
+    let builtIn: Bool
 }
 
 /// Only enum, numeric and boolean fields can cross the persistent-detail boundary.
@@ -39,6 +54,19 @@ struct IssueDetail: Codable, Equatable {
     var ageSeconds: Double?
     var consecutiveReads: Int?
     var toggles: Int?
+    var liftStopReason: IssueLiftStopReason?
+    var screenWidth: Int?
+    var screenHeight: Int?
+    var screenScale: Double?
+    var builtInScreen: Bool?
+
+    /// Splits aggregation so a built-in and an external display, or the two stop reasons,
+    /// never fold into one entry that keeps only the last one's detail.
+    var aggregationScope: String {
+        guard let liftStopReason else { return "" }
+        let screen = screenWidth.map { "\($0)x\(screenHeight ?? 0)@\(screenScale ?? 0)-\(builtInScreen == true)" }
+        return liftStopReason.rawValue + "|" + (screen ?? "?")
+    }
 }
 
 struct IssueEvent: Equatable {
@@ -68,6 +96,12 @@ struct IssueEvent: Equatable {
         return Self(kind: .seatReleasedEarly, detail: IssueDetail(
             releaseReason: reason, hasDestroyEvidence: reason == .leftCGList ? hasDestroyEvidence : nil,
             ageSeconds: age))
+    }
+
+    static func windowLiftStopped(reason: IssueLiftStopReason, screen: IssueScreen?) -> Self {
+        Self(kind: .windowLiftStopped, detail: IssueDetail(
+            liftStopReason: reason, screenWidth: screen?.width, screenHeight: screen?.height,
+            screenScale: screen?.scale, builtInScreen: screen?.builtIn))
     }
 
     static func seatCreatedBySweep(alreadyTracked: Bool, source: InventoryReconcileSource, isNewSeat: Bool) -> Self? {
@@ -160,7 +194,7 @@ final class IssueLog {
     static let byteLimit = 256 * 1024
     static let aggregationInterval: TimeInterval = 10 * 60
 
-    private struct Key: Hashable { let kind: IssueKind; let bundleID: String }
+    private struct Key: Hashable { let kind: IssueKind; let bundleID: String; let scope: String }
     private struct Pending { let openedAt: Date; var entry: IssueLogEntry }
     private let queue = DispatchQueue(label: "com.caye.macosdockcc.v2.issue-log", qos: .utility)
     private let directory: URL
@@ -193,7 +227,7 @@ final class IssueLog {
         queue.async { [self] in
             perform {
                 try flushClosed(at: at)
-                let key = Key(kind: event.kind, bundleID: bundleID ?? "unknown")
+                let key = Key(kind: event.kind, bundleID: bundleID ?? "unknown", scope: event.detail.aggregationScope)
                 if var value = pending[key] {
                     value.entry.count += 1
                     value.entry.ts = max(value.entry.ts, at)
