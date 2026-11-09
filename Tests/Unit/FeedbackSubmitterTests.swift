@@ -38,6 +38,7 @@ final class FeedbackSubmitterTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Tungsten-Client"), "app")
 
         let body = try XCTUnwrap(request.httpBody)
+        XCTAssertEqual(body, Data(#"{"appVersion":"版本 0.9.5 (117)","contact":"me@example.com","lang":"zh","macosVersion":"macOS 15.5","message":"任务条很好用"}"#.utf8))
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(
             Set(object.keys),
@@ -59,11 +60,130 @@ final class FeedbackSubmitterTests: XCTestCase {
         ))
 
         let body = try XCTUnwrap(captured?.httpBody)
+        XCTAssertEqual(body, Data(#"{"lang":"en","message":"hi"}"#.utf8))
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(Set(object.keys), ["lang", "message"], "没填的字段整个省略，不发空值")
     }
 
     // MARK: 只有 2xx 算成功
+
+    func testDiagnosticsTravelInJSONAndMultipartPayloadWithoutChangingText() async throws {
+        let report = "## F. Window inventory\n应用: 文件 \\\"\n\twindow state=true"
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".png")
+        try Data([0x89, 0x50]).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        var payloads: [Data] = []
+        for withAttachment in [false, true] {
+            var captured: URLRequest?
+            let submitter = WebsiteFeedbackSubmitter { request in
+                captured = request
+                return (Data(), self.okResponse())
+            }
+            try await submitter.submit(FeedbackDraft(
+                message: "hi", contact: nil, appVersion: nil, macosVersion: nil, lang: "en",
+                diagnostics: report,
+                attachments: withAttachment
+                    ? [.init(url: file, name: "shot.png", byteCount: 2, mimeType: "image/png")] : []
+            ))
+            let request = try XCTUnwrap(captured)
+            var payload = try XCTUnwrap(request.httpBody)
+            if withAttachment {
+                XCTAssertTrue(request.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("multipart/form-data;") == true)
+                let text = String(decoding: payload, as: UTF8.self)
+                let start = try XCTUnwrap(text.range(of: "name=\"payload\"\r\n\r\n")).upperBound
+                let end = try XCTUnwrap(text.range(of: "\r\n--", range: start..<text.endIndex)).lowerBound
+                payload = Data(text[start..<end].utf8)
+                XCTAssertTrue(text.contains("name=\"file0\"; filename=\"shot.png\""))
+                XCTAssertFalse(text.contains("name=\"file1\""))
+                XCTAssertFalse(text.contains("name=\"diagnostics\""))
+            } else {
+                XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+            }
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: payload) as? [String: Any])
+            XCTAssertEqual(Set(object.keys), ["diagnostics", "lang", "message"])
+            XCTAssertEqual(object["diagnostics"] as? String, report)
+            payloads.append(payload)
+        }
+        XCTAssertEqual(payloads[0], payloads[1])
+    }
+
+    func testDiagnosticsTooLongResponseIsRejected() async {
+        let submitter = WebsiteFeedbackSubmitter { _ in
+            (Data(#"{"code":"diagnostics_too_long"}"#.utf8), self.okResponse(400))
+        }
+        do {
+            try await submitter.submit(fullDraft())
+            XCTFail("Expected rejection")
+        } catch {
+            XCTAssertEqual(error as? FeedbackError, .httpStatus(400, code: "diagnostics_too_long"))
+            XCTAssertEqual(FeedbackFailure(error: error), .rejected)
+        }
+    }
+
+    @MainActor
+    func testFeedbackOptInSurvivesWindowSessionButPrivateReportDoesNot() throws {
+        let draft = FeedbackDraftState()
+        XCTAssertFalse(draft.includesDiagnostics)
+        draft.includesDiagnostics = true
+        let firstWindow = DiagnosticsSession()
+        firstWindow.setIncludesTitles(true)
+        let request = try XCTUnwrap(firstWindow.begin())
+        firstWindow.complete(request, text: "private window title")
+        XCTAssertTrue(firstWindow.canSendFeedback(includingDiagnostics: draft.includesDiagnostics))
+        firstWindow.close()
+        XCTAssertNil(firstWindow.report)
+        XCTAssertFalse(firstWindow.canSendFeedback(includingDiagnostics: draft.includesDiagnostics))
+
+        let reopened = DiagnosticsSession()
+        XCTAssertTrue(draft.includesDiagnostics)
+        XCTAssertFalse(reopened.includesTitles)
+        XCTAssertNil(reopened.report)
+        XCTAssertFalse(reopened.canSendFeedback(includingDiagnostics: draft.includesDiagnostics))
+        var reads = 0
+        reopened.collect { includesTitles, completion in
+            XCTAssertFalse(includesTitles)
+            reads += 1
+            completion("report without titles")
+        }
+        XCTAssertTrue(reopened.canSendFeedback(includingDiagnostics: draft.includesDiagnostics))
+        XCTAssertEqual(reopened.report, "report without titles")
+        XCTAssertEqual(reads, 1)
+        draft.clear()
+        XCTAssertFalse(draft.includesDiagnostics)
+    }
+
+    @MainActor
+    func testFeedbackBlocksCollectionFailureAndStaleGenerationsAndAllowsRetry() throws {
+        let session = DiagnosticsSession()
+        XCTAssertTrue(session.canSendFeedback(includingDiagnostics: false))
+        var completions: [(String) -> Void] = []
+        let collect: (Bool, @escaping (String) -> Void) -> Void = { _, completion in
+            completions.append(completion)
+        }
+        session.collect(using: collect)
+        XCTAssertFalse(session.canSendFeedback(includingDiagnostics: true))
+        session.setIncludesTitles(true)
+        session.collect(using: collect)
+        completions[0]("stale title-free report")
+        XCTAssertNil(session.report)
+        XCTAssertTrue(session.isCollecting)
+        completions[1]("")
+        XCTAssertTrue(session.collectionFailed)
+        XCTAssertFalse(session.canSendFeedback(includingDiagnostics: true))
+        session.collect(using: collect)
+        completions[2]("latest visible report")
+        XCTAssertTrue(session.canSendFeedback(includingDiagnostics: true))
+        XCTAssertEqual(session.report, "latest visible report")
+        session.discardReport()
+        XCTAssertNil(session.report)
+        session.collect(using: collect)
+        completions[2]("duplicate old result")
+        XCTAssertNil(session.report)
+        session.close()
+        completions[3]("late result after close")
+        XCTAssertNil(session.report)
+        XCTAssertFalse(session.canSendFeedback(includingDiagnostics: true))
+    }
 
     func testNon2xxThrowsHTTPStatus() async {
         let submitter = WebsiteFeedbackSubmitter { _ in (Data(), self.okResponse(429)) }

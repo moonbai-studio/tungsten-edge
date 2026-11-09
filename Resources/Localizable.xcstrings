@@ -405,6 +405,107 @@
         }
       }
     },
+    "Collecting diagnostics…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecting diagnostics…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集诊断信息…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在收集診斷資訊⋯"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "診断情報を収集中…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnoseinformationen werden erfasst…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collecte des informations de diagnostic…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando información de diagnóstico…"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recopilando información de diagnóstico…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coletando informações de diagnóstico…"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A recolher informações de diagnóstico…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccolta delle informazioni diagnostiche…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "진단 정보 수집 중…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сбор диагностических данных…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tanılama bilgileri toplanıyor…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायग्नोस्टिक जानकारी इकट्ठी की जा रही है…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang thu thập thông tin chẩn đoán…"
+          }
+        }
+      }
+    },
     "Collecting…": {
       "extractionState": "manual",
       "localizations": {
@@ -4130,6 +4231,107 @@
         }
       }
     },
+    "Attach Diagnostics": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach Diagnostics"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "附上诊断信息"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "附上診斷資訊"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "診断情報を添付"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnoseinformationen anhängen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joindre les informations de diagnostic"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjuntar información de diagnóstico"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjuntar información de diagnóstico"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anexar informações de diagnóstico"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anexar informações de diagnóstico"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allega informazioni diagnostiche"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "진단 정보 첨부"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложить диагностические данные"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tanılama bilgilerini ekle"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायग्नोस्टिक जानकारी संलग्न करें"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đính kèm thông tin chẩn đoán"
+          }
+        }
+      }
+    },
     "Attach a screenshot (PNG, JPEG, GIF, HEIC) or a screen recording (MOV, MP4).": {
       "comment": "反馈附件被拒 · 类型不在白名单",
       "localizations": {
@@ -7540,6 +7742,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đăng ký phím tắt"
+          }
+        }
+      }
+    },
+    "Couldn’t collect diagnostics. Try collecting again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t collect diagnostics. Try collecting again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能收集诊断信息，请重新收集。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法收集診斷資訊，請重新收集。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "診断情報を収集できませんでした。もう一度収集してください。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnoseinformationen konnten nicht erfasst werden. Versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de collecter les informations de diagnostic. Réessayez."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo recopilar la información de diagnóstico. Inténtalo de nuevo."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo recopilar la información de diagnóstico. Inténtalo de nuevo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível coletar as informações de diagnóstico. Tente novamente."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível recolher as informações de diagnóstico. Tente novamente."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raccogliere le informazioni diagnostiche. Riprova."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "진단 정보를 수집할 수 없습니다. 다시 수집해 주세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось собрать диагностические данные. Попробуйте ещё раз."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tanılama bilgileri toplanamadı. Yeniden deneyin."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायग्नोस्टिक जानकारी इकट्ठी नहीं हो सकी। फिर से कोशिश करें।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thu thập thông tin chẩn đoán. Hãy thử lại."
           }
         }
       }
@@ -16587,103 +16890,103 @@
         }
       }
     },
-    "Only your message, the contact you enter, the app version, your macOS version, the interface language and the attachments you add (kept for at most 90 days) are sent.": {
-      "comment": "设置窗口 · 反馈披露行（六项）",
+    "Only your message, the contact you enter, the app version, your macOS version, the interface language, the attachments you add (kept for at most 90 days) and diagnostics you choose to attach (app list and window state) are sent.": {
+      "comment": "设置窗口 · 反馈披露行（含可选诊断）",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "只会发送你写的内容、你填写的联系方式、App 版本、macOS 版本、界面语言和你添加的附件（最多保留 90 天）。"
+            "value": "只会发送你写的内容、你填写的联系方式、App 版本、macOS 版本、界面语言、你添加的附件（最多保留 90 天），以及勾选后附上的诊断信息（应用列表与窗口状态）。"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only your message, the contact you enter, the app version, your macOS version, the interface language and the attachments you add (kept for at most 90 days) are sent."
+            "value": "Only your message, the contact you enter, the app version, your macOS version, the interface language, the attachments you add (kept for at most 90 days) and diagnostics you choose to attach (app list and window state) are sent."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "只會傳送你寫的內容、你填寫的聯絡方式、App版本、你的macOS版本、介面語言，以及你加入的附件（最多保留90天）。"
+            "value": "只會傳送你寫的內容、你填寫的聯絡方式、App版本、你的macOS版本、介面語言、你加入的附件（最多保留90天），以及你選擇附上的診斷資訊（App列表與視窗狀態）。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "送信されるのは、入力した内容、入力した連絡先、アプリのバージョン、macOSのバージョン、表示言語、追加した添付ファイル（保存期間は最長90日）だけです。"
+            "value": "送信されるのは、入力した内容、入力した連絡先、アプリのバージョン、macOSのバージョン、表示言語、追加した添付ファイル（保存期間は最長90日）、添付を選択した診断情報（アプリの一覧とウインドウの状態）だけです。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gesendet werden nur dein Text, die von dir angegebene Kontaktmöglichkeit, die App-Version, deine macOS-Version, die Sprache der Benutzeroberfläche und die von dir hinzugefügten Anhänge (höchstens 90 Tage gespeichert)."
+            "value": "Gesendet werden nur dein Text, die von dir angegebene Kontaktmöglichkeit, die App-Version, deine macOS-Version, die Sprache der Benutzeroberfläche, die von dir hinzugefügten Anhänge (höchstens 90 Tage gespeichert) und die von dir ausgewählten Diagnoseinformationen (App-Liste und Fensterstatus)."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seuls votre message, le contact que vous indiquez, la version de l’app, votre version de macOS, la langue de l’interface et les pièces jointes que vous ajoutez (conservées 90 jours au maximum) sont envoyés."
+            "value": "Seuls votre message, le contact que vous indiquez, la version de l’app, votre version de macOS, la langue de l’interface, les pièces jointes que vous ajoutez (conservées 90 jours au maximum) et les informations de diagnostic que vous choisissez de joindre (liste des apps et état des fenêtres) sont envoyés."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Solo se envían tu mensaje, el contacto que indiques, la versión de la app, tu versión de macOS, el idioma de la interfaz y los adjuntos que añadas (se conservan 90 días como máximo)."
+            "value": "Solo se envían tu mensaje, el contacto que indiques, la versión de la app, tu versión de macOS, el idioma de la interfaz, los adjuntos que añadas (se conservan 90 días como máximo) y la información de diagnóstico que elijas adjuntar (lista de apps y estado de las ventanas)."
           }
         },
         "es-419": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sólo se envían tu mensaje, el contacto que indiques, la versión de la app, tu versión de macOS, el idioma de la interfaz y los adjuntos que agregues (se conservan 90 días como máximo)."
+            "value": "Sólo se envían tu mensaje, el contacto que indiques, la versión de la app, tu versión de macOS, el idioma de la interfaz, los adjuntos que agregues (se conservan 90 días como máximo) y la información de diagnóstico que elijas adjuntar (lista de apps y estado de las ventanas)."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Somente sua mensagem, o contato informado, a versão do app, a versão do macOS, o idioma da interface e os anexos que você adicionar (mantidos por no máximo 90 dias) são enviados."
+            "value": "Somente sua mensagem, o contato informado, a versão do app, a versão do macOS, o idioma da interface, os anexos que você adicionar (mantidos por no máximo 90 dias) e as informações de diagnóstico que você escolher anexar (lista de apps e estado das janelas) são enviados."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apenas são enviados a sua mensagem, o contacto que indicar, a versão da aplicação, a versão do macOS, o idioma da interface e os anexos que adicionar (conservados durante um máximo de 90 dias)."
+            "value": "Apenas são enviados a sua mensagem, o contacto que indicar, a versão da aplicação, a versão do macOS, o idioma da interface, os anexos que adicionar (conservados durante um máximo de 90 dias) e as informações de diagnóstico que optar por anexar (lista de aplicações e estado das janelas)."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vengono inviati solo il tuo messaggio, il contatto che inserisci, la versione dell’app, la versione di macOS, la lingua dell’interfaccia e gli allegati che aggiungi (conservati per un massimo di 90 giorni)."
+            "value": "Vengono inviati solo il tuo messaggio, il contatto che inserisci, la versione dell’app, la versione di macOS, la lingua dell’interfaccia, gli allegati che aggiungi (conservati per un massimo di 90 giorni) e le informazioni diagnostiche che scegli di allegare (elenco delle app e stato delle finestre)."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "메시지, 입력한 연락처, 앱 버전, macOS 버전, 인터페이스 언어 및 추가한 첨부 파일(최대 90일 보관)만 전송됩니다."
+            "value": "메시지, 입력한 연락처, 앱 버전, macOS 버전, 인터페이스 언어, 추가한 첨부 파일(최대 90일 보관) 및 첨부하기로 선택한 진단 정보(앱 목록 및 윈도우 상태)만 전송됩니다."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отправляются только Ваше сообщение, указанный контакт, версия приложения, версия macOS, язык интерфейса и добавленные Вами вложения (хранятся не более 90 дней)."
+            "value": "Отправляются только Ваше сообщение, указанный контакт, версия приложения, версия macOS, язык интерфейса, добавленные Вами вложения (хранятся не более 90 дней) и диагностические данные, которые Вы решили приложить (список приложений и состояние окон)."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yalnızca mesajınız, girdiğiniz iletişim bilgisi, uygulama sürümü, macOS sürümünüz, arayüz diliniz ve eklediğiniz ekler (en fazla 90 gün saklanır) gönderilir."
+            "value": "Yalnızca mesajınız, girdiğiniz iletişim bilgisi, uygulama sürümü, macOS sürümünüz, arayüz diliniz, eklediğiniz ekler (en fazla 90 gün saklanır) ve eklemeyi seçtiğiniz tanılama bilgileri (uygulama listesi ve pencere durumu) gönderilir."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "सिर्फ़ आपका संदेश, आपकी दी गई संपर्क जानकारी, ऐप का संस्करण, आपका macOS संस्करण, इंटरफ़ेस की भाषा और आपके जोड़े गए अटैचमेंट (अधिकतम 90 दिन तक रखे जाते हैं) भेजे जाते हैं।"
+            "value": "सिर्फ़ आपका संदेश, आपकी दी गई संपर्क जानकारी, ऐप का संस्करण, आपका macOS संस्करण, इंटरफ़ेस की भाषा, आपके जोड़े गए अटैचमेंट (अधिकतम 90 दिन तक रखे जाते हैं) और आपकी चुनी हुई डायग्नोस्टिक जानकारी (ऐप की सूची और विंडो की स्थिति) भेजे जाते हैं।"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chỉ những thông tin sau được gửi đi: tin nhắn của bạn, thông tin liên hệ bạn nhập, phiên bản ứng dụng, phiên bản macOS, ngôn ngữ giao diện và các tệp đính kèm bạn thêm (được lưu tối đa 90 ngày)."
+            "value": "Chỉ những thông tin sau được gửi đi: tin nhắn của bạn, thông tin liên hệ bạn nhập, phiên bản ứng dụng, phiên bản macOS, ngôn ngữ giao diện, các tệp đính kèm bạn thêm (được lưu tối đa 90 ngày) và thông tin chẩn đoán bạn chọn đính kèm (danh sách ứng dụng và trạng thái cửa sổ)."
           }
         }
       }
