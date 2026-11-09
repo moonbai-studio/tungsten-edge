@@ -157,6 +157,7 @@ struct DiagnosticSnapshotReport {
     var panels: [String]
     var applications: [DiagnosticApplicationBlock]
     var stripExtras: [String] = []
+    var recentIssues: [String] = []
 
     var text: String {
         struct Block {
@@ -184,6 +185,7 @@ struct DiagnosticSnapshotReport {
                         "## B. Permissions\n" + permissions.joined(separator: "\n"),
                         "## C. Settings\n" + settings.joined(separator: "\n"),
                         "## D. Taskbar state\n" + panels.joined(separator: "\n")].joined(separator: "\n\n")
+        let issues = "\n\n## G. Recent issues\n" + recentIssues.suffix(50).joined(separator: "\n")
         var blocks = applications.map { Block(value: $0) }
         var extras = stripExtras
         var removedExtras = 0
@@ -200,6 +202,7 @@ struct DiagnosticSnapshotReport {
             return required + "\n\n## E. Strip entries\n" + e.sorted().joined(separator: "\n")
                 + "\n\n## F. Window inventory\n" + f.joined(separator: "\n\n")
                 + "\n\n## Differences\n" + live.flatMap(\.value.differences).joined(separator: "\n")
+                + issues
         }
         var rendered = render()
         while rendered.utf8.count > DiagnosticText.byteLimit {
@@ -215,7 +218,9 @@ struct DiagnosticSnapshotReport {
                 blocks[victim].omitted = true
             } else {
                 // Even required metadata may exceed the budget on an extreme display topology.
-                return DiagnosticText.prefix(rendered, bytes: DiagnosticText.byteLimit - 24) + "\n... report truncated"
+                let tail = DiagnosticText.prefix(issues, bytes: DiagnosticText.byteLimit - 24)
+                return DiagnosticText.prefix(required, bytes: DiagnosticText.byteLimit - tail.utf8.count - 24)
+                    + "\n... report truncated" + tail
             }
             rendered = render()
         }

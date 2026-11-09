@@ -2632,6 +2632,9 @@ final class WindowLiftAvoidanceController {
         } else {
             states[key] = state
         }
+        if case let .abandoned(session) = state {
+            if case .abandoned = previous {} else { recordStop(session.reason, for: key) }
+        }
         if traceEnabled, traceLabel(for: previous) != traceLabel(for: state) {
             let previousLabel = traceLabel(for: previous)
             let stateLabel = traceLabel(for: state)
@@ -2641,6 +2644,25 @@ final class WindowLiftAvoidanceController {
         }
         updateTrackedProbeLifecycle()
         updatePollTimerLifecycle()
+    }
+
+    /// Every entry into `.abandoned` passes through `store`, so this is the one place a stop is logged.
+    private func recordStop(_ reason: WindowLiftAvoidance.AbandonReason, for key: WindowLiftAvoidance.WindowKey) {
+        let screen = sessionContexts[key].flatMap { context in
+            NSScreen.screens.first { $0.frame == context.geometry.screenFrame }
+        }.map { screen -> IssueScreen in
+            let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+            return IssueScreen(
+                width: Int(screen.frame.width), height: Int(screen.frame.height),
+                scale: Double(screen.backingScaleFactor),
+                builtIn: number.map { CGDisplayIsBuiltin(CGDirectDisplayID($0.uint32Value)) != 0 } ?? false
+            )
+        }
+        let stopReason: IssueLiftStopReason = reason == .writeFailed ? .didNotApply : .reverted
+        IssueLog.shared.record(
+            IssueEvent.windowLiftStopped(reason: stopReason, screen: screen),
+            bundleID: NSRunningApplication(processIdentifier: key.pid)?.bundleIdentifier
+        )
     }
 
     private func clearManagedSession(

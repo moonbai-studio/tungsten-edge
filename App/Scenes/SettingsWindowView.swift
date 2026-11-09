@@ -369,6 +369,62 @@ struct SettingsWindowContent: View {
         .onAppear {
             if diagnostics.report == nil { refreshDiagnostics() }
         }
+        recentIssuesSection
+    }
+
+    private var recentIssuesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if diagnostics.issueRows.isEmpty {
+                Text("Event Log")
+                Text("Tungsten Edge hasn't noticed anything unusual in the last two weeks.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Only problems Tungsten Edge can notice by itself are listed here.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                DisclosureGroup(isExpanded: $diagnostics.issuesExpanded) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(diagnostics.issueRows.prefix(20).enumerated()), id: \.offset) { _, entry in
+                            issueRow(entry)
+                        }
+                        if diagnostics.issueRows.count > 20 {
+                            Text(String(format: String(localized: "%d more — Copy Report includes all of them."), diagnostics.issueRows.count - 20))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+                } label: {
+                    HStack {
+                        Text("Event Log")
+                        Spacer()
+                        Text(String(format: String(localized: "%d in the last two weeks"), diagnostics.issueRows.count))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Text("Problems Tungsten Edge doesn't notice itself, such as an extra cell, won't appear here. If you see one, click Copy Report while it's still on screen.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func issueRow(_ entry: IssueLogEntry) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(issueRowText(entry))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Text(entry.kind.statusLabel)
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func issueRowText(_ entry: IssueLogEntry) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm"
+        return [formatter.string(from: entry.ts), AppDisplayNameResolver.displayName(for: entry.bundleID),
+                entry.kind.sentence, String(format: String(localized: "%d times"), entry.count)].joined(separator: " · ")
     }
 
     /// The report box keeps one height whether empty, collecting or full: content that grows

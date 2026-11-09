@@ -1,6 +1,107 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "A maximized window couldn't be kept clear of the taskbar, so adjusting it was paused": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A maximized window couldn't be kept clear of the taskbar, so adjusting it was paused"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化窗口没能避开任务条，已暂停调整它"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化的視窗無法避開工作列，已暫停調整"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化したウインドウをタスクバーから避けられなかったため、調整を一時停止しました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein maximiertes Fenster konnte nicht von der Taskleiste freigehalten werden, daher wurde die Anpassung pausiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fenêtre agrandie n’a pas pu être maintenue hors de la barre des tâches ; son ajustement a été suspendu"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo mantener una ventana maximizada fuera de la barra de tareas, así que se pausó su ajuste"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo mantener una ventana maximizada fuera de la barra de tareas, así que se pausó su ajuste"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível manter uma janela maximizada longe da barra de tarefas, então o ajuste foi pausado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível manter uma janela maximizada afastada da barra de tarefas, pelo que o ajuste foi pausado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile tenere una finestra ingrandita lontana dalla barra delle applicazioni, quindi la regolazione è stata sospesa"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "최대화된 윈도우가 작업 표시줄을 피하도록 유지하지 못해 조정을 일시 중지했습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось удержать развёрнутое окно над панелью задач, поэтому его подстройка приостановлена"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Büyütülmüş bir pencere görev çubuğundan uzak tutulamadı, bu yüzden ayarlanması duraklatıldı"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक बड़ी की गई विंडो को टास्कबार से दूर नहीं रखा जा सका, इसलिए उसे समायोजित करना रोक दिया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể giữ cửa sổ phóng to tránh khỏi thanh tác vụ nên đã tạm dừng điều chỉnh"
+          }
+        }
+      }
+    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -603,6 +704,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lớn"
+          }
+        }
+      }
+    },
+    "Only problems Tungsten Edge can notice by itself are listed here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only problems Tungsten Edge can notice by itself are listed here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里只列钨极自己能察觉的那部分问题。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這裡只會列出Tungsten Edge自己能察覺的問題。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここには、Tungsten Edgeが自分で検知できる問題だけが表示されます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier erscheinen nur Probleme, die Tungsten Edge selbst bemerken kann."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuls les problèmes que Tungsten Edge peut remarquer de lui-même apparaissent ici."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aquí solo aparecen los problemas que Tungsten Edge puede detectar por sí mismo."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aquí solo aparecen los problemas que Tungsten Edge puede detectar por sí mismo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aqui aparecem apenas os problemas que o Tungsten Edge consegue notar sozinho."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aqui aparecem apenas os problemas que o Tungsten Edge consegue detetar sozinho."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui compaiono solo i problemi che Tungsten Edge riesce a notare da solo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "여기에는 Tungsten Edge가 스스로 감지할 수 있는 문제만 표시됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Здесь показываются только проблемы, которые Tungsten Edge может заметить сам."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burada yalnızca Tungsten Edge'in kendi başına fark edebildiği sorunlar listelenir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ केवल वे समस्याएँ दिखती हैं जिन्हें Tungsten Edge खुद पहचान सकता है।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ở đây chỉ liệt kê những sự cố mà Tungsten Edge tự phát hiện được."
           }
         }
       }
@@ -1611,6 +1813,208 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ đã được ứng dụng khác sử dụng. Phím tắt trước đó vẫn đang hoạt động."
+          }
+        }
+      }
+    },
+    "%d more — Copy Report includes all of them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d more — Copy Report includes all of them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还有 %d 条，复制报告里有全部。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還有%d筆，「拷貝報告」會包含全部記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほか%d件。「レポートをコピー」ですべて含まれます。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d weitere – „Bericht kopieren“ enthält alle."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d de plus — « Copier le rapport » les inclut tous."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d más. «Copiar informe» los incluye todos."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d más. «Copiar informe» los incluye todos."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais %d — “Copiar relatório” inclui todos."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais %d — “Copiar relatório” inclui todos."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altri %d. “Copia rapporto” li include tutti."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d개 더 있음. ‘보고서 복사’에 모두 포함됩니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё %d. «Скопировать отчёт» включает все записи."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d tane daha. “Raporu Kopyala” hepsini içerir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d और — “रिपोर्ट कॉपी करें” में सभी शामिल हैं।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Còn %d mục nữa — “Sao chép báo cáo” bao gồm tất cả."
+          }
+        }
+      }
+    },
+    "%d times": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d times"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d 次"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d次"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d回"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Mal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d fois"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d veces"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d veces"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d vezes"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d vezes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d volte"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d회"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d раз"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d kez"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d बार"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d lần"
           }
         }
       }
@@ -14578,6 +14982,107 @@
         }
       }
     },
+    "The taskbar kept showing and hiding around full screen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The taskbar kept showing and hiding around full screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全屏时任务条来回出现、隐藏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作列在全螢幕時反覆顯示與隱藏"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フルスクリーンの前後でタスクバーの表示と非表示が繰り返されました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Taskleiste wurde beim Vollbild wiederholt ein- und ausgeblendet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barre des tâches s’est affichée et masquée à plusieurs reprises en plein écran"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra de tareas apareció y se ocultó repetidamente en pantalla completa"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra de tareas apareció y se ocultó repetidamente en pantalla completa"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A barra de tarefas ficou aparecendo e desaparecendo em tela cheia"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A barra de tarefas apareceu e desapareceu repetidamente em ecrã completo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La barra delle applicazioni ha continuato a comparire e scomparire a tutto schermo"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체 화면 전후에 작업 표시줄이 반복해서 나타났다 사라졌습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Панель задач постоянно появлялась и скрывалась в полноэкранном режиме"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görev çubuğu tam ekran sırasında sürekli görünüp gizlendi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ुल स्क्रीन के दौरान टास्कबार बार-बार दिखता और छिपता रहा"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thanh tác vụ liên tục hiện rồi ẩn khi ở chế độ toàn màn hình"
+          }
+        }
+      }
+    },
     "The windows, permissions and settings Tungsten Edge currently sees. Your home directory is shown as ~.": {
       "extractionState": "manual",
       "localizations": {
@@ -15276,6 +15781,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không có ứng dụng khả dụng"
+          }
+        }
+      }
+    },
+    "Tungsten Edge hasn't noticed anything unusual in the last two weeks.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge hasn't noticed anything unusual in the last two weeks."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钨极最近两周没有察觉到异常。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge最近兩週未察覺到異常。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edgeは過去2週間、異常を検知していません。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge hat in den letzten zwei Wochen nichts Ungewöhnliches bemerkt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge n’a rien remarqué d’inhabituel au cours des deux dernières semaines."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge no ha detectado nada fuera de lo normal en las últimas dos semanas."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge no detectó nada fuera de lo normal en las últimas dos semanas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Tungsten Edge não notou nada fora do comum nas últimas duas semanas."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Tungsten Edge não detetou nada de invulgar nas últimas duas semanas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge non ha notato nulla di insolito nelle ultime due settimane."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge가 지난 2주 동안 이상을 감지하지 않았습니다."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "За последние две недели Tungsten Edge не заметил ничего необычного."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge son iki haftada olağandışı bir şey fark etmedi."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछले दो हफ़्तों में Tungsten Edge ने कुछ भी असामान्य नहीं देखा।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge không nhận thấy điều gì bất thường trong hai tuần qua."
           }
         }
       }
@@ -18790,6 +19396,107 @@
         }
       }
     },
+    "Problems Tungsten Edge doesn't notice itself, such as an extra cell, won't appear here. If you see one, click Copy Report while it's still on screen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problems Tungsten Edge doesn't notice itself, such as an extra cell, won't appear here. If you see one, click Copy Report while it's still on screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多一格这类钨极自己没察觉的问题不会出现在这里；遇到时请趁问题还在屏幕上点「复制报告」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tungsten Edge未自行偵測到的問題（例如多出一格）不會顯示在此。若你看到這類問題，請趁它還在螢幕上時按一下「拷貝報告」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余分なセルなど、Tungsten Edge自身が検知できない問題はここには表示されません。見つけた場合は、画面に残っている間に「レポートをコピー」をクリックしてください。"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probleme, die Tungsten Edge selbst nicht erkennt, etwa eine zusätzliche Zelle, erscheinen hier nicht. Klicke auf „Bericht kopieren“, solange das Problem noch auf dem Bildschirm zu sehen ist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les problèmes que Tungsten Edge ne détecte pas lui-même, comme une case en trop, n’apparaissent pas ici. Si vous en voyez un, cliquez sur « Copier le rapport » tant qu’il est encore à l’écran."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los problemas que Tungsten Edge no detecta, como una casilla de más, no aparecen aquí. Si ves uno, haz clic en «Copiar informe» mientras siga en pantalla."
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los problemas que Tungsten Edge no detecta, como una casilla de más, no aparecen aquí. Si ves uno, haz clic en «Copiar informe» mientras siga en pantalla."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problemas que o Tungsten Edge não detecta, como uma célula extra, não aparecem aqui. Se encontrar um, clique em “Copiar relatório” enquanto ele ainda estiver na tela."
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problemas que o Tungsten Edge não deteta, como uma célula a mais, não aparecem aqui. Se encontrar um, clique em “Copiar relatório” enquanto ainda estiver no ecrã."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I problemi che Tungsten Edge non rileva da sé, come una casella in più, non compaiono qui. Se ne vedi uno, fai clic su “Copia rapporto” mentre è ancora sullo schermo."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "칸이 하나 더 생기는 등 Tungsten Edge가 스스로 감지하지 못한 문제는 여기에 표시되지 않습니다. 이런 문제가 보이면 화면에 남아 있을 때 ‘보고서 복사’를 클릭하세요."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проблемы, которые Tungsten Edge не замечает сам, например лишняя ячейка, здесь не появятся. Если вы заметили такую проблему, нажмите «Скопировать отчёт», пока она ещё видна на экране."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazladan bir hücre gibi Tungsten Edge’in kendisinin fark etmediği sorunlar burada görünmez. Böyle bir sorun görürseniz ekranda görünürken “Raporu Kopyala”ya tıklayın."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक अतिरिक्त सेल जैसी समस्याएँ, जिन्हें Tungsten Edge ख़ुद नहीं पहचानता, यहाँ नहीं दिखेंगी। ऐसी समस्या दिखे तो उसके स्क्रीन पर रहते ही “रिपोर्ट कॉपी करें” पर क्लिक करें।"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các sự cố mà Tungsten Edge không tự phát hiện, như một ô thừa, sẽ không xuất hiện ở đây. Nếu thấy sự cố như vậy, hãy bấm “Sao chép báo cáo” khi sự cố vẫn còn trên màn hình."
+          }
+        }
+      }
+    },
     "Putting the windows it moved back where they were.": {
       "localizations": {
         "zh-Hans": {
@@ -19387,6 +20094,410 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thư mục gần đây"
+          }
+        }
+      }
+    },
+    "Event Log": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Event Log"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "執行記錄"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動作記録"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ereignisprotokoll"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Journal des événements"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro de eventos"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro de eventos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro de eventos"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registo de eventos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro eventi"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동작 기록"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Журнал событий"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olay Günlüğü"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इवेंट लॉग"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhật ký sự kiện"
+          }
+        }
+      }
+    },
+    "%d in the last two weeks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d in the last two weeks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近两周 %d 条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近兩週%d筆"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "過去2週間で%d件"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d in den letzten zwei Wochen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d au cours des deux dernières semaines"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d en las últimas dos semanas"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d en las últimas dos semanas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nas últimas duas semanas"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nas últimas duas semanas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d nelle ultime due settimane"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지난 2주간 %d건"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d за последние две недели"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son iki haftada %d"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछले दो हफ़्तों में %d"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d mục trong hai tuần qua"
+          }
+        }
+      }
+    },
+    "Fixed automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fixed automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已自动处理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已自動處理"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動で修正済み"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch behoben"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigé automatiquement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregido automáticamente"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregido automáticamente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigido automaticamente"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrigido automaticamente"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risolto automaticamente"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동으로 처리됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исправлено автоматически"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otomatik düzeltildi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपने-आप ठीक किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tự động xử lý"
+          }
+        }
+      }
+    },
+    "Recorded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已記錄"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記録済み"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokolliert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrado"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registado"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrato"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기록됨"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записано"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydedildi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दर्ज किया गया"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã ghi lại"
           }
         }
       }
@@ -24315,6 +25426,107 @@
         }
       }
     },
+    "Its windows couldn't be read for a while; its cells may have lagged": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its windows couldn't be read for a while; its cells may have lagged"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曾暂时读不到它的窗口，格子可能没及时更新"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曾暫時無法讀取其視窗，格子可能未及時更新"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時的にウインドウを読み取れなかったため、セルの更新が遅れた可能性があります"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Fenster konnten eine Weile nicht gelesen werden; die Zellen wurden möglicherweise verspätet aktualisiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses fenêtres n’ont pas pu être lues pendant un moment ; ses cases n’ont peut-être pas été actualisées à temps"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron leer sus ventanas durante un tiempo; puede que sus casillas no se hayan actualizado a tiempo"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron leer sus ventanas por un momento; puede que sus casillas no se hayan actualizado a tiempo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler as janelas por um tempo; as células podem não ter sido atualizadas a tempo"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler as janelas durante algum tempo; as células podem não ter sido atualizadas a tempo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per un po’ non è stato possibile leggere le sue finestre; le caselle potrebbero non essersi aggiornate in tempo"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠시 윈도우를 읽을 수 없어 해당 칸이 제때 업데이트되지 않았을 수 있습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Некоторое время не удавалось прочитать окна приложения; его ячейки могли обновиться с задержкой"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pencereleri bir süre okunamadı; hücreleri zamanında güncellenmemiş olabilir"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ समय तक इसकी विंडो पढ़ी नहीं जा सकीं; इसकी सेल समय पर अपडेट नहीं हुई होंगी"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đọc được cửa sổ của ứng dụng trong một lúc; các ô có thể chưa được cập nhật kịp thời"
+          }
+        }
+      }
+    },
     "The email address is not valid.": {
       "localizations": {
         "zh-Hans": {
@@ -26926,6 +28138,107 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tungsten Edge cần quyền này để đọc và quản lý các cửa sổ của bạn."
+          }
+        }
+      }
+    },
+    "An extra cell appeared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An extra cell appeared"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出现过一个多余的格子"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "曾出現一個多餘的格子"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余分なセルが表示されました"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine überzählige Zelle wurde angezeigt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une case en trop est apparue"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apareció una casilla de más"
+          }
+        },
+        "es-419": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apareció una casilla de más"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apareceu uma célula extra"
+          }
+        },
+        "pt-PT": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apareceu uma célula a mais"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È comparsa una casella in più"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "불필요한 칸이 나타났습니다"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Появилась лишняя ячейка"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fazladan bir hücre göründü"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक अतिरिक्त सेल दिखाई दी"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xuất hiện một ô thừa"
           }
         }
       }
