@@ -51,4 +51,25 @@ enum ScheduledUpdatePresentation {
 
         return .announce
     }
+
+    /// Whether Sparkle may run this check at all, asked before it starts (`mayPerform`).
+    ///
+    /// With automatic downloads on, a downloaded update leaves Sparkle's installer waiting for the
+    /// app to quit, and every later *background* check skips the feed and re-opens that same update
+    /// window. Once the user has seen it for `readyVersion`, those checks are refused so the window
+    /// comes back only from the menu row; refusing ends the session, so nothing is held open, and a
+    /// newer release could not be found anyway until the waiting one is installed.
+    ///
+    /// - Parameters:
+    ///   - userInitiated: the menu row and the settings button must always get through
+    ///   - readyVersion: the downloaded update waiting for install; `nil` = none
+    ///   - announcedVersion: same as in `decide`
+    static func allowsCheck(
+        userInitiated: Bool,
+        readyVersion: String?,
+        announcedVersion: String?
+    ) -> Bool {
+        guard !userInitiated, let readyVersion else { return true }
+        return readyVersion != announcedVersion
+    }
 }

@@ -39,4 +39,31 @@ final class ScheduledUpdatePresentationTests: XCTestCase {
             .deferToSparkle
         )
     }
+
+    /// Downloaded and already shown: a background check would only re-open the same window.
+    func testBackgroundCheckRefusedOnceReadyUpdateWasShown() {
+        XCTAssertFalse(
+            ScheduledUpdatePresentation.allowsCheck(userInitiated: false, readyVersion: "0.9.2", announcedVersion: "0.9.2")
+        )
+    }
+
+    /// Downloaded but not shown yet (the check right after the download): this is the one announcement.
+    func testBackgroundCheckAllowedBeforeReadyUpdateIsShown() {
+        XCTAssertTrue(
+            ScheduledUpdatePresentation.allowsCheck(userInitiated: false, readyVersion: "0.9.2", announcedVersion: nil)
+        )
+        XCTAssertTrue(
+            ScheduledUpdatePresentation.allowsCheck(userInitiated: false, readyVersion: "0.9.3", announcedVersion: "0.9.2")
+        )
+    }
+
+    /// Nothing waiting → normal check; user-initiated checks (menu row, settings button) always run.
+    func testOtherChecksAlwaysAllowed() {
+        XCTAssertTrue(
+            ScheduledUpdatePresentation.allowsCheck(userInitiated: false, readyVersion: nil, announcedVersion: "0.9.2")
+        )
+        XCTAssertTrue(
+            ScheduledUpdatePresentation.allowsCheck(userInitiated: true, readyVersion: "0.9.2", announcedVersion: "0.9.2")
+        )
+    }
 }

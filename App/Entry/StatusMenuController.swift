@@ -522,12 +522,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         // 有一版在等着装的时候，这行直接写出版本号并挂一个红点（owner 2026-08-20 画的样子）——
         // 「安装 0.9.2…」加个红点是一条消息；主动的「检查更新…」入口只在设置窗口（2026-08-24）。
         if let version = settingsCoordinator.pendingUpdateVersion {
-            let title = String(format: String(localized: "Install %@…"), version)
+            // Already downloaded → the click re-opens Sparkle's window whose main button relaunches.
+            let isReady = settingsCoordinator.isPendingUpdateReadyToInstall
+            let title = isReady
+                ? String(format: String(localized: "Restart to Update to %@…"), version)
+                : String(format: String(localized: "Install %@…"), version)
             installUpdateItem.title = title
             installUpdateItem.attributedTitle = Self.pendingUpdateTitle(title)
             // 那个「●」在 VoiceOver 里会被念成「实心圆」，所以另给一句人话。
             installUpdateItem.setAccessibilityLabel(
-                String(format: String(localized: "Install %@ — update available"), version)
+                isReady
+                    ? String(format: String(localized: "Restart to update to %@ — update downloaded"), version)
+                    : String(format: String(localized: "Install %@ — update available"), version)
             )
             // 可用态归 Sparkle：正在下载 / 安装时它自己会报 false，不再维护"在飞"标志。
             installUpdateItem.isEnabled = settingsCoordinator.canCheckForUpdates

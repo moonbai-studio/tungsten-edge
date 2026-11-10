@@ -324,12 +324,14 @@ struct SettingsWindowContent: View {
             systemForm {
                 aboutVersionRow
                 autoUpdateToggle
+                autoDownloadToggle
             }
             .padding(.bottom, Self.afterFormMargin)
         } else {
             settingsPane {
                 aboutVersionRow
                 autoUpdateToggle
+                autoDownloadToggle
             }
             .padding(Self.paneMargin)
         }
@@ -717,6 +719,20 @@ struct SettingsWindowContent: View {
                 set: { coordinator.automaticallyChecksForUpdates = $0 }
             )
         )
+    }
+
+    /// Off → back to asking before each download. Sparkle downloads only on automatic checks, so the
+    /// box is greyed out while those are off. 「并安装」 is in the label because a downloaded update
+    /// always installs when the app quits.
+    private var autoDownloadToggle: some View {
+        Toggle(
+            "Download and install updates automatically",
+            isOn: Binding(
+                get: { coordinator.automaticallyDownloadsUpdates },
+                set: { coordinator.automaticallyDownloadsUpdates = $0 }
+            )
+        )
+        .disabled(!coordinator.automaticallyChecksForUpdates)
     }
 
     /// Feedback pane: category + message + attachments + optional diagnostics + contact → `/api/feedback`.

@@ -37,6 +37,9 @@
   <!-- 默认自动检查。关闭入口在设置窗口「关于」区——不给关的后台联网检查比多一个勾选项糟糕。 -->
   <key>SUEnableAutomaticChecks</key>
   <true/>
+  <!-- Download updates in the background by default (a downloaded update installs on quit); the off switch is in Settings ▸ About. Initial value only: Sparkle persists the user's choice. -->
+  <key>SUAutomaticallyUpdate</key>
+  <true/>
   <!-- 定时检查的间隔，6 小时。Sparkle 不设这个键时默认一天一次，于是发版当天用户基本
        不会被告知（owner 2026-08-20 实测：只有手点「检查更新」才知道有新版）。
        这只是初始值，用户改过的值由 Sparkle 自己存进偏好，我们代码里不写 updateCheckInterval。 -->

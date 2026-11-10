@@ -532,7 +532,9 @@ private final class SubscriptionSubmitterStub: SubscriptionSubmitting, @unchecke
 private final class UpdateControlStub: UpdateControlling {
     var canCheckForUpdates = true
     var pendingUpdateVersion: String?
+    var isPendingUpdateReadyToInstall = false
     var automaticallyChecksForUpdates = true
+    var automaticallyDownloadsUpdates = true
     private(set) var checkCount = 0
 
     private let subject = PassthroughSubject<Void, Never>()
