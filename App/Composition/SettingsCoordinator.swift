@@ -24,7 +24,10 @@ protocol UpdateControlling: AnyObject {
     var canCheckForUpdates: Bool { get }
     /// 定时检查发现的、还等着用户处理的版本号（`nil` = 没有）。状态栏用它显示提示。
     var pendingUpdateVersion: String? { get }
+    /// `pendingUpdateVersion` is downloaded and installs on relaunch.
+    var isPendingUpdateReadyToInstall: Bool { get }
     var automaticallyChecksForUpdates: Bool { get set }
+    var automaticallyDownloadsUpdates: Bool { get set }
     func checkForUpdates()
     /// 上面那些值变了就发一下，供上层转给界面。
     var changes: AnyPublisher<Void, Never> { get }
@@ -310,6 +313,19 @@ final class SettingsCoordinator: ObservableObject {
     /// 并把「检查更新…」那行换成「安装 X.Y.Z…」。
     var pendingUpdateVersion: String? {
         updateService.pendingUpdateVersion
+    }
+
+    var isPendingUpdateReadyToInstall: Bool {
+        updateService.isPendingUpdateReadyToInstall
+    }
+
+    /// The 「自动下载并安装更新」 checkbox; same no-mirror rule as `automaticallyChecksForUpdates`.
+    var automaticallyDownloadsUpdates: Bool {
+        get { updateService.automaticallyDownloadsUpdates }
+        set {
+            objectWillChange.send()
+            updateService.automaticallyDownloadsUpdates = newValue
+        }
     }
 
     /// 设置窗口那个「自动检查更新」勾选项。

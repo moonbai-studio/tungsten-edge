@@ -33,6 +33,18 @@ import Sparkle
 /// The 「same version, one interruption」 rule therefore lives in
 /// `updater(_:shouldProceedWithUpdate:updateCheck:)`: throwing there aborts the session before
 /// any UI, Sparkle schedules the next check as usual, and the menu-bar badge keeps reminding.
+///
+/// ## Automatic downloads: one window, then the menu row
+///
+/// With `automaticallyDownloadsUpdates` on, a background check downloads silently and leaves
+/// Sparkle's installer waiting; Sparkle **always** installs it when the app quits (by design, not
+/// switchable). We decline `willInstallUpdateOnQuit`'s immediate-install block — taking it holds
+/// the session open and Sparkle can no longer show its update window, so release notes would never
+/// be seen. Instead, when that cycle ends we start one more background check, which resumes the
+/// waiting installer and shows the window once with 「安装并重启应用 / 退出应用时安装」. Later background
+/// checks skip the feed and re-open that same window (weekly while an installer waits, every check
+/// for a download still awaiting an administrator password), so `mayPerform` refuses them once it
+/// was shown; the menu row (a user-initiated check) brings it back.
 @MainActor
 final class SparkleUpdateService: NSObject, ObservableObject, UpdateControlling {
     /// Sparkle 是否处于可以发起检查的状态（正在检查、正在下载时为 false）。
@@ -48,12 +60,26 @@ final class SparkleUpdateService: NSObject, ObservableObject, UpdateControlling 
     /// 它只在**用户真的做了选择**（装了 / 跳过了）或**后续检查发现已经没有更新**时才撤。
     @Published private(set) var pendingUpdateVersion: String?
 
+    /// `pendingUpdateVersion`'s installer is prepared and waits for a relaunch (the menu row then says
+    /// 「重启以更新到 …」). Only Sparkle's `.installing` stage counts: a `.downloaded` update that still
+    /// needs an administrator password is not ready. Cleared together with `pendingUpdateVersion`.
+    @Published private(set) var isPendingUpdateReadyToInstall = false
+
+    /// `pendingUpdateVersion` is downloaded (`.downloaded` or `.installing`). Sparkle resumes such an
+    /// update on every background check without reading the feed, so this drives the `mayPerform`
+    /// refusal. Cleared together with `pendingUpdateVersion`.
+    private var isPendingUpdateDownloaded = false
+
     private var controller: SPUStandardUpdaterController?
     private var canCheckObservation: NSKeyValueObservation?
 
     /// 已经为哪个版本抢过一次前台。**只在内存里**——不落盘就没有新的数据边界，
     /// 代价只是重启钨极后同一个版本会再当面提醒一次，这可以接受。
     private var announcedVersion: String?
+
+    /// Set when an automatic download finished preparing the installer; the end of that cycle
+    /// starts the background check that shows the update window (see the type comment).
+    private var showsPreparedUpdateAfterCycle = false
 
     private let logger = Logger(subsystem: "com.caye.macosdockcc.v2", category: "update")
 
@@ -67,6 +93,14 @@ final class SparkleUpdateService: NSObject, ObservableObject, UpdateControlling 
     var automaticallyChecksForUpdates: Bool {
         get { controller?.updater.automaticallyChecksForUpdates ?? false }
         set { controller?.updater.automaticallyChecksForUpdates = newValue }
+    }
+
+    /// Download (and, on quit, install) updates in the background. Initial value is
+    /// `SUAutomaticallyUpdate` in Info.plist; Sparkle persists the user's choice itself, so it is not
+    /// mirrored into `AppSettingsStore` either.
+    var automaticallyDownloadsUpdates: Bool {
+        get { controller?.updater.automaticallyDownloadsUpdates ?? false }
+        set { controller?.updater.automaticallyDownloadsUpdates = newValue }
     }
 
     /// `UpdateControlling`：把 SwiftUI 的变更通道摊平成一个普通 publisher，
@@ -137,10 +171,17 @@ extension SparkleUpdateService: SPUStandardUserDriverDelegate {
     ) {
         let userInitiated = state.userInitiated
         let version = update.displayVersionString
+        let isDownloaded = state.stage != .notDownloaded
+        let isReady = state.stage == .installing
         Task { @MainActor [weak self] in
             guard let self else { return }
             // 不管这一轮开不开窗，状态栏都要知道「有一版在等着」。
             self.pendingUpdateVersion = version
+            if isDownloaded { self.isPendingUpdateDownloaded = true }
+            if isReady { self.isPendingUpdateReadyToInstall = true }
+            // The window is on its way already (e.g. Sparkle re-checks immediately for a critical
+            // update), so the follow-up check after the download cycle must not run later on its own.
+            self.showsPreparedUpdateAfterCycle = false
             switch ScheduledUpdatePresentation.decide(
                 version: version,
                 userInitiated: userInitiated,
@@ -196,6 +237,57 @@ extension SparkleUpdateService: SPUUpdaterDelegate {
         )
     }
 
+    /// Refuses background checks that would only re-open an already-shown downloaded update
+    /// (`ScheduledUpdatePresentation.allowsCheck`). Throwing ends the session and Sparkle schedules
+    /// the next check; no UI is shown for a background check.
+    func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+        let readyVersion = isPendingUpdateDownloaded ? pendingUpdateVersion : nil
+        guard !ScheduledUpdatePresentation.allowsCheck(
+            userInitiated: updateCheck == .updates,
+            readyVersion: readyVersion,
+            announcedVersion: announcedVersion
+        ) else { return }
+        throw NSError(
+            domain: Self.quietAbortErrorDomain,
+            code: 2,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Update \(readyVersion ?? "") is downloaded and was already shown; the menu row brings it back."
+            ]
+        )
+    }
+
+    /// An automatic download finished and the installer waits for quit. Returning `false` declines
+    /// the immediate-install block on purpose (see the type comment); the update is shown once
+    /// when this cycle ends.
+    func updater(
+        _ updater: SPUUpdater,
+        willInstallUpdateOnQuit item: SUAppcastItem,
+        immediateInstallationBlock immediateInstallHandler: @escaping () -> Void
+    ) -> Bool {
+        let version = item.displayVersionString
+        logger.info("update \(version, privacy: .public) downloaded; installs on quit")
+        pendingUpdateVersion = version
+        isPendingUpdateDownloaded = true
+        isPendingUpdateReadyToInstall = true
+        showsPreparedUpdateAfterCycle = announcedVersion != version
+        return false
+    }
+
+    /// Called after the session has ended; starting a check here also makes Sparkle skip
+    /// scheduling, which the new check's own completion then does.
+    func updater(
+        _ updater: SPUUpdater,
+        didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
+        error: (any Error)?
+    ) {
+        guard showsPreparedUpdateAfterCycle else { return }
+        showsPreparedUpdateAfterCycle = false
+        // `checkForUpdatesInBackground` ignores the automatic-checks switch; honour it here.
+        guard updater.automaticallyChecksForUpdates else { return }
+        updater.checkForUpdatesInBackground()
+    }
+
     /// One line per scheduled check so「为什么没查更新」has evidence in Console
     /// (`log show --predicate 'subsystem == "com.caye.macosdockcc.v2" AND category == "update"'`).
     /// Silence here after an update was found is exactly the bug this file guards against.
@@ -222,6 +314,8 @@ extension SparkleUpdateService: SPUUpdaterDelegate {
         switch choice {
         case .install, .skip:
             pendingUpdateVersion = nil
+            isPendingUpdateDownloaded = false
+            isPendingUpdateReadyToInstall = false
         case .dismiss:
             break
         @unknown default:
@@ -233,5 +327,7 @@ extension SparkleUpdateService: SPUUpdaterDelegate {
     /// 状态栏那个提示该撤了。
     func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
         pendingUpdateVersion = nil
+        isPendingUpdateDownloaded = false
+        isPendingUpdateReadyToInstall = false
     }
 }
