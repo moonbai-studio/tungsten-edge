@@ -964,7 +964,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Modo de tela única"
+            "value": "Tela única"
           }
         },
         "pt-PT": {
@@ -1065,7 +1065,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Modo de várias telas"
+            "value": "Múltiplas telas"
           }
         },
         "pt-PT": {
@@ -1569,7 +1569,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ (sem conexão)"
+            "value": "%@ (desconectado)"
           }
         },
         "pt-PT": {
@@ -1770,7 +1770,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ falhou (código de estado %d)."
+            "value": "%@ falhou (código de status %d)."
           }
         },
         "pt-PT": {
@@ -3479,7 +3479,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não é possível ler um dos anexos"
+            "value": "Não foi possível ler um anexo"
           }
         },
         "pt-PT": {
@@ -4487,7 +4487,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Limite de anexos de hoje atingido"
+            "value": "Limite diário de anexos atingido"
           }
         },
         "pt-PT": {
@@ -4588,7 +4588,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anexos grandes demais"
+            "value": "Os anexos são grandes demais"
           }
         },
         "pt-PT": {
@@ -4889,7 +4889,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relatório de Bug"
+            "value": "Relato de Bug"
           }
         },
         "pt-PT": {
@@ -4989,7 +4989,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não é possível abrir os ajustes do Dock"
+            "value": "Não foi possível abrir os ajustes do Dock"
           }
         },
         "pt-PT": {
@@ -5090,7 +5090,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não é possível ler esse arquivo"
+            "value": "Não foi possível ler esse arquivo"
           }
         },
         "pt-PT": {
@@ -6094,7 +6094,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verifique sua caixa de entrada e clique no link de confirmação para concluir a inscrição. Se ele não estiver lá, verifique a pasta de spam ou a aba Promoções do Gmail."
+            "value": "Verifique sua caixa de entrada e clique no link de confirmação para concluir a inscrição. Se não encontrar a mensagem, verifique a pasta de spam ou a guia Promoções do Gmail."
           }
         },
         "pt-PT": {
@@ -6195,7 +6195,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verifique sua conexão de rede e tente novamente, ou envie um e-mail para support@tungstenedge.app."
+            "value": "Verifique sua conexão e tente novamente ou escreva para support@tungstenedge.app."
           }
         },
         "pt-PT": {
@@ -6295,7 +6295,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verifique sua conexão de rede e tente novamente, ou deixe seu endereço em tungstenedge.app."
+            "value": "Verifique sua conexão e tente novamente ou informe seu endereço em tungstenedge.app."
           }
         },
         "pt-PT": {
@@ -6897,7 +6897,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contato longo demais"
+            "value": "O contato é longo demais"
           }
         },
         "pt-PT": {
@@ -7901,7 +7901,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não foi possível iniciar uma nova instância do Tungsten Edge: %@\n\nVocê pode clicar em Tentar Novamente, ou encerrar e abri-lo manualmente a partir da pasta Aplicativos."
+            "value": "Não foi possível iniciar uma nova instância do Tungsten Edge: %@\n\nVocê pode selecionar Tentar novamente ou encerrar o aplicativo e abri-lo manualmente pela pasta Aplicativos."
           }
         },
         "pt-PT": {
@@ -9106,7 +9106,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Os ajustes do Dock não podem ser alterados diretamente a partir de um ambiente com sandbox."
+            "value": "Não é possível alterar os ajustes do Dock diretamente em um ambiente isolado (sandbox)."
           }
         },
         "pt-PT": {
@@ -11421,7 +11421,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Passe o cursor sobre a borda inferior de uma tela para mudar"
+            "value": "Passe o cursor sobre a borda inferior de uma tela para alternar"
           }
         },
         "pt-PT": {
@@ -12323,7 +12323,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se o interruptor já estiver ativado e nada acontecer, um registro de permissão deixado por uma versão anterior pode não corresponder mais a esta cópia do Tungsten Edge. Você pode redefini-lo:\n\n1. Primeiro, encerre o Tungsten Edge — enquanto ele estiver em execução, o botão de menos na lista fica acinzentado e a entrada não pode ser removida.\n2. Em Privacidade e Segurança > Acessibilidade, selecione Tungsten Edge na lista e remova-o com o botão de menos. Pode haver mais de uma entrada; remova todas.\n3. Abra o Tungsten Edge novamente a partir da pasta Aplicativos, depois adicione-o e ative o interruptor quando solicitado."
+            "value": "Se o interruptor já estiver ativado e nada acontecer, um registro de permissão de uma versão anterior pode não corresponder a esta cópia do Tungsten Edge. Você pode redefini-lo:\n\n1. Encerre o Tungsten Edge. Enquanto ele estiver em execução, o botão de menos na lista ficará desativado e não será possível remover a entrada.\n2. Em Privacidade e Segurança > Acessibilidade, selecione Tungsten Edge na lista e remova-o pelo botão de menos. Pode haver mais de uma entrada; remova todas.\n3. Abra o Tungsten Edge pela pasta Aplicativos. Adicione-o novamente e ative o interruptor quando solicitado."
           }
         },
         "pt-PT": {
@@ -12524,7 +12524,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imagem grande demais"
+            "value": "A imagem é grande demais"
           }
         },
         "pt-PT": {
@@ -13028,7 +13028,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ele pode ter sido movido ou apagado. Remova-o e adicione-o novamente."
+            "value": "O arquivo pode ter sido movido ou apagado. Remova-o e anexe-o novamente."
           }
         },
         "pt-PT": {
@@ -13832,7 +13832,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deixe seu endereço de e-mail e sua licença será enviada diretamente para você. Ela continua válida se você trocar de dispositivo ou reinstalar o macOS."
+            "value": "Informe seu endereço de e-mail para receber a licença. Ela continuará válida se você trocar de dispositivo ou reinstalar o macOS."
           }
         },
         "pt-PT": {
@@ -14032,7 +14032,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O licenciamento começa com a versão 1.0. Até lá, o Tungsten Edge é totalmente gratuito, e os usuários fundadores que confirmaram o e-mail receberão uma chave de licença gratuita e permanente."
+            "value": "O licenciamento começa na versão 1.0. Até lá, o Tungsten Edge é gratuito. Quem confirmou o e-mail como usuário fundador receberá uma licença permanente e gratuita."
           }
         },
         "pt-PT": {
@@ -14435,7 +14435,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mensagem longa demais"
+            "value": "A mensagem é longa demais"
           }
         },
         "pt-PT": {
@@ -14636,7 +14636,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Minimizar janelas ao ícone do app"
+            "value": "Minimizar janelas no ícone do aplicativo"
           }
         },
         "pt-PT": {
@@ -14938,7 +14938,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mova o Tungsten Edge para Aplicativos"
+            "value": "Mova o Tungsten Edge para a pasta Aplicativos."
           }
         },
         "pt-PT": {
@@ -16542,7 +16542,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não há nada a fazer aqui — só um instante."
+            "value": "Aguarde alguns instantes. Não há nada a fazer aqui."
           }
         },
         "pt-PT": {
@@ -16843,7 +16843,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Somente seu endereço de e-mail e a data da primeira abertura são enviados, para confirmar você como usuário fundador. Sem e-mails de marketing."
+            "value": "Somente seu endereço de e-mail e a data da primeira abertura são enviados para confirmar sua condição de usuário fundador. Você não receberá e-mails de marketing."
           }
         },
         "pt-PT": {
@@ -17144,7 +17144,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir Pasta Aplicativos"
+            "value": "Abrir a Pasta Aplicativos"
           }
         },
         "pt-PT": {
@@ -17545,7 +17545,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abra os Ajustes do Sistema e vá para Mesa e Dock (no macOS 12, Dock e Barra de Menus)."
+            "value": "Abra os Ajustes do Sistema e acesse Mesa e Dock (no macOS 12, Dock e Barra de Menus)."
           }
         },
         "pt-PT": {
@@ -18348,7 +18348,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Option sozinha ou Option-Shift não é confiável no macOS 15."
+            "value": "No macOS 15, Option sozinha ou combinada com Shift pode não funcionar de forma confiável."
           }
         },
         "pt-PT": {
@@ -19350,7 +19350,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Antecipar transições de tela cheia para evitar cintilação da barra de tarefas"
+            "value": "Antecipar transições para tela cheia para evitar que a Barra de Tarefas pisque"
           }
         },
         "pt-PT": {
@@ -19552,7 +19552,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pressione ⌥⌘D a qualquer momento — é o atalho do próprio macOS para mostrar e ocultar o Dock. Você também pode alterar depois como o Dock é mostrado, no item do Tungsten Edge na barra de menus."
+            "value": "Pressione ⌥⌘D a qualquer momento para mostrar ou ocultar o Dock. Esse é o atalho padrão do macOS para essa função. Você também pode alterar essa configuração posteriormente pelo menu do Tungsten Edge na barra de menus."
           }
         },
         "pt-PT": {
@@ -19853,7 +19853,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devolvendo ao lugar original as janelas que foram movidas."
+            "value": "Restaurando as janelas às posições originais."
           }
         },
         "pt-PT": {
@@ -20254,7 +20254,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Encontrou um problema ou teve uma ideia? Escreva para nós aqui."
+            "value": "Encontrou um problema ou teve uma ideia? Escreva para nós por aqui."
           }
         },
         "pt-PT": {
@@ -21761,7 +21761,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restaurando janelas…"
+            "value": "Restaurando as janelas…"
           }
         },
         "pt-PT": {
@@ -23671,7 +23671,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Modo de Tela Única ou Várias Telas"
+            "value": "Modo de Tela Única ou Múltiplas Telas"
           }
         },
         "pt-PT": {
@@ -23772,7 +23772,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atalho para mostrar/ocultar a barra de tarefas"
+            "value": "Atalho para mostrar ou ocultar a Barra de Tarefas"
           }
         },
         "pt-PT": {
@@ -23973,7 +23973,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Não é possível acessar alguns itens. Permita que o Tungsten Edge acesse a pasta deles nos ajustes de privacidade do seu Mac."
+            "value": "Não é possível acessar alguns itens. Permita que o Tungsten Edge acesse a pasta onde eles estão nos ajustes de privacidade do Mac."
           }
         },
         "pt-PT": {
@@ -24274,7 +24274,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dê uma estrela ao Tungsten Edge no GitHub — um jeito gratuito de ajudar a melhorá-lo."
+            "value": "Dê uma estrela ao Tungsten Edge no GitHub. É uma forma gratuita de ajudar a melhorar o aplicativo."
           }
         },
         "pt-PT": {
@@ -25381,7 +25381,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Obrigado — lemos todas as mensagens."
+            "value": "Agradecemos — lemos todas as mensagens."
           }
         },
         "pt-PT": {
@@ -25481,7 +25481,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Dock (⌥⌘D para mostrar/ocultar)"
+            "value": "O Dock (⌥⌘D para mostrar ou ocultar)"
           }
         },
         "pt-PT": {
@@ -26186,7 +26186,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O serviço de feedback está temporariamente indisponível. Tente novamente mais tarde ou envie um e-mail para support@tungstenedge.app."
+            "value": "O serviço de feedback está temporariamente indisponível. Tente novamente mais tarde ou escreva para support@tungstenedge.app."
           }
         },
         "pt-PT": {
@@ -26388,7 +26388,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A mudança de idioma tem efeito depois que o Tungsten Edge for reiniciado."
+            "value": "A alteração de idioma entrará em vigor quando o Tungsten Edge for reiniciado."
           }
         },
         "pt-PT": {
@@ -26489,7 +26489,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A tela vai piscar uma vez ao aplicar isto."
+            "value": "A tela piscará uma vez quando você aplicar esta configuração."
           }
         },
         "pt-PT": {
@@ -26689,7 +26689,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O servidor de inscrição retornou o código de estado %d."
+            "value": "O servidor de inscrição retornou o código de status %d."
           }
         },
         "pt-PT": {
@@ -26889,7 +26889,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este endereço já está na lista. Sua licença será enviada diretamente para ele."
+            "value": "Este endereço já está cadastrado. Enviaremos a licença diretamente para ele."
           }
         },
         "pt-PT": {
@@ -27090,7 +27090,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta cópia está sendo executada a partir de um local temporário ou somente leitura."
+            "value": "Esta cópia está sendo executada de um local temporário ou somente leitura."
           }
         },
         "pt-PT": {
@@ -27191,7 +27191,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta tecla não pode ser usada como tecla do atalho."
+            "value": "Esta tecla não pode ser usada como atalho."
           }
         },
         "pt-PT": {
@@ -27291,7 +27291,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esta chave de licença não é válida. Copie a chave inteira do seu e-mail e cole-a novamente."
+            "value": "Esta chave de licença é inválida. Copie-a inteira do e-mail e cole-a novamente."
           }
         },
         "pt-PT": {
@@ -27391,7 +27391,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Isso levará apenas um instante."
+            "value": "Isso levará alguns instantes."
           }
         },
         "pt-PT": {
@@ -27491,7 +27491,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tempo esgotado durante a leitura"
+            "value": "A leitura excedeu o tempo limite"
           }
         },
         "pt-PT": {
@@ -27592,7 +27592,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para que a barra de tarefas não pisque ao entrar em tela cheia, o Tungsten Edge precisa ocultá-la antes que sua ação chegue ao app. Por isso, ele monitora em todo o sistema os cliques com o botão esquerdo, as teclas pressionadas e os gestos do trackpad, e reconhece apenas quatro deles: o botão verde da janela, Control-Command-F, Control-seta para a esquerda/direita e o gesto de passar três dedos na horizontal. O que você digita nunca é gravado, registrado nem enviado para lugar nenhum. Desativar esta opção desliga completamente esse monitoramento."
+            "value": "Para evitar que a barra de tarefas pisque quando você muda para tela cheia, o Tungsten Edge precisa ocultá-la antes que sua ação chegue ao aplicativo. Por isso, monitora cliques com o botão esquerdo, teclas pressionadas e gestos do trackpad em todo o sistema, mas reconhece apenas quatro ações: o botão verde da janela, Control-Command-F, Control-Seta para a esquerda/direita e o gesto horizontal de três dedos. O que você digita nunca é gravado, registrado nem enviado. Ao desativar esta opção, o monitoramento é interrompido por completo."
           }
         },
         "pt-PT": {
@@ -27693,7 +27693,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A cota de anexos de hoje foi atingida. Remova os anexos para enviar só o texto, tente novamente amanhã ou envie um e-mail para support@tungstenedge.app."
+            "value": "O limite diário de anexos foi atingido. Remova-os para enviar somente o texto, tente novamente amanhã ou escreva para support@tungstenedge.app."
           }
         },
         "pt-PT": {
@@ -28097,7 +28097,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tungsten Edge (%@ para mostrar/ocultar)"
+            "value": "Tungsten Edge (%@ para mostrar ou ocultar)"
           }
         },
         "pt-PT": {
@@ -28197,7 +28197,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Tungsten Edge ainda está em execução. Você pode tentar novamente."
+            "value": "O Tungsten Edge ainda está em execução. Tente novamente."
           }
         },
         "pt-PT": {
@@ -28298,7 +28298,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Tungsten Edge acabou de perder a permissão de Acessibilidade, então a barra de tarefas foi recolhida. Ative o Tungsten Edge novamente em %@."
+            "value": "O Tungsten Edge perdeu a permissão de acessibilidade e, por isso, a barra de tarefas foi ocultada. Ative novamente a permissão do Tungsten Edge em %@."
           }
         },
         "pt-PT": {
@@ -28699,7 +28699,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O Tungsten Edge será reiniciado sozinho assim que você conceder a permissão novamente."
+            "value": "O Tungsten Edge será reiniciado automaticamente assim que você conceder a permissão novamente."
           }
         },
         "pt-PT": {
@@ -29001,7 +29001,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ative o Tungsten Edge em %@. Esta janela se fecha sozinha quando você fizer isso, e a barra de tarefas termina de iniciar."
+            "value": "Ative o Tungsten Edge em %@. Esta janela será fechada automaticamente quando você fizer isso, e a barra de tarefas terminará de carregar."
           }
         },
         "pt-PT": {
@@ -29203,7 +29203,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use pelo menos uma das teclas Command, Control ou Option."
+            "value": "Use pelo menos uma destas teclas: Command, Control ou Option."
           }
         },
         "pt-PT": {
@@ -29706,7 +29706,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vídeo grande demais"
+            "value": "O vídeo é grande demais"
           }
         },
         "pt-PT": {
@@ -29906,7 +29906,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quer o Dock de volta?"
+            "value": "Quer restaurar o Dock?"
           }
         },
         "pt-PT": {
@@ -30108,7 +30108,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O que o Tungsten Edge deveria adicionar ou melhorar? Conte como você o usaria."
+            "value": "O que o Tungsten Edge poderia adicionar ou melhorar? Conte como você usaria esse recurso."
           }
         },
         "pt-PT": {
@@ -30209,7 +30209,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O que deu errado? O que você estava fazendo quando aconteceu? Cole aqui qualquer detalhe que possa ajudar."
+            "value": "O que aconteceu? O que você estava fazendo nesse momento? Inclua detalhes que possam ajudar."
           }
         },
         "pt-PT": {
@@ -30310,7 +30310,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escreva algo primeiro."
+            "value": "Escreva uma mensagem para continuar."
           }
         },
         "pt-PT": {
@@ -30411,7 +30411,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você pode anexar até 3 arquivos. Remova um primeiro."
+            "value": "Você pode anexar até 3 arquivos. Remova um deles para continuar."
           }
         },
         "pt-PT": {
@@ -30613,7 +30613,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sua mensagem ou seus anexos não foram aceitos. Tente encurtar a mensagem ou usar outro arquivo, ou envie um e-mail para support@tungstenedge.app."
+            "value": "O servidor não aceitou sua mensagem ou os anexos. Tente encurtar a mensagem, usar outro arquivo ou escrever para support@tungstenedge.app."
           }
         },
         "pt-PT": {
@@ -30813,7 +30813,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inscrição concluída. Quando o licenciamento começar, sua licença chegará direto à sua caixa de entrada."
+            "value": "Sua inscrição foi registrada. Quando o licenciamento começar, enviaremos sua licença diretamente para sua caixa de entrada."
           }
         },
         "pt-PT": {
@@ -30914,7 +30914,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Você enviou mensagens demais em pouco tempo. Tente novamente daqui a pouco — sua mensagem e seus anexos continuam aqui."
+            "value": "Você enviou muitas mensagens em pouco tempo. Tente novamente daqui a alguns instantes. Sua mensagem e seus anexos continuam aqui."
           }
         },
         "pt-PT": {
@@ -31014,7 +31014,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O macOS associa a permissão de Acessibilidade a uma cópia específica de um app. Esta cópia está em execução a partir de um local temporário ou somente leitura, portanto ativar o interruptor não terá efeito — e o registro da permissão continua nos Ajustes do Sistema depois que a imagem de disco é ejetada. Arraste o Tungsten Edge para a pasta Aplicativos e abra-o de lá."
+            "value": "O macOS associa a permissão de Acessibilidade a uma cópia específica do aplicativo. Esta cópia está sendo executada de um local temporário ou somente leitura; por isso, ativar o interruptor não terá efeito, e o registro da permissão continuará nos Ajustes do Sistema após ejetar a imagem de disco. Arraste o Tungsten Edge para a pasta Aplicativos e abra-o de lá."
           }
         },
         "pt-PT": {
@@ -31115,7 +31115,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "you@example.com"
+            "value": "seu@email.com"
           }
         },
         "pt-PT": {
