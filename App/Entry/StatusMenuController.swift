@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import SwiftUI
 
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
@@ -70,15 +71,23 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 屏幕数变化不会改主菜单高度，任务条那条按左上角定位的路径就不会漂。
     /// 整行的显隐只允许在 `prepareMenuForPresentation` 翻转（菜单开着时增删行的老规矩）。
     private let taskbarScreenItem = NSMenuItem(title: String(localized: "Single/Multi-Display Mode"), action: nil, keyEquivalent: "")
+    /// Shown and hidden together with `taskbarScreenItem`: alone it would sit right under the
+    /// separator above this block and draw two lines in a row.
+    private let taskbarScreenSeparator = NSMenuItem.separator()
     /// **刻意不设 delegate**：`menuWillOpen` / `menuDidClose` 不区分 menu 参数，
     /// 子菜单一开一关会被当成主菜单开关，提前解除边缘自动隐藏抑制。内容改为在父菜单
     /// 显示前（`prepareMenuForPresentation`）建好。
     private let taskbarScreenMenu = NSMenu()
-    /// 下面四条是普通勾选项，**恒在**（菜单开着时不许增删行），勾选状态由 refreshCheckmarks 落。
-    private let showShelfItem = NSMenuItem(title: String(localized: "Show Shelf"), action: #selector(toggleShowShelf), keyEquivalent: "")
-    private let showTrashItem = NSMenuItem(title: String(localized: "Show Trash"), action: #selector(toggleShowTrash), keyEquivalent: "")
-    private let hoverNameItem = NSMenuItem(title: String(localized: "Show app name on hover"), action: #selector(toggleHoverName), keyEquivalent: "")
-    private let windowLiftItem = NSMenuItem(title: String(localized: "Keep maximized windows above the taskbar"), action: #selector(toggleWindowLift), keyEquivalent: "")
+    /// The parent row's icon, swapped from the main menu's own `willHighlight`.
+    private let taskbarScreenParentIconSwapper = MenuGlassIconSwapper()
+    /// Always present (rows must not be added or removed while the menu is up); state lands in
+    /// `refreshTaskbarPreferenceStates`.
+    private lazy var taskbarToggleTiles = MenuToggleTileRowView(specs: [
+        MenuToggleTileSpec(glyph: .shelf, shortTitle: String(localized: "Shelf"), fullTitle: String(localized: "Show Shelf")) { [weak self] in self?.toggleShowShelf() },
+        MenuToggleTileSpec(glyph: .trash, shortTitle: String(localized: "Trash"), fullTitle: String(localized: "Show Trash")) { [weak self] in self?.toggleShowTrash() },
+        MenuToggleTileSpec(glyph: .hoverName, shortTitle: String(localized: "Name on Hover"), fullTitle: String(localized: "Show app name on hover")) { [weak self] in self?.toggleHoverName() },
+        MenuToggleTileSpec(glyph: .avoidTaskbar, shortTitle: String(localized: "Avoid Taskbar"), fullTitle: String(localized: "Keep maximized windows above the taskbar")) { [weak self] in self?.toggleWindowLift() },
+    ])
     private let nativeDockSliderView: PreferenceSliderMenuItemView
     private let edgeSliderView: PreferenceSliderMenuItemView
     /// Hat and row of the taskbar height slider; the same value as the grip on the bar.
@@ -256,17 +265,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         taskbarScreenItem.submenu = taskbarScreenMenu
         taskbarScreenItem.isHidden = true
         menu.addItem(taskbarScreenItem)
+        taskbarScreenSeparator.isHidden = true
+        menu.addItem(taskbarScreenSeparator)
 
-        // 四个开关。设置窗口里它们各带一行灰色说明，菜单里没有副标题的位置，
-        // 说明随搬家一并删除（owner 2026-09-01 拍板接受这个代价）。
-        showShelfItem.target = self
-        menu.addItem(showShelfItem)
-        showTrashItem.target = self
-        menu.addItem(showTrashItem)
-        hoverNameItem.target = self
-        menu.addItem(hoverNameItem)
-        windowLiftItem.target = self
-        menu.addItem(windowLiftItem)
+        let taskbarTogglesItem = NSMenuItem()
+        taskbarTogglesItem.view = taskbarToggleTiles
+        menu.addItem(taskbarTogglesItem)
         menu.addItem(.separator())
         #if DEBUG
         let debugMenu = NSMenu()
@@ -334,6 +338,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshSystemTruth()
     }
 
+    /// Backstop for the tile row's own `mouseExited`, which a fast pointer can skip: the menu
+    /// always moves its highlight off the row once the pointer is elsewhere.
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        if item?.view !== taskbarToggleTiles {
+            taskbarToggleTiles.clearHover()
+        }
+        taskbarScreenParentIconSwapper.highlight(item)
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
         onMenuVisibilityChanged(true)
@@ -370,6 +383,22 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         rebuildTaskbarScreenMenu()
     }
 
+    /// The icon rides inside the title as a text attachment: on macOS 27 this menu draws no
+    /// `NSMenuItem.image` at all, and a custom view would lose keyboard selection and the native
+    /// submenu. Re-rendered on every open so it follows light / dark.
+    private func applyTaskbarScreenItemTitle() {
+        let title = String(localized: "Single/Multi-Display Mode")
+        let text = NSAttributedString(string: title, attributes: [.font: NSFont.menuFont(ofSize: 0)])
+        taskbarScreenParentIconSwapper.removeAll()
+        if !taskbarScreenParentIconSwapper.attach(.displays, before: text, isDark: isMenuDark, to: taskbarScreenItem) {
+            taskbarScreenItem.title = title
+        }
+    }
+
+    private var isMenuDark: Bool {
+        (menu.appearance ?? NSApp.effectiveAppearance).bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
     /// 重建「单/多屏模式 ▸」。**只从 `prepareMenuForPresentation` 调**——它是唯一
     /// 允许改行显隐的路径（菜单在屏时增删行会让任务条锚点漂移）。
     private func rebuildTaskbarScreenMenu() {
@@ -378,6 +407,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             connectedScreens: connectedScreensCache
         )
         taskbarScreenItem.isHidden = presentation.isHidden
+        taskbarScreenSeparator.isHidden = presentation.isHidden
+        if !presentation.isHidden {
+            applyTaskbarScreenItemTitle()
+        }
         taskbarScreenMenu.removeAllItems()
         for row in presentation.rows {
             switch row {
@@ -487,13 +520,15 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshTaskbarPreferenceStates()
     }
 
-    /// 钨极组四项的勾选。**只改 `state`，不增删行也不翻 `isHidden`**，
-    /// 所以菜单开着时调用也安全（不受 `allowsLayoutChange` 约束）。
+    /// The four taskbar tiles. Only flips tile state — no rows added, removed or hidden — so it is
+    /// safe while the menu is tracking (not bound by `allowsLayoutChange`).
     private func refreshTaskbarPreferenceStates() {
-        showShelfItem.state = store.showShelf ? .on : .off
-        showTrashItem.state = store.showTrash ? .on : .off
-        hoverNameItem.state = store.hoverStyle.isExpressive ? .on : .off
-        windowLiftItem.state = store.windowLiftEnabled ? .on : .off
+        taskbarToggleTiles.setStates([
+            store.showShelf,
+            store.showTrash,
+            store.hoverStyle.isExpressive,
+            store.windowLiftEnabled,
+        ])
     }
 
     private func refreshLaunchAtLoginState(allowsLayoutChange: Bool) {
@@ -686,26 +721,28 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func toggleShowShelf() {
+    // Tiles fire with the menu still open, so they refresh only their own state: the full
+    // `refreshCheckmarks()` may show or hide rows, which must not happen while the menu tracks.
+    private func toggleShowShelf() {
         store.setShowShelf(!store.showShelf)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
-    @objc private func toggleShowTrash() {
+    private func toggleShowTrash() {
         store.setShowTrash(!store.showTrash)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
     /// 悬停显示应用名 = `hoverStyle` 的两档（`.standard` 显示 / `.quiet` 不显示），
     /// 不是独立的布尔字段——设置窗口那版也是这么读写的，别在这里另开一个镜像。
-    @objc private func toggleHoverName() {
+    private func toggleHoverName() {
         store.setHoverStyle(store.hoverStyle.isExpressive ? .quiet : .standard)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
-    @objc private func toggleWindowLift() {
+    private func toggleWindowLift() {
         store.setWindowLiftEnabled(!store.windowLiftEnabled)
-        refreshCheckmarks()
+        refreshTaskbarPreferenceStates()
     }
 
     @objc private func openLoginItemsSettings() {
@@ -771,4 +808,64 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         DispatchQueue.main.async { [onShowSettings] in onShowSettings() }
     }
     @objc private func quit() { onQuit() }
+}
+
+/// Puts a glass icon in front of menu rows and draws it white while its row is highlighted (a
+/// blue icon disappears on the menu's highlight). The icon decides at draw time; the title is
+/// never set again while the menu is up, because re-setting a title on an open menu re-measures
+/// the row a few points wider and the whole menu grows.
+/// Only `willHighlight` and `menuDidClose` are implemented, so as a submenu's delegate it cannot
+/// be mistaken for the main menu opening or closing.
+@MainActor
+final class MenuGlassIconSwapper: NSObject, NSMenuDelegate {
+    private weak var highlightedItem: NSMenuItem?
+
+    /// `false` where the icon cannot be drawn (macOS 12); the item is left untouched.
+    func attach(_ glyph: MenuGlassGlyph, before text: NSAttributedString, isDark: Bool, to item: NSMenuItem) -> Bool {
+        let iconSide: CGFloat = 18
+        func bitmap(onHighlight: Bool) -> NSImage? {
+            MenuGlassIconView(
+                glyph: glyph,
+                size: iconSide,
+                tint: onHighlight ? .white : Color(nsColor: MenuGlassIconView.blue),
+                darkGlass: Color(nsColor: MenuGlassIconView.darkGlassBlue),
+                isDark: isDark,
+                onHighlight: onHighlight
+            ).bitmapImage()
+        }
+        guard let normal = bitmap(onHighlight: false), let highlighted = bitmap(onHighlight: true) else { return false }
+        let icon = NSImage(size: NSSize(width: iconSide, height: iconSide), flipped: false) { [weak self, weak item] rect in
+            let isHighlighted = item != nil && self?.highlightedItem === item
+            (isHighlighted ? highlighted : normal).draw(in: rect)
+            return true
+        }
+        // Drawn afresh every time: the handler is what picks the colour.
+        icon.cacheMode = .never
+        let font = NSFont.menuFont(ofSize: 0)
+        let attachment = NSTextAttachment()
+        attachment.image = icon
+        attachment.bounds = NSRect(x: 0, y: (font.capHeight - iconSide) / 2, width: iconSide, height: iconSide)
+        let title = NSMutableAttributedString(attachment: attachment)
+        title.append(NSAttributedString(string: "  ", attributes: [.font: font]))
+        title.append(text)
+        item.attributedTitle = title
+        return true
+    }
+
+    func removeAll() {
+        highlightedItem = nil
+    }
+
+    /// Called before the menu redraws the rows whose highlight changes.
+    func highlight(_ item: NSMenuItem?) {
+        highlightedItem = item
+    }
+
+    func menu(_ menu: NSMenu, willHighlight item: NSMenuItem?) {
+        highlight(item)
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        highlight(nil)
+    }
 }

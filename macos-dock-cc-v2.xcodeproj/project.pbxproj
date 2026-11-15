@@ -78,7 +78,9 @@
 		E90000000000000000002006 /* DockSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000006 /* DockSnapshot.swift */; };
 		E90000000000000000003006 /* DockSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000006 /* DockSnapshot.swift */; };
 		E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000001 /* StatusMenuWidgets.swift */; };
+		E90000000000000000001034 /* MenuGlassIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000034 /* MenuGlassIcon.swift */; };
 		E90000000000000000002001 /* StatusMenuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000001 /* StatusMenuWidgets.swift */; };
+		E90000000000000000002034 /* MenuGlassIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000034 /* MenuGlassIcon.swift */; };
 		E90000000000000000001002 /* TaskbarDebugSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000002 /* TaskbarDebugSnapshot.swift */; };
 		E90000000000000000001003 /* FullscreenWindowClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000003 /* FullscreenWindowClassifier.swift */; };
 		E90000000000000000002003 /* FullscreenWindowClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90000000000000000000003 /* FullscreenWindowClassifier.swift */; };
@@ -628,6 +630,7 @@
 		E90000000000000000000008 /* DebugSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSwitchTests.swift; sourceTree = "<group>"; };
 		E90000000000000000000006 /* DockSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockSnapshot.swift; sourceTree = "<group>"; };
 		E90000000000000000000001 /* StatusMenuWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuWidgets.swift; sourceTree = "<group>"; };
+		E90000000000000000000034 /* MenuGlassIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuGlassIcon.swift; sourceTree = "<group>"; };
 		E90000000000000000000002 /* TaskbarDebugSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskbarDebugSnapshot.swift; sourceTree = "<group>"; };
 		E90000000000000000000003 /* FullscreenWindowClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenWindowClassifier.swift; sourceTree = "<group>"; };
 		E90000000000000000000004 /* DefaultsValueParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultsValueParsing.swift; sourceTree = "<group>"; };
@@ -1119,6 +1122,7 @@
 				E9D000000000000000000034 /* ResizeCursorGlyph.swift */,
 				E9000000000000000000001A /* GestureMonitorInstaller.swift */,
 				E90000000000000000000001 /* StatusMenuWidgets.swift */,
+				E90000000000000000000034 /* MenuGlassIcon.swift */,
 				A00000000000000000000002 /* ContentView.swift */,
 				A000000000000000000000F1 /* PermissionOnboardingView.swift */,
 				B75000000000000000000013 /* WelcomeGuideView.swift */,
@@ -1792,6 +1796,7 @@
 				E90000000000000000001007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000001006 /* DockSnapshot.swift in Sources */,
 				E90000000000000000001001 /* StatusMenuWidgets.swift in Sources */,
+				E90000000000000000001034 /* MenuGlassIcon.swift in Sources */,
 				E90000000000000000001002 /* TaskbarDebugSnapshot.swift in Sources */,
 				E90000000000000000001003 /* FullscreenWindowClassifier.swift in Sources */,
 				E90000000000000000001004 /* DefaultsValueParsing.swift in Sources */,
@@ -2047,6 +2052,7 @@
 				E90000000000000000002007 /* DebugSwitch.swift in Sources */,
 				E90000000000000000002006 /* DockSnapshot.swift in Sources */,
 				E90000000000000000002001 /* StatusMenuWidgets.swift in Sources */,
+				E90000000000000000002034 /* MenuGlassIcon.swift in Sources */,
 				E90000000000000000002003 /* FullscreenWindowClassifier.swift in Sources */,
 				E90000000000000000002004 /* DefaultsValueParsing.swift in Sources */,
 				E9D000000000000000002032 /* DockHeightDragSession.swift in Sources */,
