@@ -9,6 +9,52 @@ private enum StatusMenuLayout {
     static let trailingInsetX: CGFloat = 14
 }
 
+/// A non-interactive menu heading whose ink is as dark as a normal menu command.
+/// Disabled NSMenuItem titles are dimmed by AppKit even when their attributed title
+/// specifies .labelColor; a view-backed static label avoids that extra dimming.
+final class MenuStaticSectionHeaderView: NSView {
+    private static let leadingInset: CGFloat = 28
+    private static let trailingInset: CGFloat = 14
+    private let titleLabel = NSTextField(labelWithString: "")
+
+    init(title: String) {
+        super.init(frame: NSRect(x: 0, y: 0, width: 300, height: 25))
+        autoresizingMask = [.width]
+        titleLabel.font = NSFont.menuFont(ofSize: 0)
+        titleLabel.textColor = .labelColor
+        titleLabel.isSelectable = false
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setAccessibilityElement(false)
+        addSubview(titleLabel)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        updateTitle(title)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func updateTitle(_ title: String) {
+        titleLabel.stringValue = title
+        setAccessibilityLabel(title)
+        let textWidth = (title as NSString).size(withAttributes: [.font: titleLabel.font!]).width
+        frame.size.width = max(300, ceil(textWidth) + Self.leadingInset + Self.trailingInset)
+        needsLayout = true
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func layout() {
+        super.layout()
+        let height: CGFloat = 18
+        titleLabel.frame = NSRect(
+            x: Self.leadingInset,
+            y: (bounds.height - height) / 2,
+            width: max(0, bounds.width - Self.leadingInset - Self.trailingInset),
+            height: height
+        )
+    }
+}
+
 /// 系统 Dock 滑块的草稿账本。记着**改动前**的值，但只用来判「到底变没变」——
 /// 写入失败时回滚到哪一档，由 `SettingsCoordinator.applyNativeDock` 自己重读系统真值决定
 /// （界面手里的起点在草稿摊着的那段时间里可能已被 ⌥⌘D 改掉，见那里的注释）。

@@ -842,6 +842,21 @@ final class AppSettingsStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testStaticMenuSectionHeaderUsesNormalTextWithoutAcceptingClicks() {
+        let header = MenuStaticSectionHeaderView(title: "Tungsten Edge")
+        let label = header.subviews.compactMap { $0 as? NSTextField }.first
+
+        XCTAssertEqual(label?.textColor, .labelColor)
+        XCTAssertEqual(label?.font?.pointSize, NSFont.menuFont(ofSize: 0).pointSize)
+        XCTAssertNil(header.hitTest(NSPoint(x: 60, y: 12)))
+        XCTAssertEqual(header.accessibilityLabel(), "Tungsten Edge")
+
+        header.updateTitle("System Dock")
+        XCTAssertEqual(label?.stringValue, "System Dock")
+        XCTAssertEqual(header.accessibilityLabel(), "System Dock")
+    }
+
+    @MainActor
     func testTaskbarSizeSliderSpansTheHeightRangeAndReportsWholePoints() {
         let view = TaskbarSizeMenuItemView(accessibilityTitle: "Taskbar Size")
         var heights: [DockPanelHeight] = []

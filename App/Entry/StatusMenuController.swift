@@ -53,12 +53,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let updateItem = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
     /// 钨极组的分组标题，恒不可点（title 在 refreshEdgeSectionTitle 里随热键注册状态落）。
     private let edgeSectionItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let edgeSectionHeader = MenuStaticSectionHeaderView(title: "")
     // 中转站 / 悬停显示应用名 / 最大化避让 / 任务条大小 2026-09-01 从设置窗口搬回菜单
     // （owner 拍板，反转 2026-08-03 的分工）：它们是调外观时随手要切的，为此开一次窗不值。
     // 四项并进钨极组（不另起帽子），与「单/多屏模式 ▸」同组。
 
     /// 分组标题，恒不可点（title 在 configureMenu 里落）。
     private let nativeDockSectionItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let nativeDockSectionHeader = MenuStaticSectionHeaderView(title: AutoHideToggleMenuModel.nativeDockSectionTitle)
     /// 滑块草稿的唯一提交入口，默认隐藏。承载的是**真按钮**而不是普通菜单文字行：
     /// 做成菜单行时它和邻居（「打开系统 Dock 设置…」）视觉权重一样，混在菜单里不显眼，
     /// 而用户刚拖完滑块视线还在滑块上，错过它就从「会闪但生效了」变成
@@ -188,8 +190,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         // 钨极组排在系统 Dock 组之前——这是钨极自己的菜单，自家的设置在前。
-        // 两组都有灰色组标题当"帽子"：从前只有系统 Dock 有，整个菜单只有一顶帽子在上面，
+        // 两组都有独立的静态组标题当"帽子"：从前只有系统 Dock 有，整个菜单只有一顶帽子在上面，
         // 于是它下面的钨极命令看起来也归它管（owner 2026-08-03 反馈）。
+        edgeSectionItem.view = edgeSectionHeader
         edgeSectionItem.isEnabled = false
         menu.addItem(edgeSectionItem)
 
@@ -211,7 +214,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let edgeItem = NSMenuItem()
         edgeItem.view = edgeSliderView
         menu.addItem(edgeItem)
-        menu.addItem(.separator())
 
         // Live on both entry points, the taskbar-anchored menu included: the bar grows under
         // the menu or leaves a gap below it, but never disappears from under it the way a
@@ -230,7 +232,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(taskbarSizeItem)
         menu.addItem(.separator())
 
-        nativeDockSectionItem.attributedTitle = Self.sectionTitle(AutoHideToggleMenuModel.nativeDockSectionTitle)
+        nativeDockSectionItem.view = nativeDockSectionHeader
         nativeDockSectionItem.isEnabled = false
         menu.addItem(nativeDockSectionItem)
 
@@ -475,7 +477,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     /// 组标题**不设 `keyEquivalent`**：禁用行设了会被菜单捕获，还会让它看起来能点。
     /// ⌥⇧⌘D 只以纯文字写进标题，且只在 Carbon 注册成功时才提——注册失败时按不出来，写上去是骗人。
     private func refreshEdgeSectionTitle() {
-        edgeSectionItem.attributedTitle = Self.sectionTitle(
+        edgeSectionHeader.updateTitle(
             AutoHideToggleMenuModel.edgeSectionTitle(
                 isHotKeyRegistered: isToggleHotKeyRegistered(),
                 glyphs: hotKeyGlyphs()
@@ -572,14 +574,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         updateItem.isEnabled = settingsCoordinator.canCheckForUpdates
     }
 
-    /// 两条分组标题的样式。**必须走 `attributedTitle`**：组标题是 `action: nil` 的 disabled 项，
-    /// 没有 `textColor` 可设，系统按 disabled 画成菜单里最淡的一档，owner 2026-09-01 嫌太灰。
-    /// 加深到 `secondaryLabelColor`——比可点的菜单项弱，但看得清；**不要为了变黑把它改成
-    /// enabled**，那样鼠标划过会高亮成蓝条，而组标题不高亮是对的（owner 2026-08-04）。
-    ///
-    /// ⚠️ 字体必须显式给：`attributedTitle` 不给就掉成系统默认字号（同 `pendingUpdateTitle`）。
-    /// ⚠️ 设了 `attributedTitle` 之后**再赋 `title` 不生效**——所以 `refreshEdgeSectionTitle()`
-    /// 也得走这里，两处调用点不能只改一处。
+    /// Disabled native submenu headings keep their secondary colour; the two main headings
+    /// use MenuStaticSectionHeaderView so AppKit cannot further fade their label colour.
     private static func sectionTitle(_ text: String) -> NSAttributedString {
         NSAttributedString(
             string: text,
