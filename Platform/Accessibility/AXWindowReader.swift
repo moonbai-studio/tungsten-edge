@@ -48,6 +48,7 @@ struct AXWindowSnapshot {
     let element: AXUIElement
 
     let isMinimizedRead: Bool?
+    var mergedTabIDs: Set<CGWindowID> = []
 
     var title: String? { titleRead.title }
 
@@ -144,6 +145,32 @@ enum AXWindowFrameWriteResult: Equatable {
 enum AXWindowReadResult {
     case success([AXWindowSnapshot])
     case unread(AXError)
+
+    /// Read native tabs only when a previously tracked window disappears from a successful inventory.
+    func checkingNativeTabs(
+        previous: [CGWindowID: String],
+        tabTitles: (AXUIElement) -> [String] = AXWindowReader().nativeTabTitles
+    ) -> Self {
+        guard !previous.isEmpty, case .success(var windows) = self else { return self }
+        let present = Set(windows.compactMap(\.cgWindowID))
+        guard previous.keys.contains(where: { !present.contains($0) }) else { return self }
+        let presentTitles = Set(windows.compactMap(\.title))
+        let byTitle = Dictionary(grouping: previous, by: \.value)
+        let missing = byTitle.compactMapValues { entries -> CGWindowID? in
+            guard entries.count == 1, let entry = entries.first, !present.contains(entry.key),
+                  !entry.value.isEmpty, !presentTitles.contains(entry.value) else { return nil }
+            return entry.key
+        }
+        guard !missing.isEmpty else { return self }
+        for index in windows.indices where !windows[index].isMinimized {
+            guard let owner = windows[index].cgWindowID, previous[owner] != nil,
+                  let ownerTitle = windows[index].title else { continue }
+            let titles = tabTitles(windows[index].element)
+            guard titles.contains(ownerTitle) else { continue }
+            windows[index].mergedTabIDs = Set(titles.compactMap { missing[$0] })
+        }
+        return .success(windows)
+    }
 
     var windowsOrEmpty: [AXWindowSnapshot] {
         switch self {
@@ -333,6 +360,37 @@ struct AXWindowReader: AppTrackerWindowReading, Sendable {
             bounds: nil,
             element: element
         )
+    }
+
+    /// AppKit's window tab bar is a direct child. Descending into the IDE's
+    /// content would also find editor tabs, which do not represent windows.
+    func nativeTabTitles(of window: AXUIElement) -> [String] {
+        func elements(_ key: CFString, on element: AXUIElement) -> [AXUIElement] {
+            copyAttributeValue(key, from: element, maxAttempts: 1) as? [AXUIElement] ?? []
+        }
+        // Bound the whole optional probe, including reads on newly obtained child elements.
+        let deadline = ProcessInfo.processInfo.systemUptime + 0.1
+        func prepare(_ element: AXUIElement) -> Bool {
+            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0 else { return false }
+            applyMessagingTimeout(remaining, to: element)
+            return true
+        }
+        guard prepare(window) else { return [] }
+        for group in elements(kAXChildrenAttribute as CFString, on: window) {
+            guard prepare(group) else { return [] }
+            guard stringAttribute(kAXRoleAttribute as CFString, from: group, maxAttempts: 1) == kAXTabGroupRole as String,
+                  prepare(group) else { continue }
+            let tabs = elements(kAXTabsAttribute as CFString, on: group)
+            guard tabs.count > 1 else { continue }
+            return tabs.compactMap { tab in
+                guard prepare(tab),
+                      stringAttribute(kAXSubroleAttribute as CFString, from: tab, maxAttempts: 1) == "AXTabButton",
+                      prepare(tab) else { return nil }
+                return stringAttribute(kAXTitleAttribute as CFString, from: tab, maxAttempts: 1)
+            }
+        }
+        return []
     }
 
     func focusedWindow(forPID pid: pid_t) -> AXUIElement? {

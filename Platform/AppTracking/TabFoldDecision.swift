@@ -100,7 +100,8 @@ enum TabFoldDecision {
 ///
 /// 释放条件（全满足）：候选在 CG 里 **不在屏上**（真可见窗口漏读时 CG 说 onscreen=true，不释放）；
 /// 候选的 **CG bounds**（不是座位里过时的 AX 帧）与至少一个 **AX 在场且 min=false** 的兄弟座位逐像素同
-/// frame。归属唯一时回传 owner，调用方把候选记入其历史（下次最小化爆发按成员秒折）。
+/// frame。IntelliJ 合并后可能保留旧坐标，此时可凭原生标签栏确认归属。
+/// 归属唯一时回传 owner，调用方把候选记入其历史（下次最小化爆发按成员秒折）。
 enum TabMergeDecision {
 
     /// 本轮 AX 在场（activeCgID 仍在 eligible 里）的兄弟座位摘要；`bounds` 取本轮 AX 快照的帧。
@@ -108,6 +109,7 @@ enum TabMergeDecision {
         let activeCgID: CGWindowID
         let bounds: CGRect?
         let isMinimized: Bool
+        var containsCandidateTab = false
     }
 
     enum Verdict: Equatable {
@@ -124,6 +126,8 @@ enum TabMergeDecision {
         frameKey: (CGRect?) -> String?
     ) -> Verdict {
         guard !candidateIsOnScreen else { return .retain }
+        let tabOwners = axPresentSeats.filter { !$0.isMinimized && $0.containsCandidateTab }
+        if tabOwners.count == 1 { return .release(ownerActiveCgID: tabOwners[0].activeCgID) }
         guard let key = frameKey(candidateCGBounds ?? candidateSeatBounds) else { return .retain }
         let owners = axPresentSeats.filter { !$0.isMinimized && frameKey($0.bounds) == key }
         if owners.count == 1 { return .release(ownerActiveCgID: owners[0].activeCgID) }
