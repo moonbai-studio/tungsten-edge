@@ -23,6 +23,16 @@ struct AppEntry {
     ///（多屏 ④：有圆点的图标只在一条上，owner 2026-09-02）；把那张卡拖到另一块屏的条上也写这里
     ///（`noteNoWindowHome`）。会话内记忆，不持久化；nil → 投影层落主屏。
     var lastWindowDisplayUUID: String? = nil
+
+    // IntelliJ can keep a merged project's CG window at its pre-merge position.
+    // Snapshot the seats before the AX read, so a missing one can be checked against
+    // the native tab strip on the same worker that read the windows.
+    var intelliJMergeCandidates: [CGWindowID: String] {
+        guard !isHidden, windowsByID.count >= 2,
+              bundleIdentifier == "com.jetbrains.intellij" || bundleIdentifier == "com.jetbrains.intellij.ce"
+        else { return [:] }
+        return windowsByID.mapValues(\.title)
+    }
 }
 
 /// 一个**物理窗口座位**（单座位模型）。`cgWindowID` 是它**当前**的可见标签（= 动作落点），会随
@@ -166,6 +176,7 @@ final class AppTracker: ObservableObject {
     private var issueUnreadStreaks: [pid_t: IssueUnreadStreak] = [:]
 
     private struct PendingEventRead {
+        let mergeCandidates: [CGWindowID: String]
         let token: UInt64
         let mutationGeneration: UInt64
         let identity: ScanAdmissionDecision.ProcessIdentity
@@ -448,7 +459,7 @@ final class AppTracker: ObservableObject {
             eligible = preloaded
             axReadOutcome = preloadedReadOutcome ?? .success(count: preloaded.count)
         } else {
-            switch reader.windowReadResult(forPID: pid) {
+            switch reader.windowReadResult(forPID: pid).checkingNativeTabs(previous: app.intelliJMergeCandidates) {
             case .success(let windows):
                 axReadOutcome = .success(count: windows.count)
                 eligible = windows.filter {
@@ -559,7 +570,8 @@ final class AppTracker: ObservableObject {
         func axPresentSeatsForMerge(excluding candidate: CGWindowID) -> [TabMergeDecision.AXPresentSeat] {
             app.windowOrder.compactMap { id in
                 guard id != candidate, let snap = eligibleByCgID[id] else { return nil }
-                return TabMergeDecision.AXPresentSeat(activeCgID: id, bounds: snap.bounds, isMinimized: snap.isMinimized)
+                return TabMergeDecision.AXPresentSeat(activeCgID: id, bounds: snap.bounds, isMinimized: snap.isMinimized,
+                                                      containsCandidateTab: snap.mergedTabIDs.contains(candidate))
             }
         }
 
@@ -2030,6 +2042,7 @@ final class AppTracker: ObservableObject {
 
         nextEventReadToken &+= 1
         let request = PendingEventRead(
+            mergeCandidates: apps[pid]?.intelliJMergeCandidates ?? [:],
             token: nextEventReadToken,
             mutationGeneration: mutationGenerations[pid, default: 0],
             identity: processIdentity(pid: pid, bundleID: apps[pid]?.bundleIdentifier),
@@ -2045,6 +2058,7 @@ final class AppTracker: ObservableObject {
 
         Task.detached { [weak self] in
             let result = reader.inventoryWindows(forPID: pid, messagingTimeout: 0.1)
+                .checkingNativeTabs(previous: request.mergeCandidates)
             // Absence probes run only on a readable round, after the AX list and before the CG
             // capture: a window shown again meanwhile is then on-screen in the table that decides.
             var evidence: [AbsentSeatProbeEvidence] = []
@@ -2402,6 +2416,7 @@ final class AppTracker: ObservableObject {
             }
             nextEventReadToken &+= 1
             let request = PendingEventRead(
+                mergeCandidates: app.intelliJMergeCandidates,
                 token: nextEventReadToken,
                 mutationGeneration: mutationGenerations[pid, default: 0],
                 identity: processIdentity(pid: pid, bundleID: app.bundleIdentifier),
@@ -2420,6 +2435,7 @@ final class AppTracker: ObservableObject {
                     entry.pid,
                     entry.request,
                     reader.inventoryWindows(forPID: entry.pid, messagingTimeout: timeout)
+                        .checkingNativeTabs(previous: entry.request.mergeCandidates)
                 ))
             }
             let landed = results
