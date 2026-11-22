@@ -272,15 +272,14 @@ final class PanelCoordinator: NSObject {
     var showShelfSubscription: AnyCancellable?
     var showTrashSubscription: AnyCancellable?
     var dockPanelHeightSubscription: AnyCancellable?
-    /// Height-change transaction generation: swallows animated relayouts other paths queue
-    /// while a height change is in flight (see `beginPanelHeightChange`).
-    var panelHeightChangeGeneration: UInt64 = 0
+    var labelSizingSubscription: AnyCancellable?
     /// The drag session when **this** unit's grip is being dragged; nil on every other unit.
     var interactiveResize: DockHeightDragSession?
     /// True on **every** unit while any unit's grip is being dragged (orchestrator broadcast):
     /// the height is shared, so every bar is mid-transaction. Gates animated layouts and the
     /// label-width follow; see `setInteractiveHeightResizeActive`.
-    var interactiveHeightResizeActive = false
+    var interactiveHeightResizeActive: Bool { heightResizePresentation.kind == .height }
+    var layoutChangeActive: Bool { heightResizePresentation.isActive }
     let heightResizePresentation = PanelHeightResizePresentation()
     /// Bar height the window-lift context reports while a drag is active. Frozen at drag start
     /// so the lift controller's context set stays equal tick to tick (a changed set restores
@@ -288,8 +287,11 @@ final class PanelCoordinator: NSObject {
     var liftContextPanelHeightOverride: CGFloat?
     /// This unit's grip began (`true`) / ended (`false`) a drag. The orchestrator fans it out to
     /// every unit and remembers the origin so a topology change can end the drag cleanly.
-    var onInteractiveHeightResizeSession: ((Bool) -> Void)?
-    var onInteractiveHeightResizeUpdate: (() -> Void)?
+    var interactiveResizeToken: UInt64?
+    var onInteractiveHeightResizeBegin: (() -> UInt64)?
+    var onInteractiveHeightResizeEnd: ((UInt64) -> Void)?
+    var onInteractiveHeightResizeUpdate: ((UInt64, DockPanelHeight) -> Void)?
+    var onLayoutSessionEnd: (() -> Void)?
     /// Handle into the strip's grip view for `cancelInteractiveResize()`.
     let resizeGripController = StripResizeGripController()
     /// The ▲▼ glyph panel that stands in for the system cursor (`PanelCoordinator+ResizeCursor`).
@@ -522,6 +524,11 @@ final class PanelCoordinator: NSObject {
     /// ③④ 下拔掉一块屏也走这里拆那块屏的单元（编排层调）。共享的拖动控制器 / 载体面板
     /// **不在这里收**——那是全进程一份的，由编排层在真正挂起时收一次。
     func tearDown() {
+        onLayoutSessionEnd?()
+        if layoutChangeActive {
+            commitLayoutChange()
+            endLayoutChange()
+        }
         DiagnosticVisibilityRecorder.shared.remove(unit: stripSurfaceID)
         StripProjectionRegistry.shared.remove(surface: stripSurfaceID)
         guard !isSuspendedForPermissionLoss else { return }

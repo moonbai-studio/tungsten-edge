@@ -5,42 +5,6 @@ import UniformTypeIdentifiers
 
 // MARK: - Chip View
 
-/// 标签盒的宽度驱动器：`Animatable` 视图，`animatableData` 就是盒宽，body 在动画每一帧以插值后的
-/// `width` 重跑，`content(width)` 拿它去画 `.frame(width:)`。**必须这样驱动，不能靠 `.frame(width:)`
-/// 自己的隐式动画**——屏幕连拍（2026-09-13）证实那条路在这条任务条里画出来是一步到位的，
-/// 哪怕事务里有动画、哪怕探针量到动画变量在插值；和悬停药丸的 `ChipHoverProgress` 同一机制。
-/// `boxA:` 探针（`DOCK_LABEL_PROBE=1`）顺带记录每帧的宽度，和面板那侧 `panel:` 对照。
-private struct LabelBoxWidthDriver<Content: View>: View, Animatable {
-    var width: CGFloat
-    let chipID: String
-    @ViewBuilder let content: (CGFloat) -> Content
-    @Environment(\.labelBoxWidthTick) private var tick
-    var animatableData: CGFloat {
-        get { width }
-        set { width = newValue }
-    }
-    var body: some View {
-        // 每帧把此刻的盒宽报给面板（`PanelCoordinator.labelBoxWidthDidTick`），面板在同一轮里把 frame 设过去，
-        // 与这一帧的内容一起提交——只剩 SwiftUI 这一个时钟，底板不再有自己的曲线或预测。
-        let _ = tick(chipID, width)
-        let _ = HoverTrace.width("boxA:" + String(chipID.suffix(4)), width)
-        content(width)
-    }
-}
-
-/// 标签盒每帧宽度的上报口，由 `DockStripView` 注入、指向它所在面板单元的协调器。默认空实现：
-/// 拖动载体快照等不挂在面板上的条没有底板要跟。
-struct LabelBoxWidthTickKey: EnvironmentKey {
-    static let defaultValue: (String, CGFloat) -> Void = { _, _ in }
-}
-
-extension EnvironmentValues {
-    var labelBoxWidthTick: (String, CGFloat) -> Void {
-        get { self[LabelBoxWidthTickKey.self] }
-        set { self[LabelBoxWidthTickKey.self] = newValue }
-    }
-}
-
 struct ChipView: View {
     @ObservedObject private var iconRevision = AppIconRevision.shared
     @EnvironmentObject var runtime: AppRuntime
@@ -59,6 +23,7 @@ struct ChipView: View {
     /// 高度系数（`DockPanelHeight.scale`）。**故意不给默认值**：消息区曾因为它有默认值 1.0 而静默漏传，
     /// 在非中档下渲染成中档尺寸（见 AGENTS《Taskbar Size Tiers》）。漏传必须是编译错误。
     let scale: CGFloat
+    let labelSizing: ChipLabelSizing
     /// 悬停效果档位。**同样故意不给默认值**——漏传是编译错误，理由见上面 `scale` 那条。
     /// `.quiet` 下悬停不产生任何视觉变化；长标题的全文浮层不受影响（它跟的是裸 `isHovering`）。
     let hoverStyle: HoverStyle
@@ -344,7 +309,7 @@ struct ChipView: View {
         // 宽度用渲染药丸的同一个 `ChipPillMetrics.width`，不另写一份。
         .chipQuietHoverScale(
             quietHoverFeedback,
-            cardWidth: ChipPillMetrics.width(title: capturedDisplayTitle, scale: scale)
+            cardWidth: ChipPillMetrics.width(title: capturedDisplayTitle, scale: scale, sizing: labelSizing)
                 + 2 * ChipPillMetrics.titledCardInset * scale,
             scale: scale
         )
@@ -366,56 +331,8 @@ struct ChipView: View {
         .help(capturedFullTitle)
     }
 
-    // MARK: - Title Label
-
-    /// 标签文字换场：旧字**先**快速淡出，新字**随后**从图标那侧滑进来淡入——两段错开，不同时叠着
-    /// （同时淡入淡出时两行长短不同的字叠在一起，词头有一瞬双影）。总长必须短于盒子的宽度动画
-    /// （`LabelWidthAnimation.curve.duration`）：字先坐稳、盒子还在收尾；反过来就成了两段动作。
-    private static let labelRemoval: Animation = .easeOut(duration: 0.16)
-    private static let labelInsertion: Animation = .easeOut(duration: 0.34).delay(0.14)
-    /// 新字起步时相对终点的位移（未缩放），朝图标那侧。
-    private static let labelInsertionOffset: CGFloat = 3
-
-    /// 带标题卡上的那行字。
-    ///
-    /// **宽度是显式给的，文字是按身份换的**——标题从短变长（或反过来）时，这张卡上一共有
-    /// 三样东西会变：字、药丸宽、右边邻卡的位置；面板窗口的玻璃底板则由 `PanelCoordinator`
-    /// 另开一条 0.22s 的 AppKit 动画去追。让 `Text` 自己撑宽的写法下前三样一步到位、只有
-    /// 底板在滑，就是 owner 2026-09-12 说的「生硬、突兀」。这里把三件事拆开：
-    /// - 外层盒子 `.frame(width:)` 走任务条那条与底板同曲线同时长的布局动画
-    ///   （`DockStripView` 上按 `labelTitleByChipID` 触发的那条），药丸和邻卡跟着它一起滑；
-    /// - 文字按 `.id(title)` 换身份、非对称过渡——旧字先淡出、新字再滑入淡入，不瞬换；
-    /// - 每个 `Text` 只认自己那一份宽度（超上限才定宽截断），**不在盒子的中间宽度上重排**，
-    ///   否则动画途中每一帧都在重算省略号、末尾抖动。
-    /// `.clipped()` 只裁到盒子的当前宽度：变长时新字从图标那侧逐帧露出来，变短时旧字被收进去。
     private func titleLabel(_ title: String, color: Color) -> some View {
-        let boxWidth = ChipPillMetrics.labelWidth(title: title, scale: scale)
-        let truncates = ChipPillMetrics.labelTruncates(title: title, scale: scale)
-        return LabelBoxWidthDriver(width: boxWidth, chipID: item.id) { liveWidth in ZStack(alignment: .leading) {
-            Text(title)
-                .font(.system(size: max(10, 12 * scale), weight: .medium, design: .rounded))
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .frame(width: truncates ? WindowTitleTextMetrics.maximumWidth(for: scale) : nil,
-                       alignment: .leading)
-                .fixedSize(horizontal: !truncates, vertical: false)
-                .id(title)
-                .transition(.asymmetric(
-                    insertion: .opacity
-                        .combined(with: .offset(x: -Self.labelInsertionOffset * scale))
-                        .animation(Self.labelInsertion),
-                    removal: .opacity.animation(Self.labelRemoval)
-                ))
-        }
-        // 只包住文字的换场；盒子的 `.frame(width:)` 在这层**之外**，拿的是任务条那条布局动画。
-        // 两段过渡各带自己的曲线，这一条只是让换场处于可动画的事务里。
-        .animation(Self.labelInsertion, value: title)
-        // 盒宽取驱动器每帧给的 `liveWidth`（理由见 `LabelBoxWidthDriver`）；邻卡位置随它逐帧重排。
-        .frame(width: liveWidth, alignment: .leading)
-        .clipped()
-        }
-        // 只驱动 `LabelBoxWidthDriver.animatableData`；曲线与面板底板共用 `LabelWidthAnimation`。
-        .animation(LabelWidthAnimation.swiftUI, value: boxWidth)
+        WindowChipTitleLabel(title: title, color: color, scale: scale, sizing: labelSizing, chipID: item.id)
     }
 
     // MARK: - Shared Icon

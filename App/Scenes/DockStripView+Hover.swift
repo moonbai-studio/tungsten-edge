@@ -18,7 +18,7 @@ extension DockStripView {
         // 这时候把悬停清掉、卡开始回落，两者就对不上了（owner 2026-08-19「上下残影」）。
         guard !dragController.hoverFrozen else { return }
         let resolved: String? = {
-            guard !isPanelHeightResizing else { return nil }
+            guard !isTaskbarLayoutChanging else { return nil }
             // 手里拎着东西时不判悬停，落地之后也**先按住、等指针真动了再判**。三个理由：
             // ① 拖动途中指针扫过谁就给谁点亮、还弹名字气泡，本来就不对；
             // ② 松手位置必然压在刚落定的那张卡上——载体画的是**非悬停**态，
@@ -102,7 +102,7 @@ extension DockStripView {
     ///
     /// 安静档不弹气泡（`hoverStyle.isExpressive`），与改造前的 `showsHover` 门槛一致。
     func bubbleRequest(projection: StripProjection) -> WindowTitleTooltipRequest? {
-        guard !isPanelHeightResizing, hoverStyle.isExpressive,
+        guard !isTaskbarLayoutChanging, hoverStyle.isExpressive,
               let id = hoveredEntryID,
               let anchor = hoveredAnchor,
               let entry = projection.entries.first(where: { $0.id == id }),

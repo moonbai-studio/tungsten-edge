@@ -1,14 +1,99 @@
 import Carbon.HIToolbox
 import Combine
+import SwiftUI
 import XCTest
 
 @MainActor
 final class SettingsCoordinatorTests: XCTestCase {
+    private struct WidthProbe: View {
+        @ObservedObject var store: AppSettingsStore
+        var body: some View {
+            WindowChipTitleLabel(title: String(repeating: "window title ", count: 20), color: .primary,
+                                 scale: 1, sizing: store.chipLabelSizing, chipID: "input-probe")
+        }
+    }
+
+    func testAllFiveWidthInputsCommitMeasuredFinalGeometryBeforeReturning() {
+        let store = makeStore()
+        let coordinator = makeCoordinator(store: store)
+        let session = TaskbarLayoutSession()
+        let presentation = PanelHeightResizePresentation()
+        let panel = NonConstrainingPanel(contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
+                                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let content = NSHostingView(rootView: WidthProbe(store: store)
+            .modifier(PanelHeightResizeModifier(presentation: presentation)))
+        let host = ManualPanelHost(contentView: content, in: panel)
+        defer { panel.close() }
+        host.layoutContent()
+        session.prepare = { presentation.kind = $0; host.layoutContent() }
+        session.commit = {
+            host.layoutContent()
+            XCTAssertEqual(host.fittingSize.width, store.windowLabelWidth.points)
+        }
+        session.release = { _ in presentation.kind = nil }
+        store.layoutChangeHandler = { session.change($0, mutation: $1) }
+        coordinator.layoutSessionBeginHandler = { session.begin($0) }
+        coordinator.layoutSessionEndHandler = { session.end(token: $0) }
+        coordinator.layoutSessionAcceptsHandler = { session.accepts($0, kind: $1) }
+
+        let token = coordinator.beginWindowLabelWidthEditing()
+        for width: CGFloat in [40, 100, 240] {
+            coordinator.setWindowLabelWidth(WindowLabelWidth(clamping: width), token: token)
+            XCTAssertEqual(host.fittingSize.width, width)
+        }
+        coordinator.endWindowLabelWidthEditing(token: token)
+
+        let slider = WindowLabelWidthSliderView()
+        slider.change = { coordinator.setWindowLabelWidth($0, token: $1) }
+        slider.doubleValue = 180
+        XCTAssertTrue(slider.sendAction(slider.action, to: slider.target))
+        XCTAssertEqual(host.fittingSize.width, 180)
+
+        let left = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: 0, context: nil, characters: "\u{f702}", charactersIgnoringModifiers: "\u{f702}",
+            isARepeat: false, keyCode: 123)!
+        slider.keyDown(with: left)
+        XCTAssertEqual(store.windowLabelWidth.points, 179)
+        XCTAssertEqual(host.fittingSize.width, store.windowLabelWidth.points)
+
+        coordinator.setFixedWindowLabelWidth(true)
+        XCTAssertTrue(store.fixedWindowLabelWidth)
+        XCTAssertEqual(host.fittingSize.width, store.windowLabelWidth.points)
+        coordinator.setWindowLabelWidth(.default)
+        XCTAssertEqual(host.fittingSize.width, 140)
+        XCTAssertTrue(store.fixedWindowLabelWidth)
+        XCTAssertNil(session.active)
+    }
+
+    func testCancelledWidthAndHeightCallbacksCannotMutateSuccessorSessions() {
+        let store = makeStore()
+        let coordinator = makeCoordinator(store: store)
+        let session = TaskbarLayoutSession()
+        coordinator.layoutSessionBeginHandler = { session.begin($0) }
+        coordinator.layoutSessionEndHandler = { session.end(token: $0) }
+        coordinator.layoutSessionAcceptsHandler = { session.accepts($0, kind: $1) }
+        let widthToken = coordinator.beginWindowLabelWidthEditing()
+        let heightToken = coordinator.beginTaskbarHeightEditing()
+        coordinator.setWindowLabelWidth(WindowLabelWidth(clamping: 240), token: widthToken)
+        coordinator.endWindowLabelWidthEditing(token: widthToken)
+        XCTAssertEqual(store.windowLabelWidth, .default)
+        XCTAssertEqual(session.active?.token, heightToken)
+        let nextWidthToken = coordinator.beginWindowLabelWidthEditing()
+        coordinator.setTaskbarHeight(DockPanelHeight(clamping: 120), token: heightToken)
+        coordinator.endTaskbarHeightEditing(token: heightToken)
+        XCTAssertEqual(store.dockPanelHeight, .default)
+        XCTAssertEqual(session.active?.token, nextWidthToken)
+        coordinator.endLayoutEditing()
+        coordinator.setWindowLabelWidth(WindowLabelWidth(clamping: 40), token: nextWidthToken)
+        XCTAssertEqual(store.windowLabelWidth, .default)
+        XCTAssertNil(session.active)
+    }
+
     func testTaskbarHeightCommitReadsTheNewHeightBeforeTheSetterReturns() {
         let store = makeStore()
         let coordinator = makeCoordinator(store: store)
         var committed: [DockPanelHeight] = []
-        coordinator.taskbarHeightUpdateHandler = { committed.append(store.dockPanelHeight) }
+        store.layoutChangeHandler = { _, mutation in mutation(); committed.append(store.dockPanelHeight) }
 
         let heights = [63, 32, 120, 54].map { DockPanelHeight(clamping: CGFloat($0)) }
         for (index, height) in heights.enumerated() {
@@ -22,7 +107,7 @@ final class SettingsCoordinatorTests: XCTestCase {
         let store = makeStore()
         let coordinator = makeCoordinator(store: store)
         var commits = 0
-        coordinator.taskbarHeightUpdateHandler = { commits += 1 }
+        store.layoutChangeHandler = { _, mutation in mutation(); commits += 1 }
 
         coordinator.setTaskbarHeight(store.dockPanelHeight)
         XCTAssertEqual(commits, 0)

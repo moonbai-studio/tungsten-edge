@@ -6,6 +6,46 @@ import XCTest
 let sampleDockHeights: [DockPanelHeight] = [40, 54, 80].map { DockPanelHeight(clamping: $0) }
 
 final class WindowTitleTooltipTests: XCTestCase {
+    func testDefaultLabelWidthPreservesLegacyRoundingAtEveryHeight() {
+        for height in 32...120 {
+            let scale = DockPanelHeight(clamping: CGFloat(height)).scale
+            for title in ["", "A", "Projects", String(repeating: "long title ", count: 20)] {
+                let intrinsic = WindowTitleTextMetrics.intrinsicWidth(of: title, scale: scale)
+                let legacy = ceil(min(intrinsic, 140 * scale))
+                XCTAssertEqual(ChipPillMetrics.labelWidth(title: title, scale: scale, sizing: .default), legacy)
+                XCTAssertEqual(ChipPillMetrics.width(title: title, scale: scale, sizing: .default), 48 * scale + legacy)
+            }
+        }
+    }
+
+    func testAdaptiveAndFixedLabelGeometryIncludesEmptyAndShortTitles() {
+        for height: CGFloat in [32, 40, 54, 63, 120] {
+            let scale = DockPanelHeight(clamping: height).scale
+            for width: CGFloat in [40, 140, 240] {
+                for fixed in [false, true] {
+                    let sizing = ChipLabelSizing(width: WindowLabelWidth(clamping: width), isFixed: fixed)
+                    for title in ["", "A", "Projects", String(repeating: "long title ", count: 20)] {
+                        let intrinsic = WindowTitleTextMetrics.intrinsicWidth(of: title, scale: scale)
+                        let expectedLabel = ceil(fixed ? width * scale : min(intrinsic, width * scale))
+                        XCTAssertEqual(ChipPillMetrics.labelWidth(title: title, scale: scale, sizing: sizing), expectedLabel)
+                        XCTAssertEqual(ChipPillMetrics.labelTruncates(title: title, scale: scale, sizing: sizing), intrinsic > width * scale)
+                        let pillWidth = 48 * scale + expectedLabel
+                        XCTAssertEqual(ChipPillMetrics.width(title: title, scale: scale, sizing: sizing), pillWidth)
+                        let card = CGRect(x: 10, y: 20, width: pillWidth + 8 * scale, height: 54 * scale)
+                        let pill = ChipPillMetrics.pillRect(inCard: card, title: title, scale: scale, sizing: sizing)
+                        XCTAssertEqual(pill.width, pillWidth)
+                        XCTAssertEqual(pill.midX, card.midX, accuracy: 0.00001)
+                        XCTAssertEqual(pill.minY, card.minY + 10 * scale, accuracy: 0.00001)
+                        XCTAssertEqual(pill.height, 34 * scale)
+                        let lift = ChipPillMetrics.quietHoverScale(forCardWidth: card.width, scale: scale)
+                        XCTAssertLessThanOrEqual(lift, 1.10)
+                        XCTAssertLessThanOrEqual((lift - 1) * card.width / 2, 3 * scale + 0.00001)
+                    }
+                }
+            }
+        }
+    }
+
     func testFontUsesRenderedSizeRules() {
         XCTAssertEqual(WindowTitleTextMetrics.font(scale: 0.5).pointSize, 10)
         XCTAssertEqual(WindowTitleTextMetrics.font(scale: 1).pointSize, 12)

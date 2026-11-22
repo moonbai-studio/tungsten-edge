@@ -1,5 +1,30 @@
 import CoreGraphics
 
+struct WindowLabelWidth: Equatable {
+    static let minimum: CGFloat = 40
+    static let maximum: CGFloat = 240
+    static let `default` = WindowLabelWidth(points: 140)
+    let points: CGFloat
+
+    init(clamping raw: CGFloat) {
+        points = raw.isFinite ? min(max(raw.rounded(), Self.minimum), Self.maximum) : Self.default.points
+    }
+
+    private init(points: CGFloat) { self.points = points }
+
+    func scaled(by scale: CGFloat) -> CGFloat { points * scale }
+}
+
+struct ChipLabelSizing: Equatable {
+    let width: WindowLabelWidth
+    let isFixed: Bool
+    static let `default` = ChipLabelSizing(width: .default, isFixed: false)
+}
+
+enum TaskbarLayoutKind: Equatable {
+    case height, labelWidth
+}
+
 /// Taskbar height as the user dragged it: whole points, clamped to `minimum...maximum`.
 ///
 /// Every scaled size multiplies `scale`, which is normalised to `native` (the real Dock's

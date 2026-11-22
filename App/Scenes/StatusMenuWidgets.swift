@@ -293,12 +293,14 @@ final class PreferenceSliderMenuItemView: NSView {
 }
 
 /// Taskbar height row: Small — slider — Large. Live while the mouse is down: every whole point
-/// goes out through `onHeightChange`, bracketed by `onEditingChanged` so the bars resize inside
+/// goes out through `onHeightChange`, bracketed by a token so the bars resize inside
 /// one height-resize transaction (`size-tiers.md`).
 @MainActor
 final class TaskbarSizeMenuItemView: NSView {
-    var onEditingChanged: ((Bool) -> Void)?
-    var onHeightChange: ((DockPanelHeight) -> Void)?
+    var onEditingBegan: (() -> UInt64?)?
+    var onEditingEnded: ((UInt64?) -> Void)?
+    var onHeightChange: ((DockPanelHeight, UInt64?) -> Void)?
+    private var sessionToken: UInt64?
 
     private let smallLabel = NSTextField(labelWithString: String(localized: "Small"))
     private let largeLabel = NSTextField(labelWithString: String(localized: "Large"))
@@ -321,8 +323,11 @@ final class TaskbarSizeMenuItemView: NSView {
         slider.isContinuous = true
         slider.target = self
         slider.action = #selector(sliderChanged)
-        slider.onTrackingStarted = { [weak self] in self?.onEditingChanged?(true) }
-        slider.onTrackingEnded = { [weak self] in self?.onEditingChanged?(false) }
+        slider.onTrackingStarted = { [weak self] in self?.sessionToken = self?.onEditingBegan?() }
+        slider.onTrackingEnded = { [weak self] in
+            self?.finishEditing()
+            self?.sessionToken = nil
+        }
         slider.setAccessibilityLabel(accessibilityTitle)
         addSubview(slider)
         sync(height: .default)
@@ -344,6 +349,11 @@ final class TaskbarSizeMenuItemView: NSView {
         slider.displayString = "\(Int(height.points))"
     }
 
+    func finishEditing() {
+        // Keep the token until mouse tracking returns: late ticks must still be rejected.
+        onEditingEnded?(sessionToken)
+    }
+
     override func layout() {
         super.layout()
         let contentX = StatusMenuLayout.textInsetX
@@ -362,7 +372,7 @@ final class TaskbarSizeMenuItemView: NSView {
     @objc private func sliderChanged(_ sender: NSSlider) {
         let height = DockPanelHeight(clamping: CGFloat(sender.doubleValue))
         slider.displayString = "\(Int(height.points))"
-        onHeightChange?(height)
+        onHeightChange?(height, sessionToken)
     }
 }
 

@@ -596,11 +596,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         runtime.onToggleDrawer = { [weak coordinator] in coordinator?.toggleDrawer() }
         // Menu height slider ↔ every bar's grip-drag transaction. Weak: the orchestrator is
         // dropped on permission loss.
-        settingsCoordinator.taskbarHeightSessionHandler = { [weak coordinator] editing in
-            coordinator?.setSettingsHeightSessionActive(editing)
+        settingsCoordinator.layoutSessionBeginHandler = { [weak coordinator] kind in
+            coordinator?.beginLayoutSession(kind) ?? 0
         }
-        settingsCoordinator.taskbarHeightUpdateHandler = { [weak coordinator] in
-            coordinator?.commitSettingsPanelHeight()
+        settingsCoordinator.layoutSessionEndHandler = { [weak coordinator] token in
+            coordinator?.endLayoutSession(token: token)
+        }
+        settingsCoordinator.layoutSessionAcceptsHandler = { [weak coordinator] token, kind in
+            coordinator?.layoutSession.accepts(token, kind: kind) == true
         }
         coordinator.onAddFolder = { [weak self] in self?.presentAddPinnedFolderPanel() }
         // 右键任务条 / 胶囊弹钨极菜单。走到这里说明已授权且不是临时副本，

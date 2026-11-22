@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - Drawer Capsule Button
 
 struct DrawerCapsuleButton: View {
-    @Environment(\.isPanelHeightResizing) private var isPanelHeightResizing
+    @Environment(\.isTaskbarLayoutChanging) private var isTaskbarLayoutChanging
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var keptAppStore: KeptAppStore
@@ -78,7 +78,7 @@ struct DrawerCapsuleButton: View {
     private var showsDropFeedback: Bool { dragController.isOverStashZone || isAppDropTargeted }
 
     /// While a card is dragged, hover gives way to the drop feedback (the drag wins).
-    private var hoverEnabled: Bool { !isPanelHeightResizing && dragController.draggingPayload == nil }
+    private var hoverEnabled: Bool { !isTaskbarLayoutChanging && dragController.draggingPayload == nil }
 
     var body: some View {
         let ids = memberIDs

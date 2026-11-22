@@ -225,9 +225,6 @@ struct SettingsWindowContent: View {
     /// Bottom padding for a pane that ends with its form.
     private static let afterFormMargin = paneMargin - systemFormMargin
 
-    // 「高级」= 需要额外能力、默认就对、基本不用碰的开关。单独一页不是为了藏，
-    // 而是让常用页只留日常会调的东西；真想拒绝这个能力的人找得到（owner 2026-08-09，
-    // 2026-08-24 分页时 owner 确认保留「高级」这一页）。
     @ViewBuilder
     private var advancedPane: some View {
         if #available(macOS 13.0, *) {
@@ -239,12 +236,34 @@ struct SettingsWindowContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                Section {
+                    fixedWindowLabelWidthToggle
+                        .toggleStyle(.switch)
+                    windowLabelWidthControls
+                } header: {
+                    Text("Customization")
+                }
             }
             .padding(.bottom, Self.afterFormMargin)
         } else {
             settingsPane {
                 settingRow(note: fullscreenIntentNote) {
                     fullscreenIntentToggle
+                }
+                settingsSection("Customization") {
+                    settingsGroup {
+                        groupRow {
+                            Text("Fixed window label width")
+                        } control: {
+                            fixedWindowLabelWidthToggle
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                                .labelsHidden()
+                        }
+                        Divider().opacity(0.5)
+                        windowLabelWidthControls
+                            .padding(.vertical, 11)
+                    }
                 }
             }
             .padding(Self.paneMargin)
@@ -259,6 +278,31 @@ struct SettingsWindowContent: View {
                 set: store.setFullscreenIntentEnabled
             )
         )
+    }
+
+    private var fixedWindowLabelWidthToggle: some View {
+        Toggle("Fixed window label width", isOn: binding(
+            get: { store.fixedWindowLabelWidth },
+            set: coordinator.setFixedWindowLabelWidth))
+    }
+
+    private var windowLabelWidthControls: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Window label width")
+                Spacer(minLength: 8)
+                Button("Reset") { coordinator.setWindowLabelWidth(.default) }
+                    .controlSize(.small)
+                    .disabled(store.windowLabelWidth == .default)
+            }
+            HStack(spacing: 8) {
+                Text("Narrow").font(.caption).fixedSize()
+                WindowLabelWidthSlider(width: store.windowLabelWidth, coordinator: coordinator)
+                    .frame(minWidth: 80, maxWidth: .infinity)
+                    .frame(height: 26)
+                Text("Wide").font(.caption).fixedSize()
+            }
+        }
     }
 
     private var fullscreenIntentNote: String {

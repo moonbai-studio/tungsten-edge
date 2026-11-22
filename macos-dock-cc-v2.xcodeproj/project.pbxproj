@@ -115,6 +115,8 @@
 		C20000000000000000000004 /* RunningApplicationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000009510 /* RunningApplicationStore.swift */; };
 		D20000000000000000000001 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000001 /* SettingsWindowController.swift */; };
 		D20000000000000000000002 /* SettingsWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000002 /* SettingsWindowView.swift */; };
+		B12200000000000000000002 /* WindowLabelWidthSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B12200000000000000000001 /* WindowLabelWidthSlider.swift */; };
+		B12200000000000000000003 /* WindowLabelWidthSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B12200000000000000000001 /* WindowLabelWidthSlider.swift */; };
 		D20000000000000000000003 /* SettingsCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000003 /* SettingsCoordinator.swift */; };
 		D20000000000000000000004 /* AutoHideToggleMenuModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000004 /* AutoHideToggleMenuModel.swift */; };
 		D20000000000000000000006 /* AccessoryWindowPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000006 /* AccessoryWindowPresentation.swift */; };
@@ -650,6 +652,7 @@
 		C20000000000000000000011 /* RunningStateSweepDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningStateSweepDecisionTests.swift; sourceTree = "<group>"; };
 		D10000000000000000000001 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		D10000000000000000000002 /* SettingsWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowView.swift; sourceTree = "<group>"; };
+		B12200000000000000000001 /* WindowLabelWidthSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowLabelWidthSlider.swift; sourceTree = "<group>"; };
 		D10000000000000000000003 /* SettingsCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsCoordinator.swift; sourceTree = "<group>"; };
 		D10000000000000000000004 /* AutoHideToggleMenuModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoHideToggleMenuModel.swift; sourceTree = "<group>"; };
 		D10000000000000000000006 /* AccessoryWindowPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryWindowPresentation.swift; sourceTree = "<group>"; };
@@ -1130,6 +1133,7 @@
 				F2A0000000000000000000A0 /* SettingsTab.swift */,
 				D1A000000000000000000012 /* StripProjectionRegistry.swift */,
 				D10000000000000000000002 /* SettingsWindowView.swift */,
+				B12200000000000000000001 /* WindowLabelWidthSlider.swift */,
 				A00000000000000000000067 /* DockStripView.swift */,
 				A00000000000000000009D00 /* WindowTitleTooltip.swift */,
 				B71000000000000000000003 /* ScreenRectReader.swift */,
@@ -1812,6 +1816,7 @@
 					A00000000000000000001040 /* AppDelegate.swift in Sources */,
 					D20000000000000000000001 /* SettingsWindowController.swift in Sources */,
 					D20000000000000000000002 /* SettingsWindowView.swift in Sources */,
+					B12200000000000000000002 /* WindowLabelWidthSlider.swift in Sources */,
 					D20000000000000000000003 /* SettingsCoordinator.swift in Sources */,
 					B78000000000000000000011 /* LicenseStore.swift in Sources */,
 					D20000000000000000000004 /* AutoHideToggleMenuModel.swift in Sources */,
@@ -2297,6 +2302,7 @@
 					A00000000000000000000C102 /* ScheduledUpdatePresentation.swift in Sources */,
 					A00000000000000000006012 /* DragController.swift in Sources */,
 					A00000000000000000009752 /* NonConstrainingPanel.swift in Sources */,
+					B12200000000000000000003 /* WindowLabelWidthSlider.swift in Sources */,
 					A00000000000000000009711 /* DragConversionPlanTests.swift in Sources */,
 					A00000000000000000000A111 /* MessagingZoneAdmissionTests.swift in Sources */,
 					A00000000000000000000D111 /* MessagingMainWindowDecisionTests.swift in Sources */,

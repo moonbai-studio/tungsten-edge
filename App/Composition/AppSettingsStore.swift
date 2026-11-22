@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftUI
 
 /// App-wide appearance (settings window → General → Appearance). The bar, capsule, drawer, bubble,
 /// menus, settings and guide windows all follow it; the stack popups stay dark either way.
@@ -109,6 +110,13 @@ final class AppSettingsStore: ObservableObject {
     @Published private(set) var frontWindowBar: Bool
     /// 任务条尺寸档位。面板几何与条内所有 chip 尺寸都由它派生。
     @Published private(set) var dockPanelHeight: DockPanelHeight
+    @Published private(set) var windowLabelWidth: WindowLabelWidth
+    @Published private(set) var fixedWindowLabelWidth: Bool
+    var chipLabelSizing: ChipLabelSizing {
+        ChipLabelSizing(width: windowLabelWidth, isFixed: fixedWindowLabelWidth)
+    }
+    // The host brackets publication, not a later Combine delivery, so local animations cannot start.
+    var layoutChangeHandler: ((TaskbarLayoutKind, () -> Void) -> Void)?
     /// 悬停效果档位。只影响条内 chip 的悬停视觉，静息布局逐像素不变（因此无需 relayout）。
     @Published private(set) var hoverStyle: HoverStyle
     /// 最大化窗口避让任务条（菜单「最大化窗口避开任务条」）。
@@ -230,6 +238,10 @@ final class AppSettingsStore: ObservableObject {
         // never written or removed, so a rollback still finds it). Corrupt values fall back to
         // the native height and are rewritten immediately, like every other key here.
         dockPanelHeight = Self.storedDockPanelHeight(defaults: defaults)
+        windowLabelWidth = WindowLabelWidth(clamping: CGFloat(
+            DefaultsValueParsing.finiteNumericValue(defaults.object(forKey: Keys.windowLabelWidth))
+                ?? Double(WindowLabelWidth.default.points)))
+        fixedWindowLabelWidth = defaults.bool(forKey: Keys.fixedWindowLabelWidth)
         hoverStyle = HoverStyle(rawValue: defaults.string(forKey: Keys.hoverStyle) ?? "") ?? .default
         let nativeDelay = Self.sanitizedStoredDelay(
             defaults.object(forKey: Keys.nativeDockAutoHideDelay),
@@ -269,8 +281,35 @@ final class AppSettingsStore: ObservableObject {
     /// whole points, so a tick that changes nothing never reaches the publisher or the disk).
     func setDockPanelHeight(_ value: DockPanelHeight) {
         guard dockPanelHeight != value else { return }
-        dockPanelHeight = value
-        defaults.set(Double(value.points), forKey: Keys.dockPanelHeight)
+        changeLayout(.height) {
+            dockPanelHeight = value
+            defaults.set(Double(value.points), forKey: Keys.dockPanelHeight)
+        }
+    }
+
+    func setWindowLabelWidth(_ value: WindowLabelWidth) {
+        guard windowLabelWidth != value else { return }
+        changeLayout(.labelWidth) {
+            windowLabelWidth = value
+            defaults.set(Double(value.points), forKey: Keys.windowLabelWidth)
+        }
+    }
+
+    func setFixedWindowLabelWidth(_ value: Bool) {
+        guard fixedWindowLabelWidth != value else { return }
+        changeLayout(.labelWidth) {
+            fixedWindowLabelWidth = value
+            defaults.set(value, forKey: Keys.fixedWindowLabelWidth)
+        }
+    }
+
+    private func changeLayout(_ kind: TaskbarLayoutKind, mutation: () -> Void) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if let layoutChangeHandler { layoutChangeHandler(kind, mutation) }
+            else { mutation() }
+        }
     }
 
     /// 只应由 `SettingsCoordinator.applyEdgeToggleShortcut` 在**注册成功后**调用（见属性注释）。
@@ -554,6 +593,8 @@ private enum Keys {
     static let frontWindowBar = "com.tungsten.edge.frontWindowBar"
     /// Continuous bar height in points (since the drag-to-resize release).
     static let dockPanelHeight = "com.tungsten.edge.dockPanelHeight"
+    static let windowLabelWidth = "com.tungsten.edge.windowLabelWidth.points"
+    static let fixedWindowLabelWidth = "com.tungsten.edge.windowLabelWidth.fixed"
     /// Legacy four-tier raw string. **Read once for migration, never written or removed.**
     static let dockSize = "com.tungsten.edge.dockSize"
     static let hoverStyle = "com.tungsten.edge.hoverStyle"

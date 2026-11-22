@@ -2,6 +2,25 @@ import CoreGraphics
 import XCTest
 
 final class PanelGeometryTests: XCTestCase {
+    func testWindowLabelWidthClampsRoundsAndRejectsNonFiniteValues() {
+        for (raw, expected): (CGFloat, CGFloat) in [(-1, 40), (39.9, 40), (40, 40),
+            (139.49, 139), (139.5, 140), (240, 240), (240.8, 240), (999, 240),
+            (.nan, 140), (.infinity, 140), (-.infinity, 140)] {
+            XCTAssertEqual(WindowLabelWidth(clamping: raw).points, expected)
+        }
+        XCTAssertEqual(ChipLabelSizing.default.width.points, 140)
+        XCTAssertFalse(ChipLabelSizing.default.isFixed)
+    }
+
+    func testWindowLabelWidthScalesWithoutPrematureRounding() {
+        for height in stride(from: 32, through: 120, by: 1) {
+            let scale = DockPanelHeight(clamping: CGFloat(height)).scale
+            for width: CGFloat in [40, 140, 240] {
+                XCTAssertEqual(WindowLabelWidth(clamping: width).scaled(by: scale), width * scale)
+            }
+        }
+    }
+
     private let metrics = PanelLayoutMetrics.tungstenEdge
 
     func testBottomDockVisibleFrameChangeDoesNotMoveBottomPanelsVertically() {

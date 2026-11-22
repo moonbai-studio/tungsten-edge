@@ -57,6 +57,9 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     private var fullscreenIntentEnabledSubscription: AnyCancellable?
     private var fullscreenIntentMonitor: FullscreenIntentMonitor?
     private var perDisplaySeedController: TaskbarPerDisplaySeedController?
+    let layoutSession = TaskbarLayoutSession()
+    private weak var layoutWakeUnit: PanelCoordinator?
+    private weak var heightResizeOrigin: PanelCoordinator?
 
     // MARK: 鼠标移动监视器（从 PanelCoordinator 抬上来，逐字保留语义）
     private var hoverLocalMouseMonitor: Any?
@@ -124,10 +127,32 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
         super.init()
         dragHost.owner = self
         wireDragController()
+        layoutSession.prepare = { [weak self] kind in
+            self?.units.forEach { $0.coordinator.beginLayoutChange(kind) }
+        }
+        layoutSession.commit = { [weak self] in
+            self?.units.forEach { $0.coordinator.commitLayoutChange() }
+        }
+        layoutSession.release = { [weak self] kind in
+            guard let self else { return }
+            self.layoutWakeUnit?.setAutoHideInhibitor(
+                kind == .height ? .interactiveResize : .interactiveLabelWidth, active: false)
+            self.layoutWakeUnit = nil
+            self.units.forEach { $0.coordinator.endLayoutChange() }
+            let origin = self.heightResizeOrigin
+            self.heightResizeOrigin = nil
+            origin?.cancelInteractiveResize()
+        }
+        settingsStore.layoutChangeHandler = { [weak self] kind, mutation in
+            guard let self, !self.isSuspended else { mutation(); return }
+            // Only interactive drag sessions hold a wake inhibitor; single-shot commits skip waking a hidden bar.
+            self.layoutSession.change(kind, mutation: mutation)
+        }
     }
 
     deinit {
         MainActor.assumeIsolated {
+            layoutSession.end()
             perDisplaySeedController?.cancel()
             removeHoverMouseMonitorsOnly()
         }
@@ -195,8 +220,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     func suspendAndRelease() {
         guard !isSuspended else { return }
         isSuspended = true
-        cancelInteractiveHeightResize()
-        setSettingsHeightSessionActive(false)
+        endLayoutSession()
         // 先回滚未提交的跨面板拖拽事务，再拆监视器；常驻的载体面板也要显式收掉。
         dragController.cancelDrag()
         dragController.closeCarrierSurfaces()
@@ -229,7 +253,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
     /// 按当前设置与屏集合建 / 拆单元。目标 key 列表没变就什么都不做（幂等，可在任何通知里调）。
     private func rebuildUnits(reason: String, connectedKeys: [String]) {
         guard started, !isSuspended else { return }
-        cancelInteractiveHeightResize()
+        endLayoutSession()
         let desired = TaskbarDisplaySet.desiredUnitKeys(
             placement: settingsStore.taskbarScreenPlacement,
             connectedKeys: connectedKeys
@@ -281,65 +305,40 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
         coordinator.onAccessoryWillOpen = { [weak self] unit, kind in
             self?.closeAccessories(exceptFor: unit, opening: kind)
         }
-        coordinator.onInteractiveHeightResizeSession = { [weak self, weak coordinator] active in
-            guard let self else { return }
-            self.heightResizeOrigin = active ? coordinator : nil
-            self.units.forEach { $0.coordinator.setInteractiveHeightResizeActive(active) }
+        coordinator.onInteractiveHeightResizeBegin = { [weak self, weak coordinator] in
+            guard let self else { return 0 }
+            let token = self.beginLayoutSession(.height, origin: coordinator)
+            self.heightResizeOrigin = coordinator
+            return token
         }
+        coordinator.onInteractiveHeightResizeEnd = { [weak self] token in self?.endLayoutSession(token: token) }
+        coordinator.onLayoutSessionEnd = { [weak self] in self?.endLayoutSession() }
         coordinator.start()
         coordinator.setFullscreenIntentRouting(enabled: fullscreenIntentMonitor != nil)
-        // A unit created mid-drag (topology change is cancelled first, but a placement change
-        // is not) joins the session instead of animating its way through every tick.
-        if heightResizeOrigin != nil || settingsHeightSessionActive {
-            coordinator.setInteractiveHeightResizeActive(true)
-        }
-        coordinator.onInteractiveHeightResizeUpdate = { [weak self] in
-            self?.units.forEach { $0.coordinator.commitInteractivePanelHeight() }
+        coordinator.onInteractiveHeightResizeUpdate = { [weak self] token, height in
+            guard let self, self.layoutSession.accepts(token, kind: .height) else { return }
+            self.settingsStore.setDockPanelHeight(height)
         }
         return Unit(key: key, coordinator: coordinator)
     }
 
-    // MARK: - 高度拖动会话
+    // MARK: - Shared layout sessions
 
-    /// The unit whose grip is being dragged; nil = no drag. Set from the unit's own callback so
-    /// a topology change, unit rebuild or suspension can end the drag through that unit (which
-    /// pops the grip's cursor) before the units are torn down.
-    private weak var heightResizeOrigin: PanelCoordinator?
-
-    private func cancelInteractiveHeightResize() {
-        heightResizeOrigin?.cancelInteractiveResize()
-        heightResizeOrigin = nil
+    @discardableResult
+    func beginLayoutSession(_ kind: TaskbarLayoutKind, origin: PanelCoordinator? = nil) -> UInt64 {
+        let token = layoutSession.begin(kind)
+        let settingsScreen = kind == .labelWidth ? NSApp.keyWindow?.screen : nil
+        let index = TaskbarLayoutSession.wakeUnitIndex(
+            screenFrames: units.map { $0.coordinator.currentScreen?.frame },
+            settingsScreen: settingsScreen?.frame, pointer: NSEvent.mouseLocation)
+        let wakeUnit = origin ?? index.map { units[$0].coordinator }
+        layoutWakeUnit = wakeUnit
+        wakeUnit?.setAutoHideInhibitor(kind == .height ? .interactiveResize : .interactiveLabelWidth, active: true)
+        return token
     }
 
-    /// The status menu's height slider is being dragged (`true`) or released (`false`).
-    /// Every unit joins the same transaction as a grip drag — animations off, hover suppressed,
-    /// one batched commit per tick — instead of tearing down and relaying out on every point.
-    /// The wake inhibitor goes on the unit under the pointer only (the screen showing the
-    /// menu): an inhibitor also wakes a hidden bar, and the other screens' bars
-    /// still pick up the height through the batched commit without being woken.
-    private var settingsHeightSessionActive = false
-    private weak var settingsHeightSessionWakeUnit: PanelCoordinator?
-
-    func setSettingsHeightSessionActive(_ active: Bool) {
-        guard settingsHeightSessionActive != active else { return }
-        if !active { commitSettingsPanelHeight() }
-        settingsHeightSessionActive = active
-        if active {
-            cancelInteractiveHeightResize()
-            let wakeUnit = (unitContainingMouse() ?? units.first)?.coordinator
-            settingsHeightSessionWakeUnit = wakeUnit
-            units.forEach { $0.coordinator.setInteractiveHeightResizeActive(true) }
-            wakeUnit?.setAutoHideInhibitor(.interactiveResize, active: true)
-        } else {
-            settingsHeightSessionWakeUnit?.setAutoHideInhibitor(.interactiveResize, active: false)
-            settingsHeightSessionWakeUnit = nil
-            units.forEach { $0.coordinator.setInteractiveHeightResizeActive(false) }
-        }
-    }
-
-    func commitSettingsPanelHeight() {
-        guard settingsHeightSessionActive, heightResizeOrigin == nil else { return }
-        units.forEach { $0.coordinator.commitInteractivePanelHeight() }
+    func endLayoutSession(token: UInt64? = nil) {
+        layoutSession.end(token: token)
     }
 
     private func unitContainingMouse() -> Unit? {
@@ -357,7 +356,7 @@ final class TaskbarScreenOrchestrator: NSObject, WindowLiftAvoidanceHost {
 
     @objc private func screenParametersChanged() {
         dragController.cancelDrag()   // 切屏/分辨率变 → 取消进行中的跨面板拖动，免得载体留在旧屏坐标
-        cancelInteractiveHeightResize()   // same for a height drag: its start point is in old screen coordinates
+        endLayoutSession()
         // One ordered snapshot feeds the shared display table, the seed decision and the unit set in
         // turn — never re-read NSScreen in between.
         // With no seed controller the screen handling still runs to completion: the controller owns

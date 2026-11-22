@@ -61,8 +61,9 @@ final class SettingsCoordinator: ObservableObject {
     /// 闭包注入：monitor 归 AppDelegate 持有，临时副本（DMG）根本没有它。
     private let hotKeyRegistrar: (GlobalHotKeyShortcut) -> GlobalHotKeyMonitor.RegistrationStatus
     /// Injected by AppDelegate while the taskbar runs; both callbacks capture it weakly.
-    var taskbarHeightSessionHandler: ((Bool) -> Void)?
-    var taskbarHeightUpdateHandler: (() -> Void)?
+    var layoutSessionBeginHandler: ((TaskbarLayoutKind) -> UInt64)?
+    var layoutSessionEndHandler: ((UInt64?) -> Void)?
+    var layoutSessionAcceptsHandler: ((UInt64, TaskbarLayoutKind) -> Bool)?
     private var updateServiceSubscription: AnyCancellable?
     private var launchRefreshGeneration: UInt64 = 0
     private var nativeDockRefreshGeneration: UInt64 = 0
@@ -104,17 +105,39 @@ final class SettingsCoordinator: ObservableObject {
 
     // MARK: Taskbar height
 
-    func setTaskbarHeightEditing(_ editing: Bool) {
-        taskbarHeightSessionHandler?(editing)
+    func beginTaskbarHeightEditing() -> UInt64? {
+        layoutSessionBeginHandler?(.height)
     }
 
-    func setTaskbarHeight(_ height: DockPanelHeight) {
+    func endTaskbarHeightEditing(token: UInt64?) {
+        guard let token else { return }
+        layoutSessionEndHandler?(token)
+    }
+
+    func setTaskbarHeight(_ height: DockPanelHeight, token: UInt64? = nil) {
+        if let token,
+           layoutSessionAcceptsHandler?(token, .height) == false { return }
         guard store.dockPanelHeight != height else { return }
         store.setDockPanelHeight(height)
-        // Published emits before assignment. Commit after the setter returns so every
-        // hosting root and panel reads the new height in this same input event.
-        taskbarHeightUpdateHandler?()
     }
+
+    func beginWindowLabelWidthEditing() -> UInt64? {
+        layoutSessionBeginHandler?(.labelWidth)
+    }
+
+    func endWindowLabelWidthEditing(token: UInt64?) {
+        guard let token else { return }
+        layoutSessionEndHandler?(token)
+    }
+
+    func endLayoutEditing() { layoutSessionEndHandler?(nil) }
+
+    func setWindowLabelWidth(_ width: WindowLabelWidth, token: UInt64? = nil) {
+        if let token, layoutSessionAcceptsHandler?(token, .labelWidth) == false { return }
+        store.setWindowLabelWidth(width)
+    }
+
+    func setFixedWindowLabelWidth(_ fixed: Bool) { store.setFixedWindowLabelWidth(fixed) }
 
     // MARK: 登录项
 

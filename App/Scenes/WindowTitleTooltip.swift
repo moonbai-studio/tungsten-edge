@@ -2,6 +2,75 @@ import AppKit
 import os
 import SwiftUI
 
+private struct LabelBoxWidthDriver<Content: View>: View, Animatable {
+    var width: CGFloat
+    let chipID: String
+    @ViewBuilder let content: (CGFloat) -> Content
+    @Environment(\.labelBoxWidthTick) private var tick
+    var animatableData: CGFloat {
+        get { width }
+        set { width = newValue }
+    }
+    var body: some View {
+        // The label and panel frames share this SwiftUI clock; no separate frame interpolation.
+        let _ = tick(chipID, width)
+        let _ = HoverTrace.width("boxA:" + String(chipID.suffix(4)), width)
+        content(width)
+    }
+}
+
+/// Snapshots have no panel to follow, so the environment callback defaults to a no-op.
+struct LabelBoxWidthTickKey: EnvironmentKey {
+    static let defaultValue: (String, CGFloat) -> Void = { _, _ in }
+}
+
+extension EnvironmentValues {
+    var labelBoxWidthTick: (String, CGFloat) -> Void {
+        get { self[LabelBoxWidthTickKey.self] }
+        set { self[LabelBoxWidthTickKey.self] = newValue }
+    }
+}
+
+struct WindowChipTitleLabel: View {
+    let title: String
+    let color: Color
+    let scale: CGFloat
+    let sizing: ChipLabelSizing
+    let chipID: String
+    @Environment(\.layoutAnimationResetToken) private var animationResetToken
+    private static let labelRemoval: Animation = .easeOut(duration: 0.16)
+    private static let labelInsertion: Animation = .easeOut(duration: 0.34).delay(0.14)
+    private static let labelInsertionOffset: CGFloat = 3
+
+    var body: some View {
+        let boxWidth = ChipPillMetrics.labelWidth(title: title, scale: scale, sizing: sizing)
+        let truncates = ChipPillMetrics.labelTruncates(title: title, scale: scale, sizing: sizing)
+        return LabelBoxWidthDriver(width: boxWidth, chipID: chipID) { liveWidth in ZStack(alignment: .leading) {
+            Text(title)
+                .font(.system(size: max(10, 12 * scale), weight: .medium, design: .rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .frame(width: truncates ? sizing.width.scaled(by: scale) : nil,
+                       alignment: .leading)
+                .fixedSize(horizontal: !truncates, vertical: false)
+                .id(title)
+                .transition(.asymmetric(
+                    insertion: .opacity
+                        .combined(with: .offset(x: sizing.isFixed ? 0 : -Self.labelInsertionOffset * scale))
+                        .animation(Self.labelInsertion),
+                    removal: .opacity.animation(Self.labelRemoval)
+                ))
+        }
+        // Text transitions stay independent of the outer box's width animation.
+        .animation(Self.labelInsertion, value: title)
+        .frame(width: liveWidth, alignment: .leading)
+        .clipped()
+        }
+        .animation(LabelWidthAnimation.swiftUI, value: boxWidth)
+        .id(animationResetToken)
+    }
+}
+
 /// 条内**药丸里那行窗口标题**的度量。只服务药丸的排版——它撑多宽、最多多宽。
 ///
 /// 2026-08-17 删掉了 `isTruncated` / `needsTooltip` / `truncationTolerance`：那套是给
@@ -15,7 +84,7 @@ import SwiftUI
 enum WindowTitleTextMetrics {
     /// 条内标题的最大宽度（中档基线）。任务条缩放后一律走 `maximumWidth(for:)`，
     /// 别在调用点另写一份字面值——两处各走各的曾经让药丸和判定对不上。
-    static let maximumWidth: CGFloat = 140
+    static let maximumWidth = WindowLabelWidth.default.points
 
     static func maximumWidth(for scale: CGFloat) -> CGFloat { maximumWidth * scale }
 
@@ -204,24 +273,26 @@ enum ChipPillMetrics {
     /// `ChipView.multiWindowChip` 用它给标签一个**显式**宽度，而不是让 `Text` 自己撑——
     /// 标签变长变短时这个宽度随任务条布局动画插值，文字本身按身份换、不在中间宽度上重排。
     /// 也因此渲染出来的药丸宽度与下面 `width(title:scale:)` 逐 pt 一致。
-    static func labelWidth(title: String, scale: CGFloat) -> CGFloat {
-        ceil(min(
+    static func labelWidth(title: String, scale: CGFloat, sizing: ChipLabelSizing = .default) -> CGFloat {
+        let limit = sizing.width.scaled(by: scale)
+        if sizing.isFixed { return ceil(limit) }
+        return ceil(min(
             WindowTitleTextMetrics.intrinsicWidth(of: title, scale: scale),
-            WindowTitleTextMetrics.maximumWidth(for: scale)
+            limit
         ))
     }
 
     /// 标题是否超过上限、需要截断。超过时 `Text` 拿到的是上限宽度并自己加省略号；
     /// 没超过时 `Text` 按自然宽度画（不给它定宽——SwiftUI 量出的文字宽可能比 AppKit 多零点几 pt，
     /// 定宽会把最后一个字吞成省略号）。
-    static func labelTruncates(title: String, scale: CGFloat) -> Bool {
+    static func labelTruncates(title: String, scale: CGFloat, sizing: ChipLabelSizing = .default) -> Bool {
         WindowTitleTextMetrics.intrinsicWidth(of: title, scale: scale)
-            > WindowTitleTextMetrics.maximumWidth(for: scale)
+            > sizing.width.scaled(by: scale)
     }
 
     /// 药丸宽度 = 左右内边距 + 图标槽 + 间距 + 标签盒宽度。
-    static func width(title: String, scale: CGFloat) -> CGFloat {
-        (2 * horizontalPadding + iconSlot + iconSpacing) * scale + labelWidth(title: title, scale: scale)
+    static func width(title: String, scale: CGFloat, sizing: ChipLabelSizing = .default) -> CGFloat {
+        (2 * horizontalPadding + iconSlot + iconSpacing) * scale + labelWidth(title: title, scale: scale, sizing: sizing)
     }
 
     /// 由稳定的卡片屏幕矩形推出药丸屏幕矩形（macOS 屏幕坐标 y 向上）。
@@ -229,11 +300,12 @@ enum ChipPillMetrics {
     static func pillRect(
         inCard card: CGRect,
         title: String,
-        scale: CGFloat
+        scale: CGFloat,
+        sizing: ChipLabelSizing = .default
     ) -> CGRect {
         let pillHeight = height(scale: scale)
         let topY = card.maxY - boxTopInset * scale
-        let pillWidth = width(title: title, scale: scale)
+        let pillWidth = width(title: title, scale: scale, sizing: sizing)
         return CGRect(
             x: card.midX - pillWidth / 2,
             y: topY - pillHeight,

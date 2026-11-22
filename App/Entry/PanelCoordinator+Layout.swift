@@ -46,17 +46,17 @@ extension PanelCoordinator {
     /// 条宽任何时候都等于此刻渲染内容的宽度，收纳松手时条已经是窄的，胶囊 / 抽屉不再在飞行途中滑动。
     /// 写法同 store 订阅（先 receive(on:) 再 async 一轮，让 SwiftUI 先按新投影布局，`fittingSize` 才是新宽度）。
     func subscribeStripSlotCollapse() {
-        stripSlotCollapseSubscription = dragController.$stripSlotCollapsed
+        stripSlotCollapseSubscription = heightResizePresentation.deferredChanges(from: dragController.$stripSlotCollapsed
             .removeDuplicates()
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
+            .dropFirst())
             .sink { [weak self] _ in
                 guard let self else { return }
                 // 换档事务里 cancelDrag() 也会走到这里排队一次带动画的布局；用代次吞掉它，
                 // 否则会先按新 metrics 动画一次、再被事务的无动画布局跳一次。
-                let generation = self.panelHeightChangeGeneration
+                let generation = self.heightResizePresentation.generation
                 DispatchQueue.main.async { [weak self] in
-                    guard let self, generation == self.panelHeightChangeGeneration else { return }
+                    guard let self, !self.layoutChangeActive,
+                          generation == self.heightResizePresentation.generation else { return }
                     self.relayout(animated: true)
                 }
             }
@@ -156,6 +156,17 @@ extension PanelCoordinator {
             .sink { [weak self] _ in
                 self?.beginPanelHeightChange()
             }
+        labelSizingSubscription = heightResizePresentation.deferredChanges(from:
+            Publishers.Merge(
+                settingsStore.$windowLabelWidth.removeDuplicates().dropFirst().map { _ in () },
+                settingsStore.$fixedWindowLabelWidth.removeDuplicates().dropFirst().map { _ in () }
+            ))
+            .sink { [weak self] in
+                guard let self else { return }
+                self.beginLayoutChange(.labelWidth)
+                self.commitLayoutChange()
+                self.endLayoutChange()
+            }
     }
 
     /// A height change is a **transaction**, not a content change: panel height, capsule width
@@ -176,16 +187,13 @@ extension PanelCoordinator {
     /// the Equatable `WindowLiftAvoidanceContext`, so the controller's existing restore → re-lift
     /// path runs on its own (frozen during a drag, see `liftContextPanelHeightOverride`).
     func beginPanelHeightChange() {
-        tearDownForPanelHeightChange()
-        let generation = panelHeightChangeGeneration
-        DispatchQueue.main.async { [weak self] in
-            guard let self, generation == self.panelHeightChangeGeneration else { return }
-            self.relayout(animated: false)
-        }
+        beginLayoutChange(.height)
+        commitLayoutChange()
+        endLayoutChange()
     }
 
     func tearDownForPanelHeightChange() {
-        panelHeightChangeGeneration &+= 1
+        heightResizePresentation.invalidateQueuedLayouts()
         cancelLabelWidthFollow()
         dragController.cancelDrag()
         dismissWindowTitleTooltip()
@@ -200,28 +208,38 @@ extension PanelCoordinator {
     /// (`beginInteractiveResize`) because an inhibitor also clears an existing auto-hide and
     /// would wake bars other screens had hidden.
     func setInteractiveHeightResizeActive(_ active: Bool) {
-        guard interactiveHeightResizeActive != active else { return }
-        interactiveHeightResizeActive = active
-        heightResizePresentation.isActive = active
-        if active {
-            liftContextPanelHeightOverride = layoutMetrics.panelHeight
-            tearDownForPanelHeightChange()
-            settleRunningFrameAnimation()
-            relayout(animated: false, batched: true)
-        } else {
-            liftContextPanelHeightOverride = nil
-            relayout(animated: false)
-        }
+        if active { beginLayoutChange(.height) }
+        else { commitLayoutChange(); endLayoutChange() }
+    }
+
+    func beginLayoutChange(_ kind: TaskbarLayoutKind) {
+        guard heightResizePresentation.kind != kind else { return }
+        heightResizePresentation.kind = kind
+        if kind == .height { liftContextPanelHeightOverride = layoutMetrics.panelHeight }
+        tearDownForPanelHeightChange()
+        settleRunningFrameAnimation()
+        commitLayoutChange()
+    }
+
+    func endLayoutChange() {
+        if heightResizePresentation.kind == .height { liftContextPanelHeightOverride = nil }
+        heightResizePresentation.kind = nil
+    }
+
+    func commitLayoutChange() {
+        guard layoutChangeActive else { return }
+        heightResizePresentation.invalidateQueuedLayouts()
+        relayout(animated: false, batched: true)
     }
 
     /// Grip mouse-down on this unit's bar.
     func beginInteractiveResize(pointer: CGPoint) {
         guard interactiveResize == nil else { return }
+        interactiveResizeToken = onInteractiveHeightResizeBegin?()
         interactiveResize = DockHeightDragSession(startHeight: settingsStore.dockPanelHeight.points,
                                                   startPointerY: pointer.y)
         showResizeCursor(at: pointer)
         setAutoHideInhibitor(.interactiveResize, active: true)
-        onInteractiveHeightResizeSession?(true)
         // No orchestrator (tests, tools): still behave as a one-unit session.
         if !interactiveHeightResizeActive { setInteractiveHeightResizeActive(true) }
     }
@@ -234,26 +252,25 @@ extension PanelCoordinator {
         showResizeCursor(at: pointer)
         let target = session.height(forPointerY: pointer.y)
         guard target != settingsStore.dockPanelHeight else { return }
-        settingsStore.setDockPanelHeight(target)
-        if let onInteractiveHeightResizeUpdate {
-            onInteractiveHeightResizeUpdate()
+        if let onInteractiveHeightResizeUpdate, let token = interactiveResizeToken {
+            onInteractiveHeightResizeUpdate(token, target)
         } else {
+            settingsStore.setDockPanelHeight(target)
             commitInteractivePanelHeight()
         }
     }
 
     func commitInteractivePanelHeight() {
-        guard interactiveHeightResizeActive else { return }
-        panelHeightChangeGeneration &+= 1
-        relayout(animated: false, batched: true)
+        commitLayoutChange()
     }
 
     func endInteractiveResize() {
         guard interactiveResize != nil else { return }
         interactiveResize = nil
-        setAutoHideInhibitor(.interactiveResize, active: false)
-        onInteractiveHeightResizeSession?(false)
+        if let token = interactiveResizeToken { onInteractiveHeightResizeEnd?(token) }
+        interactiveResizeToken = nil
         if interactiveHeightResizeActive { setInteractiveHeightResizeActive(false) }
+        setAutoHideInhibitor(.interactiveResize, active: false)
     }
 
     /// End a drag from outside the view tree (topology change, unit rebuild, suspension). Goes
@@ -306,7 +323,7 @@ extension PanelCoordinator {
         // First frame is instant (no slide from the initial position); so is every frame while a
         // height drag is active anywhere — the dozen `relayout(animated: true)` callers need no
         // per-site gate.
-        let anim = animated && didInitialLayout && !interactiveHeightResizeActive
+        let anim = animated && didInitialLayout && !layoutChangeActive
         didInitialLayout = true
         onPanelScreenChanged?()
 
@@ -356,7 +373,7 @@ extension PanelCoordinator {
     func relayout(animated: Bool, batched: Bool = false) {
         guard let panel = dockPanel, let hosting = dockContentHost else { return }
         let spanStart = HoverTrace.now(); defer { HoverTrace.span("relayout", since: spanStart) }
-        if interactiveHeightResizeActive {
+        if layoutChangeActive {
             panel.disableScreenUpdatesUntilFlush()
             dockGlassBackgroundPanel?.disableScreenUpdatesUntilFlush()
             capsulePanel?.disableScreenUpdatesUntilFlush()
@@ -376,8 +393,8 @@ extension PanelCoordinator {
         // 跨面板转正进行中 → 任务条宽度钳在拖动前的值（窗口卡溢出/留空而非改变面板宽度，owner 2026-06-22）；
         // 松手/还原解钳后，下一次 relayout 用真实测量值把任务条变到最终长度。
         layoutPanels(contentWidth: measured, on: panelCurrentScreen(panel: panel), animated: animated,
-                     batched: batched || interactiveHeightResizeActive)
-        if interactiveHeightResizeActive {
+                     batched: batched || layoutChangeActive)
+        if layoutChangeActive {
             panel.layoutIfNeeded()
             capsulePanel?.layoutIfNeeded()
             hosting.layoutContent()
@@ -444,7 +461,7 @@ extension PanelCoordinator {
     /// 条内标签变长变短了（`DockStripView.onLabelWidthChange`，在 SwiftUI 那一轮更新里同步调用）。
     /// `starting` = 这次开始动的标签盒的起始宽。跟随窗已开着时只补登记新盒子，起步宽不重量。
     func beginLabelWidthFollow(starting: [String: CGFloat]) {
-        guard !interactiveHeightResizeActive else { return }   // the drag owns the panel frames
+        guard !layoutChangeActive else { return }
         let now = CACurrentMediaTime()
         if !isLabelFollowActive {
             labelFollowRestWidth = lastDesiredWidth
@@ -484,7 +501,7 @@ extension PanelCoordinator {
     /// `LabelBoxWidthDriver` 每帧上报：只认跟随窗里登记过的盒子；卡增减那条窗口动画还在飞时不抢。
     /// `batched`：三面板 `display: false`，和本帧的 SwiftUI 内容一起提交。
     func labelBoxWidthDidTick(chipID: String, width: CGFloat) {
-        guard !interactiveHeightResizeActive else { return }
+        guard !layoutChangeActive else { return }
         guard isLabelFollowActive, labelBoxStart[chipID] != nil, labelBoxLive[chipID] != width else { return }
         labelBoxLive[chipID] = width
         guard CACurrentMediaTime() >= animatedFramesUntil, let panel = dockPanel else { return }

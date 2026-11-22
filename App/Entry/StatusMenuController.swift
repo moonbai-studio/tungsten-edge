@@ -221,11 +221,14 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         taskbarSizeSectionItem.attributedTitle = Self.sectionTitle(String(localized: "Taskbar Size"))
         taskbarSizeSectionItem.isEnabled = false
         menu.addItem(taskbarSizeSectionItem)
-        taskbarSizeSliderView.onEditingChanged = { [weak self] editing in
-            self?.settingsCoordinator.setTaskbarHeightEditing(editing)
+        taskbarSizeSliderView.onEditingBegan = { [weak self] in
+            self?.settingsCoordinator.beginTaskbarHeightEditing()
         }
-        taskbarSizeSliderView.onHeightChange = { [weak self] height in
-            self?.settingsCoordinator.setTaskbarHeight(height)
+        taskbarSizeSliderView.onEditingEnded = { [weak self] token in
+            self?.settingsCoordinator.endTaskbarHeightEditing(token: token)
+        }
+        taskbarSizeSliderView.onHeightChange = { [weak self] height, token in
+            self?.settingsCoordinator.setTaskbarHeight(height, token: token)
         }
         let taskbarSizeItem = NSMenuItem()
         taskbarSizeItem.view = taskbarSizeSliderView
@@ -334,7 +337,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         isMenuOpen = false
         isPresentedFromTaskbar = false
         // A menu dismissed mid-drag must not leave the bars in the resize transaction.
-        settingsCoordinator.setTaskbarHeightEditing(false)
+        taskbarSizeSliderView.finishEditing()
         onMenuVisibilityChanged(false)
         // 关闭后再预热一次；所有结果只进缓存，供下次展示直接使用。
         refreshSystemTruth()

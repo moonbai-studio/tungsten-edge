@@ -168,6 +168,7 @@ enum EdgeAutoHideInhibitor: Hashable {
     /// inhibitor also clears an existing auto-hide, so putting it on every unit would wake
     /// bars that other screens had hidden.
     case interactiveResize
+    case interactiveLabelWidth
 }
 
 struct PanelVisibilityState: Equatable {

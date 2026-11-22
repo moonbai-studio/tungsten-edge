@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct DockStripView: View {
-    @Environment(\.isPanelHeightResizing) var isPanelHeightResizing
+    @Environment(\.isTaskbarLayoutChanging) var isTaskbarLayoutChanging
     @EnvironmentObject var runtime: AppRuntime
     @EnvironmentObject var drawerStore: DrawerStore
     @EnvironmentObject var messagingStore: MessagingAppStore
@@ -251,8 +251,8 @@ struct DockStripView: View {
                     var starting: [String: CGFloat] = [:]
                     for id in titled {
                         guard let new = newTitles[id], let old = renderedLabelTitles[id], new != old else { continue }
-                        let from = ChipPillMetrics.labelWidth(title: old, scale: dockScale)
-                        if from != ChipPillMetrics.labelWidth(title: new, scale: dockScale) { starting[id] = from }
+                        let from = ChipPillMetrics.labelWidth(title: old, scale: dockScale, sizing: settingsStore.chipLabelSizing)
+                        if from != ChipPillMetrics.labelWidth(title: new, scale: dockScale, sizing: settingsStore.chipLabelSizing) { starting[id] = from }
                     }
                     renderedLabelTitles = newTitles
                     if !starting.isEmpty { onLabelWidthChange(starting) }
@@ -443,7 +443,7 @@ struct DockStripView: View {
         .onChange(of: dragController.hoverGate) { _ in
             refreshHoveredEntry(frames: stripHoverFrames, origin: stripRootScreenRect)
         }
-        .onChange(of: isPanelHeightResizing) { _ in
+        .onChange(of: isTaskbarLayoutChanging) { _ in
             refreshHoveredEntry(frames: stripHoverFrames, origin: stripRootScreenRect)
         }
         // 拖动中消息 chip 的 app 从消息区消失（退出/外部 unmark/快照丢）→ 取消拖动，免得空位卡死。
@@ -1340,6 +1340,7 @@ struct DockStripView: View {
             ChipView(item: item,
                      labelTitle: projection.labelTitleByChipID[item.id] ?? item.title,
                      scale: dockScale,
+                     labelSizing: settingsStore.chipLabelSizing,
                      hoverStyle: hoverStyle,
                      isHovered: hovered,
                      // 只有 app-* 兜底卡（访达常驻 / 保留兜底）代表整个应用；普通窗口卡不列。
@@ -1409,7 +1410,7 @@ struct DockStripView: View {
                     // 定宽图标行，运行点标记它是 app 入口。
                     // 消息区这张永远 `iconOnly`、不显示文字，标签给原始标题即可（`.help` 仍走 `fullTitle`）。
                     ChipView(item: main, labelTitle: main.title,
-                             scale: dockScale, hoverStyle: hoverStyle,
+                             scale: dockScale, labelSizing: settingsStore.chipLabelSizing, hoverStyle: hoverStyle,
                              isHovered: hovered,
                              // 消息区图标恒代表整个应用（主窗开着也一样），列出全部窗口。
                              showsWindowListInMenu: true,

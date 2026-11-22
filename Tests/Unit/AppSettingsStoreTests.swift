@@ -1,8 +1,62 @@
 import AppKit
+import Combine
 import XCTest
 
 @MainActor
 final class AppSettingsStoreTests: XCTestCase {
+    func testWindowLabelSizingDefaultsAndPersistence() {
+        let defaults = makeDefaults()
+        defaults.set("large", forKey: "com.tungsten.edge.dockSize")
+        let store = AppSettingsStore(defaults: defaults)
+        XCTAssertEqual(store.chipLabelSizing, .default)
+        store.setWindowLabelWidth(WindowLabelWidth(clamping: 213.6))
+        store.setFixedWindowLabelWidth(true)
+        let reloaded = AppSettingsStore(defaults: defaults)
+        XCTAssertEqual(reloaded.windowLabelWidth.points, 214)
+        XCTAssertTrue(reloaded.fixedWindowLabelWidth)
+        store.setWindowLabelWidth(.default)
+        XCTAssertTrue(store.fixedWindowLabelWidth)
+        XCTAssertEqual(defaults.double(forKey: "com.tungsten.edge.windowLabelWidth.points"), 140)
+        store.setFixedWindowLabelWidth(false)
+        XCTAssertEqual(AppSettingsStore(defaults: defaults).chipLabelSizing, .default)
+    }
+
+    func testStoredWindowLabelWidthRejectsInvalidTypesAndClampsNumericValues() {
+        let key = "com.tungsten.edge.windowLabelWidth.points"
+        for invalid: Any in [true, "200", Double.nan, Double.infinity, -Double.infinity] {
+            let defaults = makeDefaults()
+            defaults.set(invalid, forKey: key)
+            XCTAssertEqual(AppSettingsStore(defaults: defaults).windowLabelWidth, .default)
+        }
+        for (raw, expected) in [(-10.0, 40.0), (80.5, 81), (500, 240)] {
+            let defaults = makeDefaults()
+            defaults.set(raw, forKey: key)
+            XCTAssertEqual(AppSettingsStore(defaults: defaults).windowLabelWidth.points, expected)
+        }
+    }
+
+    func testLayoutHandlerBracketsPublicationAndUnchangedSizingIsSilent() {
+        let store = AppSettingsStore(defaults: makeDefaults())
+        var prepared = false
+        var commits = 0
+        store.layoutChangeHandler = { kind, mutation in
+            XCTAssertEqual(kind, .labelWidth)
+            prepared = true
+            mutation()
+            commits += 1
+            prepared = false
+        }
+        let widthSubscription = store.$windowLabelWidth.dropFirst().sink { _ in XCTAssertTrue(prepared) }
+        let fixedSubscription = store.$fixedWindowLabelWidth.dropFirst().sink { _ in XCTAssertTrue(prepared) }
+        defer { widthSubscription.cancel(); fixedSubscription.cancel() }
+        store.setWindowLabelWidth(.default)
+        store.setFixedWindowLabelWidth(false)
+        XCTAssertEqual(commits, 0)
+        store.setWindowLabelWidth(WindowLabelWidth(clamping: 40))
+        store.setFixedWindowLabelWidth(true)
+        XCTAssertEqual(commits, 2)
+    }
+
     func testTrashDefaultsIgnoreLegacyKeyAndPersistIndependently() {
         let defaults = makeDefaults()
         defaults.set(false, forKey: "com.tungsten.edge.trash.visible")
@@ -860,7 +914,7 @@ final class AppSettingsStoreTests: XCTestCase {
     func testTaskbarSizeSliderSpansTheHeightRangeAndReportsWholePoints() {
         let view = TaskbarSizeMenuItemView(accessibilityTitle: "Taskbar Size")
         var heights: [DockPanelHeight] = []
-        view.onHeightChange = { heights.append($0) }
+        view.onHeightChange = { height, _ in heights.append(height) }
         guard let slider = view.subviews.compactMap({ $0 as? NSSlider }).first else {
             return XCTFail("the row must hold a slider")
         }

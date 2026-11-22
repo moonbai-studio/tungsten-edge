@@ -2,23 +2,104 @@ import AppKit
 import Combine
 import SwiftUI
 
-/// Shared by the two hosting roots of one taskbar; a resize must not inherit chip animations.
+/// One owner for all layout inputs. Tokens survive cancellation so old event callbacks stay inert.
+@MainActor
+final class TaskbarLayoutSession {
+    static func wakeUnitIndex(screenFrames: [CGRect?], settingsScreen: CGRect?, pointer: CGPoint) -> Int? {
+        if screenFrames.count == 1 { return 0 }
+        if let settingsScreen, let index = screenFrames.firstIndex(where: { $0 == settingsScreen }) { return index }
+        return screenFrames.firstIndex(where: { $0?.contains(pointer) == true })
+            ?? (screenFrames.isEmpty ? nil : 0)
+    }
+
+    struct Session: Equatable {
+        let token: UInt64
+        let kind: TaskbarLayoutKind
+    }
+
+    private(set) var active: Session?
+    private var nextToken: UInt64 = 0
+    var prepare: (TaskbarLayoutKind) -> Void = { _ in }
+    var commit: () -> Void = {}
+    var release: (TaskbarLayoutKind) -> Void = { _ in }
+
+    @discardableResult
+    func begin(_ kind: TaskbarLayoutKind) -> UInt64 {
+        end()
+        nextToken += 1
+        active = Session(token: nextToken, kind: kind)
+        withoutAnimations { prepare(kind) }
+        return nextToken
+    }
+
+    func accepts(_ token: UInt64, kind: TaskbarLayoutKind) -> Bool {
+        active == Session(token: token, kind: kind)
+    }
+
+    func change(_ kind: TaskbarLayoutKind, mutation: () -> Void) {
+        let isShort = active?.kind != kind
+        if isShort { begin(kind) }
+        withoutAnimations {
+            mutation()
+            commit()
+        }
+        if isShort { end() }
+    }
+
+    func end(token: UInt64? = nil) {
+        guard let session = active, token == nil || token == session.token else { return }
+        withoutAnimations { commit() }
+        active = nil
+        withoutAnimations { release(session.kind) }
+    }
+
+    private func withoutAnimations(_ body: () -> Void) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction, body)
+    }
+}
+
+/// Shared by both hosting roots. Only height sessions freeze icon rendering and window lift.
 @MainActor
 final class PanelHeightResizePresentation: ObservableObject {
-    @Published var isActive = false
+    @Published var kind: TaskbarLayoutKind? {
+        didSet {
+            if kind != oldValue {
+                invalidateQueuedLayouts()
+                if kind != nil { animationResetToken &+= 1 }
+            }
+        }
+    }
+    @Published private(set) var animationResetToken: UInt64 = 0
+    private(set) var generation: UInt64 = 0
+    var isActive: Bool {
+        get { kind != nil }
+        set { kind = newValue ? .height : nil }
+    }
+
+    func invalidateQueuedLayouts() { generation &+= 1 }
+
+    func deferredChanges<P: Publisher>(from publisher: P) -> AnyPublisher<P.Output, Never>
+    where P.Failure == Never {
+        publisher
+            .filter { [weak self] _ in self?.isActive == false }
+            .map { [weak self] value in (value, self?.generation) }
+            .receive(on: DispatchQueue.main)
+            .filter { [weak self] _, generation in
+                guard let self else { return false }
+                return !self.isActive && generation == self.generation
+            }
+            .map(\.0)
+            .eraseToAnyPublisher()
+    }
 
     func nonInteractiveHeightChanges(
         from heights: Published<DockPanelHeight>.Publisher
     ) -> AnyPublisher<DockPanelHeight, Never> {
-        heights
+        deferredChanges(from: heights
             .removeDuplicates()
-            .dropFirst()
-            // Reject at publication, before a queued delivery can outlive the drag.
-            .filter { [weak self] _ in self?.isActive == false }
-            .receive(on: DispatchQueue.main)
-            // A new drag may have started while an ordinary change was queued.
-            .filter { [weak self] _ in self?.isActive == false }
-            .eraseToAnyPublisher()
+            .dropFirst())
     }
 }
 
@@ -26,7 +107,23 @@ private struct PanelHeightResizingKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct TaskbarLayoutChangingKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct LayoutAnimationResetTokenKey: EnvironmentKey {
+    static let defaultValue: UInt64 = 0
+}
+
 extension EnvironmentValues {
+    var layoutAnimationResetToken: UInt64 {
+        get { self[LayoutAnimationResetTokenKey.self] }
+        set { self[LayoutAnimationResetTokenKey.self] = newValue }
+    }
+    var isTaskbarLayoutChanging: Bool {
+        get { self[TaskbarLayoutChangingKey.self] }
+        set { self[TaskbarLayoutChangingKey.self] = newValue }
+    }
     var isPanelHeightResizing: Bool {
         get { self[PanelHeightResizingKey.self] }
         set { self[PanelHeightResizingKey.self] = newValue }
@@ -38,7 +135,10 @@ struct PanelHeightResizeModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .environment(\.isPanelHeightResizing, presentation.isActive)
+            .environment(\.isPanelHeightResizing, presentation.kind == .height)
+            .environment(\.isTaskbarLayoutChanging, presentation.isActive)
+            // A same-target update cannot cancel an already interpolating Animatable view.
+            .environment(\.layoutAnimationResetToken, presentation.animationResetToken)
             .transaction { transaction in
                 if presentation.isActive {
                     transaction.animation = nil
