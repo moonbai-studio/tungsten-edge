@@ -408,6 +408,51 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         })
     }
 
+    func testIntelliJMergeAcrossDisplaysRemovesOnlyTheMergedButtonDuringReconciliation() throws {
+        let tracker = AppTracker(eventAXAsyncEnabled: true)
+        let otherID: CGWindowID = 88
+        let owner = makeSnapshot(cgWindowID: cgWindowID, titleRead: .value("Project A"))
+        let other = makeSnapshot(cgWindowID: otherID, titleRead: .value("Project B"),
+                                 bounds: CGRect(x: 1920, y: 30, width: 1920, height: 1011))
+        tracker.installFixtureForTesting(makeApp(seatToken: "original-owner", bundleID: "com.jetbrains.intellij"))
+        reconcile(tracker, eligible: [owner, other])
+        let before = try XCTUnwrap(tracker.fixtureAppForTesting(pid: pid))
+        XCTAssertEqual(before.windowOrder.count, 2)
+        let oldToken = try XCTUnwrap(before.windowsByID[cgWindowID]?.token)
+        let cg = AppTrackerCGWindowSnapshot(
+            allWindowIDs: [cgWindowID, otherID], onScreenWindowIDs: [cgWindowID],
+            windowIDsByPID: [pid: [cgWindowID, otherID]], alphaByWindowID: [:],
+            boundsByWindowID: [otherID: try XCTUnwrap(other.bounds)]
+        )
+        func update(nativeTabs: [String]) {
+            let read = AXWindowReadResult.success([owner])
+                .checkingNativeTabs(previous: before.intelliJMergeCandidates) { _ in nativeTabs }
+            tracker.reconcileFixtureForTesting(pid: pid, cgSnapshot: cg, now: Date(),
+                                               eligible: read.windowsOrEmpty, readOutcome: .success(count: 1))
+        }
+        update(nativeTabs: ["Project A", "Unrelated"])
+        XCTAssertEqual(tracker.fixtureAppForTesting(pid: pid)?.windowOrder.count, 2)
+        update(nativeTabs: ["Project A", "Project B"])
+        let after = try XCTUnwrap(tracker.fixtureAppForTesting(pid: pid))
+        XCTAssertEqual(after.windowOrder, [cgWindowID])
+        XCTAssertEqual(after.windowsByID[cgWindowID]?.token, oldToken)
+        XCTAssertEqual(after.windowsByID[cgWindowID]?.formerCgIDs, [otherID])
+        tracker.rebuildSnapshotForTesting(onScreenCGIDs: [cgWindowID])
+        XCTAssertEqual(Set(tracker.snapshot.windows.keys), [WindowID(rawValue: "cgw-\(cgWindowID)")])
+    }
+
+    func testAmbiguousOrMissingTitlesDoNotIdentifyAMergedWindow() {
+        let owner = makeSnapshot(cgWindowID: cgWindowID, titleRead: .value("Project A"))
+        let read = AXWindowReadResult.success([owner])
+        let candidates: [CGWindowID: String] = [cgWindowID: "Project A", 88: "Project B", 99: "Project B"]
+        let ambiguous = read.checkingNativeTabs(previous: candidates) { _ in ["Project A", "Project B"] }
+        XCTAssertEqual(ambiguous.windowsOrEmpty.first?.mergedTabIDs, [])
+        let unrelated = read.checkingNativeTabs(previous: [cgWindowID: "Project A", 88: "Project B"]) { _ in
+            ["Project B", "Project C"]
+        }
+        XCTAssertEqual(unrelated.windowsOrEmpty.first?.mergedTabIDs, [])
+    }
+
     func testUnidentifiedSnapshotDoesNotReleaseCGPresentSeat() {
         let tracker = AppTracker(eventAXAsyncEnabled: true)
         tracker.installFixtureForTesting(makeApp())
@@ -913,7 +958,8 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         minAbsentSince: Date? = nil,
         episodeID: UUID? = nil,
         shadowIDs: Set<CGWindowID> = [],
-        seatToken: String? = nil
+        seatToken: String? = nil,
+        bundleID: String = "com.example.fixture"
     ) -> AppEntry {
         let seat = WindowEntry(
             cgWindowID: cgWindowID,
@@ -928,7 +974,7 @@ final class AppTrackerReadSemanticsTests: XCTestCase {
         )
         return AppEntry(
             pid: pid,
-            bundleIdentifier: "com.example.fixture",
+            bundleIdentifier: bundleID,
             appName: "Fixture",
             activationPolicy: .regular,
             executablePath: "/Applications/Fixture.app",
